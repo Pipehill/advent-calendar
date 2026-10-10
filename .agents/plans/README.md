@@ -9,4 +9,5 @@ Update status and progress in the same file as the work proceeds.
 | Plan | Status | Scope |
 | --- | --- | --- |
 | [00001: Technology stack and architecture](00001-technology-architecture.md) | Implemented | Complete architecture with diagrams, implementation rules under .agents/rules, and nontechnical product requirements in the root README. |
-| [00002: Code quality before commits and PR merges](00002-code-quality-checks.md) | Not implemented | Tooling added; PR success verified, failure/artifact and CI comment verification pending. Staged local checks, full PR validation, generated local QA evidence, CI report comments, check-only fixes, main guard, repository checks, specialist report analysis, and owner-managed merge settings. |
+| [00002: Code quality before commits and PR merges](00002-code-quality-checks.md) | Implemented | Staged local checks, full PR validation, generated local QA evidence, CI report comments, check-only fixes, main guard, repository checks, and specialist report analysis. Merge settings remain an owner-managed follow-up. |
+| [00003: Developer setup and doctor scripts](00003-developer-setup-doctor.md) | Not implemented | Cross-platform onboarding, automatic installation of missing tools, environment diagnostics, and maintenance when local prerequisites change. Implementation type: QA. |
