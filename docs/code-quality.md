@@ -188,6 +188,12 @@ commit and a link to the run/artifacts. The publisher runs after successful or
 failed checks; missing reports are shown as incomplete rather than successful.
 Outdated PR heads do not overwrite the current comment. Oversized reports are
 truncated in the comment; complete reports remain in artifacts.
+The comment header links the checked commit. Overall code quality summarizes the
+setup and check outcomes; separate status lines identify quality-tool preparation
+and lint/repository checks. Only successful steps receive green indicators;
+failed, skipped, cancelled or missing outcomes receive red indicators.
+MegaLinter's OX Security banner and repository-star appeal are omitted from the
+comment; the complete report in artifacts is preserved.
 Flavor suggestions are disabled with `FLAVOR_SUGGESTIONS: false`. The Additional
 repository checks section is hidden when the custom report confirms all checks
 passed; diagnostics and missing reports remain visible.

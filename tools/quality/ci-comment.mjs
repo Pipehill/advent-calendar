@@ -9,19 +9,33 @@ function clip(text) {
   return text.length > 12000 ? `${text.slice(0, 12000)}\n\nReport truncated; see run artifacts.` : text;
 }
 
+function cleanMegaReport(report) {
+  const banner = /^\[!\[MegaLinter is provided by OX Security\]\([^)]*\/ox-banner\.png\)\]\([^)]*\)$/;
+  const support = /^Show us your support by \[\*\*starring ⭐ the repository\*\*\]\(https:\/\/github\.com\/oxsecurity\/megalinter\)$/;
+  return report.split(/\r?\n/).filter(line => !banner.test(line.trim()) && !support.test(line.trim())).join('\n').trim();
+}
+
+function stepStatus(outcome) {
+  const labels = { success: 'Passed', failure: 'Failed', skipped: 'Skipped', cancelled: 'Cancelled' };
+  return `${outcome === 'success' ? '✅' : '❌'} ${labels[outcome] || 'Incomplete'}`;
+}
+
 export function buildComment({ revision, runUrl, setupOutcome, checkOutcome, megaReport, summary }) {
   const passed = setupOutcome === 'success' && checkOutcome === 'success';
+  const commitUrl = `${runUrl.split('/actions/runs/')[0]}/commit/${revision}`;
+  const report = cleanMegaReport(megaReport || '');
   const custom = clip(summary || 'No additional-check report was produced.');
   const fence = '`'.repeat(Math.max(3, ...Array.from(custom.matchAll(/`+/g), match => match[0].length + 1)));
   const additionalChecks = summary?.trim() === 'All applicable checks passed.' ? [] : [
     '### Additional repository checks', '', fence, custom, fence, '',
   ];
   const body = [
-    commentMarker, '## Code quality', '',
-    passed ? '✅ **Passed**' : '❌ **Failed or incomplete**', '',
-    `Commit: ${revision}`, `[CI run and report artifacts](${runUrl})`, '',
-    `Setup: ${setupOutcome}. Checks: ${checkOutcome}.`, '',
-    clip(megaReport || 'No MegaLinter report was produced. See the CI run for execution errors.'), '',
+    commentMarker, `## Code Quality - HEAD [${revision.slice(0, 7)}](${commitUrl})`, '',
+    `Overall code quality: ${passed ? '✅ **Passed**' : '❌ **Failed or incomplete**'}`, '',
+    `[CI run and report artifacts](${runUrl})`, '',
+    `- ${stepStatus(setupOutcome)} — **Quality tool setup**`,
+    `- ${stepStatus(checkOutcome)} — **Lint and repository checks**`, '',
+    clip(report || 'No MegaLinter report was produced. See the CI run for execution errors.'), '',
     ...additionalChecks,
   ].join('\n');
   // GitHub limits comment bodies; retain a link to the complete reports if truncated.
