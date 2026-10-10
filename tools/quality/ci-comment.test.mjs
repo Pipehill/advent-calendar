@@ -37,7 +37,7 @@ test('large Unicode reports remain within the comment byte limit', () => {
 test('the header links the short commit and step outcomes identify what ran', () => {
   const revision = 'd165ac6ab11f70d73be3244a39633c57175f9acc';
   const body = buildComment({ ...context, revision });
-  assert(body.startsWith(`${commentMarker}\n## Code Quality - head commit: [d165ac6]`
+  assert(body.startsWith(`${commentMarker}\n## Code Quality - HEAD [d165ac6]`
     + `(https://github.com/owner/repo/commit/${revision})\n`));
   assert(!body.includes('Commit:'));
   assert(body.includes('Overall code quality: ✅ **Passed**'));
