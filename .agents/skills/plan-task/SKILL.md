@@ -1,12 +1,14 @@
 ---
 name: plan-task
-description: Plan a new project task when the user says they want to start a new task. Check Git state, synchronize main, clarify task type and requirements, create a task branch, and write an implementation plan. Does not implement the task or apply merely because the user is creating or editing this skill.
+description: Plan a new project task or refine an existing task plan. For a new task, check Git state, synchronize main, clarify task type and requirements, create a task branch, and write an implementation plan. Record outstanding questions and confirmed decisions as clarification progresses. Does not implement the task or apply merely because the user is creating or editing this skill.
 ---
 
 # Plan a task
 
-Follow these steps in order. Use the repository's existing Git tooling; the
-workflow must not depend on a particular model, harness, or editor.
+For a new task, follow these steps in order. Use the repository's existing Git
+tooling; the workflow must not depend on a particular model, harness, or editor.
+When refining an existing plan, update it in its current task branch and follow
+the clarification and plan-writing instructions without restarting branch setup.
 
 ## 1. Check the working tree and branch
 
@@ -53,8 +55,20 @@ done so. Inspect relevant repository files to understand existing behavior.
 
 Ask focused follow-up questions about any unclear requirements, scope, expected
 behavior, acceptance criteria, or implementation choices needed for the plan.
-Continue asking until all outstanding questions are resolved. Wait for actual
-answers; silence or elapsed time is not an answer.
+Record unanswered questions in the plan's `Outstanding questions` section,
+including proposed options without presenting them as agreed choices. A draft
+plan may be written while clarification is ongoing; clearly report that it still
+has outstanding questions. Continue clarification until the questions needed
+for the task are answered or explicitly deferred by the user.
+
+If the user requests questions one at a time, ask one question and wait for its
+answer before asking the next. After each answer, update the plan before
+continuing: remove the resolved question from `Outstanding questions`, record
+the decision under the relevant implementation details, and adjust requirements
+and verification steps if needed. If the answer is incomplete, keep the question
+open and ask a focused follow-up. Record explicit deferrals and their destination
+under implementation details. Wait for actual answers; silence or elapsed time
+is not an answer.
 
 Do not invent requirements, choose unspecified solutions, or fill gaps with
 assumptions. If the repository does not establish a technical choice the plan
@@ -82,16 +96,24 @@ for both human and agent readers. Use this order:
 
 1. A short task title.
 2. `Status: Not implemented`.
-3. A brief overview of the task.
-4. A list of concrete, verifiable requirements.
-5. A detailed implementation description: affected files or components,
+3. `Last updated: YYYY-MM-DD`, using the current date in the user's timezone.
+4. A brief overview of the task.
+5. A list of concrete, verifiable requirements.
+6. An `Outstanding questions` section listing unresolved choices, or stating
+   `None` when all questions have been answered or explicitly deferred.
+7. A detailed implementation description: affected files or components,
    required changes, agreed implementation choices, dependencies, and work order.
-6. Verification steps tied to the requirements.
+8. Verification steps tied to the requirements.
+
+Update `Last updated` whenever the plan is edited, including changes to its
+requirements, implementation steps, progress, or status.
 
 Include enough detail for someone to implement the task without reconstructing
 the conversation. Keep requirements separate from implementation steps. Record
-only clarified decisions and repository facts. If writing the plan reveals a
-new uncertainty, return to clarification before presenting it as complete.
+only clarified decisions and repository facts as requirements and implementation
+choices. If writing or reviewing the plan reveals a new uncertainty, add it to
+`Outstanding questions` and return to clarification before presenting the plan
+as fully clarified.
 
 Keep the status `Not implemented` until the task has been implemented and verified;
 then change it to `Implemented`. Track intermediate progress in the work steps.
