@@ -68,9 +68,19 @@ when changing those boundaries; those files own their respective instructions.
 
 ## Versions and diagnostics
 
+- Always pin GitHub Actions workflow dependencies to immutable SHAs. Repository
+  actions and remote reusable workflows must use full 40-character commit SHAs;
+  container images, including Docker actions, job containers and services, must use
+  `sha256` digests. Tags and branches do not satisfy this rule. Keep the release
+  version in a comment beside each action/workflow SHA and verify pins against the
+  official upstream repository before adding or updating them.
 - Use latest LTS where available; otherwise use latest stable supported compatible
   releases. Do not label every dependency LTS. Pin tools/dependencies, retain
   lockfiles, and check direct/transitive security updates instead of floating latest.
+- The digest-pinned MegaLinter quality image may retain its bundled Node/Python
+  runtimes even when they are not LTS. This accepted exception is limited to
+  quality tooling; contributor host Node and application runtimes follow the
+  usual version policy. Record bundled versions in quality reports.
 - Preserve the accepted TanStack Start Release Candidate exception with compatible,
   security-patched pinned versions. Recheck dated baselines and compatibility at
   runnable setup; PostgreSQL follows its supported-major policy.
