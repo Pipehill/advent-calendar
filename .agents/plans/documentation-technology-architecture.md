@@ -1,6 +1,6 @@
 # Document the technology stack and architecture
 
-Status: Not implemented
+Status: Implemented
 
 Last updated: 2026-10-10
 
@@ -587,20 +587,45 @@ with their destinations. All deliverables are written in English.
   to ordinary members. Concrete editing screens, content models, and API resources
   belong to subsequent application work; document these agreed access rules now.
 
+### Documentation implementation result
+
+Implemented on `documentation/technology-stack-architecture` on 2026-10-10:
+
+- Added the complete [architecture description](../../docs/architecture.md),
+  including four Mermaid diagrams for container boundaries, contract/build flows,
+  login and authenticated SSR access, and startup migration readiness.
+- Added the four focused implementation rule files and their applicability links
+  in [.agents/README.md](../README.md). Preserved AGENTS.md and existing shared rules.
+- Added the planned nontechnical product overview and architecture link to the
+  [root README](../../README.md).
+- Reviewed all fifteen requirements, confirmed decisions, explicit deferrals,
+  diagram/prose agreement, and rule ownership. Verified dated .NET/Node LTS,
+  PostgreSQL support policy, Start RC/Nitro, and integration/generator claims
+  against primary sources linked in the architecture.
+- Checked relative documentation links, balanced Markdown fences, whitespace,
+  project-only root README content, and `git diff --check`. Manually reviewed
+  Mermaid syntax and flow boundaries; diagrams were not rendered with a Mermaid
+  engine. No application runtime tests apply to this documentation-only change.
+
+No application/configuration scaffolding or dependencies were installed. Concrete
+tool/package compatibility, generated code compilation, and runtime/security
+checks remain work for runnable setup, as specified in the architecture. Hosting,
+recovery, and full tracing remain deferred to their designated follow-up tasks.
+
 ### Work order
 
-- [ ] Create `docs/architecture.md` with a complete, clearly structured description
+- [x] Create `docs/architecture.md` with a complete, clearly structured description
   of the selected technologies and the responsibilities of the browser, BFF,
   backend, and database, covering the confirmed decisions and explicit deferrals.
-- [ ] Add an architecture diagram showing browser -> frontend/BFF through tRPC,
+- [x] Add an architecture diagram showing browser -> frontend/BFF through tRPC,
   BFF -> backend through HTTP/OpenAPI, and backend -> PostgreSQL. Mark the three
   container boundaries and show that DbUp runs inside the backend container.
-- [ ] Add diagrams for authored-contract generation and local/GitHub Actions
+- [x] Add diagrams for authored-contract generation and local/GitHub Actions
   build flows, and for login plus authenticated browser/BFF/API/SSR access.
   Show where credentials are validated, cookies are relayed, and backend checks
   distinguish administrator access from scheduled member access. Keep all diagrams
   consistent with the architecture description and existing container boundaries.
-- [ ] Document the contract workflow: author or change the OpenAPI document,
+- [x] Document the contract workflow: author or change the OpenAPI document,
   generate C# DTOs and abstract controller contracts and TypeScript DTOs/client
   through NSwag, then adapt derived controller implementations and BFF procedures.
   Specify OpenAPI 3.0.x as the contract dialect.
@@ -625,80 +650,80 @@ with their destinations. All deliverables are written in English.
   outputs. The backend implementation must also be verified against the contract
   through API integration tests; generated DTOs alone do not enforce runtime
   routes and status codes.
-- [ ] Document GitHub Actions as the CI/CD platform, shared local/CI build and
+- [x] Document GitHub Actions as the CI/CD platform, shared local/CI build and
   generation commands, Redocly OpenAPI checks, .NET compilation, and explicit
   TypeScript type checking alongside Vite. Describe clean-build verification
   without relying on generated files in Git.
-- [ ] Document xUnit backend API integration tests using isolated PostgreSQL
+- [x] Document xUnit backend API integration tests using isolated PostgreSQL
   Testcontainers and actual DbUp migrations, including contract agreement and
   local/GitHub Actions execution. Describe optional Playwright end-to-end tests
   against the environment after deployment; keep deployment details aligned with
   later decisions. Document Vitest frontend/BFF unit tests and their pnpm-based
   local/GitHub Actions execution separately from integration and deployed tests.
-- [ ] Document NSwag's abstract ASP.NET Core controller generation, the separate
+- [x] Document NSwag's abstract ASP.NET Core controller generation, the separate
   hand-written derived implementations, and checks for generated code compilation,
   routes, HTTP methods, parameter binding, responses, status codes, and validation.
-- [ ] Document System.Text.Json as the API serializer and NSwag's C# generation
+- [x] Document System.Text.Json as the API serializer and NSwag's C# generation
   target. Describe the generation and serialization checks needed to ensure the
   DTOs preserve the authored contract's field names, presence, nullability, enums,
   and any polymorphism.
-- [ ] Describe tRPC integration through `@trpc/tanstack-react-query` and the
+- [x] Describe tRPC integration through `@trpc/tanstack-react-query` and the
   BFF's use of the generated backend HTTP client. Explain that server-side API
   calls and backend configuration belong in the BFF's server code.
-- [ ] Document Zod input validation in tRPC and independent OpenAPI-aligned
+- [x] Document Zod input validation in tRPC and independent OpenAPI-aligned
   request validation in the .NET API, with backend enforcement of business rules.
   Describe checks for invalid inputs at both boundaries and explain that type
   generation alone does not validate data received at runtime.
-- [ ] Document the OpenAPI-described ProblemDetails error contract and field
+- [x] Document the OpenAPI-described ProblemDetails error contract and field
   errors, BFF translation to tRPC codes and structured field-error data, and
   client behavior for validation, access, and backend availability failures.
-- [ ] Document the configurable total BFF-to-API timeout, bounded GET/HEAD retries
+- [x] Document the configurable total BFF-to-API timeout, bounded GET/HEAD retries
   for transient failures, and no automatic retries for writes. Explain how BFF
   retry ownership and TanStack Query configuration prevent multiplied attempts.
-- [ ] Document SSR as the default rendering approach, including request-scoped
+- [x] Document SSR as the default rendering approach, including request-scoped
   QueryClients, initial data loading through the BFF, and browser hydration using
   TanStack Start's Query integration.
-- [ ] Document database access through Npgsql and Dapper, including hand-written
+- [x] Document database access through Npgsql and Dapper, including hand-written
   parameterized SQL and result mapping, separately from DbUp schema migrations.
-- [ ] Describe frontend builds through pnpm/Vite and backend builds through
+- [x] Describe frontend builds through pnpm/Vite and backend builds through
   `dotnet restore`, `dotnet build`, `dotnet test`, and `dotnet publish` as the
   agreed toolchain. Explain the separate SDK build stage and ASP.NET runtime
   stage, including the DbUp PostgreSQL provider and SQL migrations packaged
   with the application.
-- [ ] Document the frontend/BFF production server: TanStack Start's Vite build
+- [x] Document the frontend/BFF production server: TanStack Start's Vite build
   uses Nitro for Node.js LTS deployment. Describe the build output and production
   start command, and verify the selected package versions together when creating
   the runnable setup.
-- [ ] Document backend startup: wait for database availability using bounded
+- [x] Document backend startup: wait for database availability using bounded
   connection retries, apply pending SQL scripts through DbUp, and start accepting
   API requests only after success. Explain that the application packages ordered
   SQL migration scripts and the `dbup-postgresql` provider. DbUp runs within the
   .NET process, using its journal to track executed scripts. Report migration
   failures through a nonzero container exit status. Migration execution occurs
   at runtime, not during image building.
-- [ ] Document explicit DbUp transaction-per-script configuration, rollback of
+- [x] Document explicit DbUp transaction-per-script configuration, rollback of
   a failed script, retention of earlier successful scripts, journal-based restart
   behavior, and handling of operations requiring non-transactional execution.
-- [ ] Document numbered embedded SQL migrations, stable resource names and
+- [x] Document numbered embedded SQL migrations, stable resource names and
   ordering, immutable published scripts, corrections through new scripts, and
   CI integrity checks against prior releases with the standard DbUp journal.
-- [ ] Describe the deployment sequence: stop the old API instance before
+- [x] Describe the deployment sequence: stop the old API instance before
   migrations that may change its schema assumptions, start the new backend
   container, apply migrations, and bring the API into service after startup.
   Record accepted downtime and that reverting the application image does not
   automatically undo applied database migrations. Migrations also run on
   container restarts; DbUp's journal tracks which scripts have already applied.
-- [ ] Document Docker Compose for the complete local container environment,
+- [x] Document Docker Compose for the complete local container environment,
   database persistence and readiness, and host-based pnpm/dotnet watch development
   with PostgreSQL in Compose. Describe connection configuration and build-time
   generation for both modes, separately from isolated Testcontainers databases.
-- [ ] Record the explicitly deferred production hosting and recovery decisions
+- [x] Record the explicitly deferred production hosting and recovery decisions
   and their destination in a later deployment task. Identify Sliplane only as
   a candidate and distinguish selected GitHub Actions from unselected hosting.
-- [ ] Document structured JSON console logs, request-scoped W3C trace context,
+- [x] Document structured JSON console logs, request-scoped W3C trace context,
   and shared trace IDs in BFF/API logs. Record full distributed tracing and its
   collection and visualization infrastructure as deferred to later operations work.
-- [ ] Document the public invitation landing page, email/password registration
+- [x] Document the public invitation landing page, email/password registration
   and login, separate administrator accounts and pages, owner-only administrator
   provisioning, and administrator-owned calendars with invitation codes.
   Specify salted password hashes and backend role/ownership/membership checks.
@@ -714,14 +739,14 @@ with their destinations. All deliverables are written in English.
   logout and account-wide invalidation after password changes, disabling, or changes
   to administrator privileges, with backend validity checks. Retain concrete
   key-storage configuration in later deployment work.
-- [ ] Document Tailwind CSS through Vite and project-maintained shadcn/ui
+- [x] Document Tailwind CSS through Vite and project-maintained shadcn/ui
   component source for the calendar and administrator UI. Distinguish committed
   component source from untracked generated contract code, and describe version
   compatibility and SSR/hydration checks for the subsequent runnable setup.
   Document TanStack Form with Zod for login, registration, and administration
   forms, displaying BFF/API field errors and retaining validation at both server
   boundaries. Explain how form validation relates to the authored OpenAPI contract.
-- [ ] Document Europe/Oslo as the common calendar business timezone in the first
+- [x] Document Europe/Oslo as the common calendar business timezone in the first
   version, with UTC instants for storage/transport and business-date interpretation
   independent of browser/container local settings. Specify 07:00 opening on each
   door's date, continued access to earlier doors, backend enforcement, and
@@ -731,7 +756,7 @@ with their destinations. All deliverables are written in English.
   during the calendar period, and moving content between future doors. Document
   backend ownership/scheduling checks and separation of administrator/member data
   in SSR and caches, including refresh after changes.
-- [ ] Record the version policy and date any concrete version examples.
+- [x] Record the version policy and date any concrete version examples.
   Document the accepted TanStack Start Release Candidate exception, pinned
   versions, and verification of security patches in transitive dependencies.
   Research on 2026-10-10 identified .NET 10 and Node.js 24 as current LTS
@@ -740,20 +765,20 @@ with their destinations. All deliverables are written in English.
   uses its supported-major-version policy, rather than a separate LTS label.
   Future setup must pin chosen tool versions and retain dependency lockfiles
   so that builds do not depend on floating `latest` versions.
-- [ ] Include the backend build alternatives considered: CLI/MSBuild with a
+- [x] Include the backend build alternatives considered: CLI/MSBuild with a
   multistage Dockerfile (selected), SDK container publishing (alternative),
   and NUKE as optional future build orchestration. Explain why the selected
   approach provides explicit control of the .NET runtime and application contents.
-- [ ] Extract the confirmed implementation rules into the four focused rule files
+- [x] Extract the confirmed implementation rules into the four focused rule files
   listed under documentation deliverables. Preserve existing shared rules, assign
   each instruction one owning file, and link to related rules and architecture
   explanations. Keep deferred choices out of mandatory rules.
-- [ ] Update `.agents/README.md` with discoverable rule links and applicability
+- [x] Update `.agents/README.md` with discoverable rule links and applicability
   guidance, preserving existing links and the minimal AGENTS.md entry point.
-- [ ] Write the short nontechnical product overview in the root README using the
+- [x] Write the short nontechnical product overview in the root README using the
   confirmed user, invitation, administrator, editing, opening, and login-duration
   requirements. Identify it as planned behavior and link `docs/architecture.md`.
-- [ ] Review the architecture, diagrams, rules, agent-resource links, and README
+- [x] Review the architecture, diagrams, rules, agent-resource links, and README
   together and run the documentation verification steps.
 
 Technology choices identified by the review are recorded in the confirmed
