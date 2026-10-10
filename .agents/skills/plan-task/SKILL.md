@@ -1,6 +1,6 @@
 ---
 name: plan-task
-description: Plan a new project task or refine an existing task plan. Use plan branches and PLAN pull request titles, clarify requirements, and record outstanding questions and confirmed decisions. Does not implement the task or apply merely because the user is creating or editing this skill.
+description: Create or refine a numbered project task plan. Use plan branches and PLAN pull request titles, clarify requirements, and record outstanding questions and confirmed decisions. Does not implement the task or apply merely because the user is creating or editing this skill.
 ---
 
 # Plan a task
@@ -95,13 +95,24 @@ fails, report the failure and resolve it before writing the plan.
 
 ## 6. Write the implementation plan
 
-Create `.agents/plans/plan-<short-english-description>.md` on the planning branch.
-Keep an existing plan's filename and links when refining it; legacy filenames
-do not determine the planning or implementation type.
+Create `.agents/plans/<number>-<short-english-description>.md` on the planning
+branch, such as `00001-technology-architecture.md`. Use a five-digit, zero-padded
+sequence starting at `00001`. Inspect existing plan filenames and the
+[plan index](../../plans/README.md), then assign the highest existing number plus
+one, or `00001` when there are no plans. Recheck that the number and destination
+are unused before writing; do not reuse gaps or overwrite another plan.
+
+Use `# <number>: <Short task title>` as the plan's first heading, with the same
+number as the filename. Include the number in its plan-index entry and update
+the index when creating a plan. Keep assigned numbers stable when refining a
+plan and preserve its filename and links unless a rename is requested.
+Do not add a work-type prefix such as `plan-` or `documentation-` to plan
+filenames; work types remain part of branch/PR naming and the implementation
+type field. A plan's number or filename does not determine its implementation type.
 If a plan already exists at that path, ask before replacing it. Write in English
 for both human and agent readers. Use this order:
 
-1. A short task title.
+1. The numbered short task title described above.
 2. `Status: Not implemented`.
 3. `Last updated: YYYY-MM-DD`, using the current date in the user's timezone.
 4. A brief overview of the task.

@@ -1,6 +1,6 @@
 ---
 name: implement-plan
-description: Implement an existing project task plan on a separate branch using its agreed implementation type. Select the plan, resolve outstanding requirements, perform its work and verification, and update its progress and status. Does not apply merely because the user is creating or editing this skill.
+description: Implement an existing project task plan identified by title, path, or plan number on a separate branch using its agreed implementation type. Resolve outstanding requirements, perform verification, and update progress/status. Does not apply merely because the user is creating or editing this skill.
 ---
 
 # Implement a plan
@@ -12,7 +12,15 @@ implementation types. Planning uses `plan`; implementation uses its own type.
 
 ## 1. Select and read the plan
 
-Use the plan explicitly identified by the user. Otherwise inspect the
+Use the plan explicitly identified by the user. A user may identify it with only
+its number, such as `00001` (or `1`): normalize the number to five digits and
+resolve the matching `.agents/plans/<number>-*.md` file through the
+[plan index](../../plans/README.md). Confirm its filename, title, and index entry
+refer to the same number. If no plan or multiple plans match, report the mismatch
+and ask for clarification; do not select another plan implicitly. Report the
+resolved number and title before proceeding with the usual workflow.
+
+Otherwise inspect the
 [plan index](../../plans/README.md); if the intended plan is unclear, ask which
 plan to implement and wait for the answer.
 
@@ -45,7 +53,7 @@ Use the implementation type explicitly supplied by the user or recorded in the
 plan's `Implementation type` field. Supported types are listed in the naming
 rules, including `chore`, `feature`, `bugfix`, `documentation`, and `ci`; exclude
 `plan`. If no type has been agreed, ask the user to select one and wait. Do not
-infer it from a planning branch, a PR's `[PLAN]` prefix, or a legacy plan filename.
+infer it from a planning branch, a PR's `[PLAN]` prefix, or a plan number/filename.
 
 Create `<type>/<short-english-description>` from the chosen base after rechecking
 Git state and checking for local/remote name collisions. Respect an explicitly
