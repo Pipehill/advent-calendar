@@ -22,6 +22,9 @@ const binaryExtensionPattern = /\.(png|jpe?g|gif|ico|pdf|woff2?|zip)$/i;
 
 function main() {
   const mode = readMode();
+  const receiptPath = path.join(repositoryRoot, 'quality-reports', 'local-hook.json');
+  // A failed or manual staged run must never leave an earlier success usable.
+  if (mode === 'staged') fs.rmSync(receiptPath, { force: true });
   if (mode === 'clean') return removeUnusedQualityImages(new Set());
   const image = getQualityImage(mode);
   if (mode === 'setup') return setupQualityImage(image);
@@ -37,7 +40,21 @@ function main() {
     writeJson(path.join(snapshotDirectory, '.quality-input.json'), metadata);
     writeJson(path.join(reportsDirectory, 'input.json'), metadata);
     initializeSnapshotIndex(snapshotDirectory);
-    return runChecks({ mode, image, snapshotDirectory, reportsDirectory });
+    const status = runChecks({ mode, image, snapshotDirectory, reportsDirectory });
+    if (mode === 'staged' && status === 0 && process.env.PRE_COMMIT === '1') {
+      const tree = runGit(['write-tree']).trim();
+      const currentEntries = splitGitPaths(runGit(['ls-files', '--stage', '-z']));
+      if (sha256(currentEntries.join('\0')) !== metadata.indexSnapshot) {
+        throw new Error('Git index changed during QA; no local hook receipt was saved.');
+      }
+      writeJson(receiptPath, {
+        hook: 'staged-quality', passed: true, parent: metadata.revision, tree,
+        machine: os.hostname(), platform: `${os.platform()} ${os.arch()}`,
+        completedAt: new Date().toISOString(), input: metadata,
+        results: JSON.parse(fs.readFileSync(path.join(reportsDirectory, 'findings.json'))).results,
+      });
+    }
+    return status;
   } finally {
     // Only the temporary directory created for this run is removed.
     fs.rmSync(snapshotDirectory, { recursive: true, force: true });

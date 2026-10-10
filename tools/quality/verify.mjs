@@ -20,6 +20,7 @@ function main() {
     runScenario('Dependency image reuse and scoped cleanup', verifyImageLifecycle);
     runScenario('Branch protection', verifyBranchProtection);
     runScenario('Partially staged files and preserved edits', verifyPartialStaging);
+    runScenario('Local PR hook evidence and stale receipt rejection', verifyLocalPrEvidence);
     runScenario('Line endings and binary files', verifyLineEndingsAndBinaryFiles);
     runScenario('Invalid inputs and corrected checks', verifyInvalidInputsAndCorrections);
     runScenario('Renamed and deleted link targets', verifyRenamedAndDeletedLinkTargets);
@@ -38,6 +39,30 @@ function main() {
 function runScenario(description, verify) {
   console.log(`Verifying: ${description}`);
   verify();
+}
+
+function verifyLocalPrEvidence() {
+  runGit('commit', '--allow-empty', '-m', 'Verify local QA receipt');
+  const receiptPath = path.join(cloneDirectory, 'quality-reports/local-hook.json');
+  const receipt = JSON.parse(fs.readFileSync(receiptPath));
+  assert.equal(receipt.tree, runGit('rev-parse', 'HEAD^{tree}').trim());
+  runCommand(process.execPath, ['tools/quality/pr-report.mjs']);
+  const bodyPath = path.join(cloneDirectory, 'quality-reports/pull-request.md');
+  const body = fs.readFileSync(bodyPath, 'utf8');
+  assert(body.includes(runGit('rev-parse', 'HEAD').trim()));
+  assert(body.includes('pre-commit hook: **Passed**'));
+  assert(!body.includes('**Not provided**'));
+
+  fs.writeFileSync(receiptPath, JSON.stringify({ ...receipt, machine: `${receipt.machine}-other` }));
+  runCommand(process.execPath, ['tools/quality/pr-report.mjs'], false);
+  assert(!fs.existsSync(bodyPath));
+  fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+
+  runGit('-c', 'core.hooksPath=', 'commit', '--allow-empty', '-m', 'Bypass hooks for stale receipt fixture');
+  runCommand(process.execPath, ['tools/quality/pr-report.mjs'], false);
+  runCommand(process.execPath, ['tools/quality/run.mjs', 'staged']);
+  assert(!fs.existsSync(receiptPath), 'Manual staged run must not attest to hook execution');
+  runCommand(process.execPath, ['tools/quality/pr-report.mjs'], false);
 }
 
 function verifyImageLifecycle() {

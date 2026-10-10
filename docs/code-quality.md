@@ -138,6 +138,39 @@ exception applies only to the quality image and does not change application runt
 
 ## Reports and troubleshooting
 
+### Include local hook evidence in a pull request
+
+After committing with the installed pre-commit hooks, run this on the machine used
+to push the changes:
+
+```powershell
+node tools/quality/pr-report.mjs
+```
+
+The command generates `quality-reports/pull-request.md` from the committed PR
+template. Copy its Local QA section into the PR description, or use the file as
+the body when creating a PR. Fill in the description before submitting it. For an
+existing PR, replace only its Local QA section and preserve the description.
+Regenerate and update this section whenever the PR head changes.
+
+The successful `staged-quality` hook saves `quality-reports/local-hook.json` with
+the checked Git tree, parent revision, machine, UTC completion time, image and
+executed check results. Manual staged checks do not issue hook receipts. Failed
+or manual staged runs invalidate previous receipts. PR generation rejects missing,
+failed, different-machine or stale evidence and removes stale generated PR text.
+The tree and parent must match the latest commit; rebasing, amending or bypassing
+hooks can therefore require another commit with hooks enabled.
+
+The generated section documents the staged QA hook for the latest commit, including
+its content and link scope. It does not attest to every commit in the branch or
+prove which machine performed the push. Local receipts are author-supplied evidence,
+not signed attestations or proof that hooks could not be bypassed. The PR template
+cannot read local files or populate itself on GitHub. The full CI check remains
+independent and must pass separately. Keep the template's unverified placeholder
+when matching local evidence is unavailable. Reports remain ignored by Git.
+
+### Read quality reports
+
 Reports are saved under `quality-reports/<mode>/`. `input.json` records the revision,
 index snapshot hash where applicable, content snapshot hash, input paths and image key.
 Its `selected` paths identify content lint/render scope; `linkSelected` identifies

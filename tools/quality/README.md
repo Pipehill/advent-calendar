@@ -15,6 +15,7 @@ for installation, rules and troubleshooting.
 | `node tools/quality/run.mjs full` | Check the complete working tree with MegaLinter and custom checks. |
 | `node tools/quality/run.mjs test` | Run custom checks and focused checker regressions. |
 | `node tools/quality/verify.mjs` | Verify hooks and staging behavior in a disposable clone. |
+| `node tools/quality/pr-report.mjs` | Generate a PR body with local hook evidence matching HEAD. |
 | `node tools/quality/run.mjs clean` | Remove all quality images that no container references. |
 
 | File | Responsibility |
@@ -23,6 +24,7 @@ for installation, rules and troubleshooting.
 | `container.mjs` | Run checks inside the container and collect reports. |
 | `checks.mjs` | Inspect filenames, text, links and Mermaid fences. |
 | `verify.mjs` | Verify successful and failing cases without changing the original repository. |
+| `pr-report.mjs` | Verify local hook evidence and populate the PR template's Local QA section. |
 | `Dockerfile` | Install the pinned tools, Python packages and Chromium. |
 | `package*.json`, `requirements.txt` | Pin container dependencies. |
 | `pre-commit-requirements.txt` | Pin the host hook dependencies. |
