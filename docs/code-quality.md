@@ -188,6 +188,9 @@ commit and a link to the run/artifacts. The publisher runs after successful or
 failed checks; missing reports are shown as incomplete rather than successful.
 Outdated PR heads do not overwrite the current comment. Oversized reports are
 truncated in the comment; complete reports remain in artifacts.
+Flavor suggestions are disabled with `FLAVOR_SUGGESTIONS: false`. The Additional
+repository checks section is hidden when the custom report confirms all checks
+passed; diagnostics and missing reports remain visible.
 
 The job has `contents: read` and `pull-requests: write`. Only the host publishing
 step receives the GitHub token; quality containers remain offline and receive no

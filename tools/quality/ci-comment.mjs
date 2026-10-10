@@ -13,14 +13,16 @@ export function buildComment({ revision, runUrl, setupOutcome, checkOutcome, meg
   const passed = setupOutcome === 'success' && checkOutcome === 'success';
   const custom = clip(summary || 'No additional-check report was produced.');
   const fence = '`'.repeat(Math.max(3, ...Array.from(custom.matchAll(/`+/g), match => match[0].length + 1)));
+  const additionalChecks = summary?.trim() === 'All applicable checks passed.' ? [] : [
+    '### Additional repository checks', '', fence, custom, fence, '',
+  ];
   const body = [
     commentMarker, '## Code quality', '',
     passed ? '✅ **Passed**' : '❌ **Failed or incomplete**', '',
     `Commit: ${revision}`, `[CI run and report artifacts](${runUrl})`, '',
     `Setup: ${setupOutcome}. Checks: ${checkOutcome}.`, '',
     clip(megaReport || 'No MegaLinter report was produced. See the CI run for execution errors.'), '',
-    '### Additional repository checks', '',
-    fence, custom, fence, '',
+    ...additionalChecks,
   ].join('\n');
   // GitHub limits comment bodies; retain a link to the complete reports if truncated.
   const bytes = Buffer.from(body);

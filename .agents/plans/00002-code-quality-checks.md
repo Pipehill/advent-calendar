@@ -435,6 +435,10 @@ pending separately; tooling must not claim enforced merge blocking.
 and custom `summary.txt` after CI checks, including setup/check outcomes, checked
 PR head and run/artifact link. It creates or updates one marked Actions bot comment,
 handles comment pagination, skips outdated heads and bounds oversized bodies.
+Flavor suggestions are disabled with `FLAVOR_SUGGESTIONS: false`. Additional
+repository checks are omitted from the comment when their summary confirms all
+checks passed; failures and missing reports remain visible. The user confirmed
+this presentation change on 2026-10-11.
 Missing reports are explicit; API errors fail the job. The normal pull_request
 workflow grants `contents: read` and `pull-requests: write`, passes the token only
 to the host publisher and keeps quality containers offline. The built-in MegaLinter

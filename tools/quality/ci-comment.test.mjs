@@ -13,12 +13,18 @@ test('reports include MegaLinter output and additional checks with an aggregate 
   const passed = buildComment(context);
   assert(passed.includes('✅ **Passed**'));
   assert(passed.includes(context.megaReport));
-  assert(passed.includes(context.summary));
+  assert(!passed.includes('Additional repository checks'));
+  assert(!passed.includes(context.summary));
+  const failed = buildComment({ ...context, checkOutcome: 'failure', summary: 'README.md:3 [links/target] Missing target.' });
+  assert(failed.includes('Additional repository checks'));
+  assert(failed.includes('README.md:3 [links/target] Missing target.'));
   assert(buildComment({ ...context, checkOutcome: 'failure' }).includes('❌ **Failed or incomplete**'));
   const missing = buildComment({ ...context, setupOutcome: 'failure', checkOutcome: 'skipped', megaReport: '', summary: '' });
   assert(missing.includes('No MegaLinter report was produced'));
   assert(missing.includes('No additional-check report was produced'));
   assert(!missing.includes('✅ **Passed**'));
+  assert(missing.includes('Additional repository checks'));
+  assert(!buildComment({ ...context, summary: `${context.summary}\n` }).includes('Additional repository checks'));
 });
 
 test('large Unicode reports remain within the comment byte limit', () => {
