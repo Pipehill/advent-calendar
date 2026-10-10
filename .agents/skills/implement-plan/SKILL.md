@@ -74,8 +74,10 @@ record the question and obtain clarification before dependent work.
 
 Keep `Status: Not implemented` until the complete planned deliverables exist
 and required verification has passed. Record material limitations or failed
-checks accurately. Then change the status to `Implemented`, update `Last updated`,
-and keep the plan index's status consistent with the plan.
+checks accurately. Then set the dated implemented status defined in the
+[plan index](../../plans/README.md), update `Last updated`, and keep the plan
+index's status consistent with the plan. Preserve the implementation date on
+subsequent edits.
 
 ## 4. Report and publish when authorized
 
