@@ -11,4 +11,5 @@ task. Store supporting resources in the skill's directory and link to them.
 
 | Skill | When to use it |
 | --- | --- |
-| [plan-task](plan-task/SKILL.md) | When the user wants to start a new task: check Git state, clarify requirements, create a branch, and write a plan. |
+| [plan-task](plan-task/SKILL.md) | Create or refine a task plan, using plan branches and PLAN PR titles; track questions and confirmed decisions. |
+| [implement-plan](implement-plan/SKILL.md) | Implement a selected plan on a branch using its agreed implementation type, verify the work, and update plan progress/status. |

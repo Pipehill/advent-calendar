@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-10-10
 
+Implementation type: documentation
+
 ## Overview
 
 Document the agreed technology choices, communication contracts, build approach,

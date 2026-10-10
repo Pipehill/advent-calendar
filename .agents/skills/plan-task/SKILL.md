@@ -1,6 +1,6 @@
 ---
 name: plan-task
-description: Plan a new project task or refine an existing task plan. For a new task, check Git state, synchronize main, clarify task type and requirements, create a task branch, and write an implementation plan. Record outstanding questions and confirmed decisions as clarification progresses. Does not implement the task or apply merely because the user is creating or editing this skill.
+description: Plan a new project task or refine an existing task plan. Use plan branches and PLAN pull request titles, clarify requirements, and record outstanding questions and confirmed decisions. Does not implement the task or apply merely because the user is creating or editing this skill.
 ---
 
 # Plan a task
@@ -9,6 +9,9 @@ For a new task, follow these steps in order. Use the repository's existing Git
 tooling; the workflow must not depend on a particular model, harness, or editor.
 When refining an existing plan, update it in its current task branch and follow
 the clarification and plan-writing instructions without restarting branch setup.
+Follow the [branch and pull request naming rules](../../rules/pull-requests.md).
+Planning uses the `plan` work type; implementation type selection belongs to
+[implement-plan](../implement-plan/SKILL.md).
 
 ## 1. Check the working tree and branch
 
@@ -41,12 +44,14 @@ The first count is local-only commits; the second is remote-only commits.
 If `origin/main` is unavailable, ask which remote and base branch to use.
 Check the working tree and branch again after synchronization.
 
-## 3. Establish the task type
+## 3. Use the planning work type
 
-Use the task type explicitly supplied by the user: `chore`, `feature`, `bugfix`,
-or `documentation`. If none was supplied, ask the user to choose one and wait
-for the answer. Do not infer the type from the description. If the supplied type
-is ambiguous or outside this list, ask for clarification.
+Use `plan` for the planning branch and any separately requested planning PR.
+Do not ask the user to select an implementation type before writing a plan.
+If the user has already explicitly supplied an implementation type, record it
+as `Implementation type: <type>` in the plan, after `Last updated`. Otherwise
+leave it undecided for the implement-plan workflow. A plan's work type remains
+`plan` even when its eventual implementation is documentation, a feature, or CI.
 
 ## 4. Clarify the task
 
@@ -80,7 +85,7 @@ Avoid asking again about information the user or repository already provides.
 Recheck Git state before creating the branch. If it changed unexpectedly,
 return to step 1 instead of carrying changes into a new branch automatically.
 
-Use `<type>/<short-english-description>` with a concise lowercase,
+Use `plan/<short-english-description>` with a concise lowercase,
 hyphen-separated description based on the clarified task. Respect an explicitly
 requested branch name. Check whether the name already exists locally or remotely;
 if it does, ask whether to use it or choose another name.
@@ -90,7 +95,9 @@ fails, report the failure and resolve it before writing the plan.
 
 ## 6. Write the implementation plan
 
-Create `.agents/plans/<type>-<short-english-description>.md` on the task branch.
+Create `.agents/plans/plan-<short-english-description>.md` on the planning branch.
+Keep an existing plan's filename and links when refining it; legacy filenames
+do not determine the planning or implementation type.
 If a plan already exists at that path, ask before replacing it. Write in English
 for both human and agent readers. Use this order:
 
@@ -116,7 +123,11 @@ choices. If writing or reviewing the plan reveals a new uncertainty, add it to
 as fully clarified.
 
 Keep the status `Not implemented` until the task has been implemented and verified;
-then change it to `Implemented`. Track intermediate progress in the work steps.
+writing or merging a plan does not implement it. The implement-plan workflow
+changes the status after implementation and verification. Track intermediate
+progress in the work steps.
 
 Report the branch and link to the completed plan. This skill ends after planning;
 do not implement, commit, push, or create a pull request unless separately requested.
+When a planning PR is requested, use `[PLAN]: Short English description` and
+describe the planning deliverables without presenting the application as implemented.
