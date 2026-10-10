@@ -135,7 +135,8 @@ as fully clarified.
 
 Keep the status `Not implemented` until the task has been implemented and verified;
 writing or merging a plan does not implement it. The implement-plan workflow
-changes the status after implementation and verification. Track intermediate
+changes the status after implementation and verification using the dated status
+format in the [plan index](../../plans/README.md). Track intermediate
 progress in the work steps.
 
 Report the branch and link to the completed plan. This skill ends after planning;
