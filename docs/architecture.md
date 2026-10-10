@@ -308,7 +308,7 @@ sequenceDiagram
     Browser->>BFF: tRPC registration or login with CSRF protection
     BFF->>BFF: Validate input with Zod
     BFF->>API: Generated HTTP client: credentials
-    API->>DB: Identity stores: validate account and password; persist session
+    API->>DB: Identity stores: validate account and password#59; persist session
     DB-->>API: Account and session result
     API-->>BFF: Auth result and backend-issued Set-Cookie
     BFF-->>Browser: tRPC result and separate Set-Cookie headers at public origin
@@ -318,7 +318,7 @@ sequenceDiagram
     API->>DB: Check session/account validity and calendar access
     alt Invalid or expired session
         API-->>BFF: ProblemDetails authentication error
-        BFF-->>Browser: UNAUTHORIZED; request login
+        BFF-->>Browser: UNAUTHORIZED#59; request login
     else Valid administrator who owns calendar
         API-->>BFF: Full preview/edit view, including future doors
         BFF-->>Browser: Isolated administrator result or SSR/hydration
