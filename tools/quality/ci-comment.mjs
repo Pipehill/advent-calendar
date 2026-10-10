@@ -30,7 +30,7 @@ export function buildComment({ revision, runUrl, setupOutcome, checkOutcome, meg
     '### Additional repository checks', '', fence, custom, fence, '',
   ];
   const body = [
-    commentMarker, `## Code quality · [${revision.slice(0, 7)}](${commitUrl})`, '',
+    commentMarker, `## Code Quality - head commit: [${revision.slice(0, 7)}](${commitUrl})`, '',
     `Overall code quality: ${passed ? '✅ **Passed**' : '❌ **Failed or incomplete**'}`, '',
     `[CI run and report artifacts](${runUrl})`, '',
     `- ${stepStatus(setupOutcome)} — **Quality tool setup**`,
