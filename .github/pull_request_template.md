@@ -1,3 +1,3 @@
-## Beskrivelse
+## Description
 
-<!-- Beskriv kort og konkret hva som er gjort og hvorfor. -->
+<!-- Briefly describe what changed and why. -->
