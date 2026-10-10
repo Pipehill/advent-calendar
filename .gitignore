@@ -1,1 +1,5 @@
 .vscode/
+quality-reports/
+megalinter-reports/
+.quality-cache/
+node_modules/
