@@ -12,4 +12,4 @@ Copy the Local QA section from quality-reports/pull-request.md into this section
 Regenerate after every PR head update. Missing evidence must remain unverified.
 -->
 
-Local pre-commit verification: **Not provided**.
+Local pre-commit verification: ⚪ **Not provided**.

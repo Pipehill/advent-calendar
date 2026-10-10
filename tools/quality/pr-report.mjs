@@ -8,6 +8,16 @@ function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
 
+function formatNorwegianTime(timestamp) {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Oslo', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp))
+    .map(part => [part.type, part.value]));
+  return `${parts.day}.${parts.month}.${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
 const root = git('rev-parse', '--show-toplevel');
 const destination = path.join(root, 'quality-reports', 'pull-request.md');
 
@@ -32,34 +42,26 @@ try {
   const offset = template.indexOf(section);
   if (offset < 0) throw new Error('Committed PR template is missing its Local QA section.');
   const nextSection = template.indexOf('\n## ', offset + section.length);
-  const value = text => JSON.stringify(String(text)).replaceAll('|', '&#124;').replaceAll('`', '&#96;');
+  const value = text => String(text).replace(/[\r\n]/g, ' ').replaceAll('|', '&#124;').replaceAll('`', '&#96;');
   const qa = [
     section.trimStart(),
-    'Local `staged-quality` pre-commit hook: **Passed**.',
+    'Local `staged-quality` pre-commit hook: ✅ **Passed**.',
     '',
     '| Evidence | Value |',
     '| --- | --- |',
     `| PR head commit | ${commit} |`,
     `| Checked Git tree | ${receipt.tree} |`,
-    `| Completed (UTC) | ${value(receipt.completedAt)} |`,
-    `| Machine | ${value(receipt.machine)} |`,
+    `| Completed (Europe/Oslo) | ${formatNorwegianTime(receipt.completedAt)} |`,
     `| Platform | ${value(receipt.platform)} |`,
     `| Quality image | ${value(receipt.input.image)} |`,
     `| Content files checked | ${receipt.input.selected.length} |`,
     `| Markdown link sources checked | ${receipt.input.linkSelected.length} |`,
-    '',
-    'Checks executed:',
-    '',
-    ...receipt.results.map(result => `- ${value(result.check)}: Passed`),
-    '',
-    'Scope: staged checks for the latest commit; shared tooling/configuration changes expand scope.',
-    'This is local evidence supplied by the author. GitHub Code quality verifies the full repository separately.',
     '',
   ].join('\n');
   const body = template.slice(0, offset) + '\n' + qa + (nextSection < 0 ? '' : template.slice(nextSection));
   fs.writeFileSync(destination, body);
   console.log(`Generated ${destination}\nVerified local hook evidence for ${commit}.`);
 } catch (error) {
-  console.error(`PR QA report unavailable: ${error.message}`);
+  console.error(`❌ PR QA report unavailable: ${error.message}`);
   process.exitCode = 1;
 }

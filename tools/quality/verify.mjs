@@ -50,7 +50,7 @@ function verifyLocalPrEvidence() {
   const bodyPath = path.join(cloneDirectory, 'quality-reports/pull-request.md');
   const body = fs.readFileSync(bodyPath, 'utf8');
   assert(body.includes(runGit('rev-parse', 'HEAD').trim()));
-  assert(body.includes('pre-commit hook: **Passed**'));
+  assert(body.includes('pre-commit hook: ✅ **Passed**'));
   assert(!body.includes('**Not provided**'));
 
   fs.writeFileSync(receiptPath, JSON.stringify({ ...receipt, machine: `${receipt.machine}-other` }));

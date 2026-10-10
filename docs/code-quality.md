@@ -152,6 +152,8 @@ template. Copy its Local QA section into the PR description, or use the file as
 the body when creating a PR. Fill in the description before submitting it. For an
 existing PR, replace only its Local QA section and preserve the description.
 Regenerate and update this section whenever the PR head changes.
+Completion times in the PR use `dd.mm.yyyy HH:mm` in `Europe/Oslo`, including
+Norwegian daylight saving time; the receipt retains its UTC timestamp.
 
 The successful `staged-quality` hook saves `quality-reports/local-hook.json` with
 the checked Git tree, parent revision, machine, UTC completion time, image and
@@ -180,6 +182,20 @@ and per-check `.log` files identify custom/native failures; full runs also prese
 MegaLinter's summary and detailed logs under `megalinter/`.
 
 Failed CI runs upload `quality-reports-<run-id>-<attempt>` artifacts for 14 days.
+For same-repository PRs, CI also creates or updates one Code quality comment with
+the MegaLinter Markdown report, additional-check diagnostics, aggregate outcome,
+commit and a link to the run/artifacts. The publisher runs after successful or
+failed checks; missing reports are shown as incomplete rather than successful.
+Outdated PR heads do not overwrite the current comment. Oversized reports are
+truncated in the comment; complete reports remain in artifacts.
+
+The job has `contents: read` and `pull-requests: write`. Only the host publishing
+step receives the GitHub token; quality containers remain offline and receive no
+credentials. MegaLinter's built-in comment reporter stays disabled because the
+host publisher includes custom checks in the same report. PRs from forks and
+manual workflow runs retain logs/artifacts without attempting a PR comment.
+Comment API errors fail the job explicitly and never hide an earlier QA failure.
+
 Open the Actions run, read the failing step and download its artifact. Setup failures
 occur before source checking and may have only the step log. Missing reports mean the
 check did not complete; they are not evidence that the source passed.

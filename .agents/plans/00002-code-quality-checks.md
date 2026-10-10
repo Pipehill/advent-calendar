@@ -2,7 +2,7 @@
 
 Status: Not implemented
 
-Last updated: 2026-10-10
+Last updated: 2026-10-11
 
 Implementation type: ci
 
@@ -17,7 +17,8 @@ Define specialist agents that analyze failed MegaLinter reports and return
 precise, actionable findings to the main agent responsible for fixes and commits.
 
 Repository tooling is implemented on `ci/code-quality-checks` and local verification
-has passed. Real PR verification is still required before marking this plan
+has passed. PR #9 has a successful MegaLinter check; real failure/artifact and new
+comment-publishing verification remain required before marking this plan
 Implemented. Repository merge settings remain an owner-managed follow-up.
 
 ## Requirements
@@ -73,6 +74,15 @@ Implemented. Repository merge settings remain an owner-managed follow-up.
     fixes. Check merge-conflict markers, case-conflicting filenames, and names
     invalid on Windows, locally and in the full PR quality result. Private-key
     detection and large-file checks are outside the agreed initial scope.
+14. Publish the CI report as a PR comment, including MegaLinter output and custom
+    check diagnostics after successful or failed checks. Update one bot comment
+    per PR and retain complete artifacts. Use a host publisher after isolated
+    analysis; same-repository PRs can publish with `pull-requests: write`, while
+    fork PRs and manual runs retain logs/artifacts without comment publishing.
+15. Include generated local pre-commit evidence in the PR description, matched to
+    the latest commit's tree and parent. Keep the presentation concise with a
+    green success checkmark, no machine row or individual-check list, and completion
+    times in `dd.mm.yyyy HH:mm` using `Europe/Oslo`. Keep receipt details locally.
 
 ## Outstanding questions
 
@@ -154,6 +164,19 @@ implementation time; do not infer enforced merge checks from the ruleset name.
   Markdown documents when staged edits change headings or explicit HTML anchors.
   Conservatively check links in all candidate Markdown documents for any staged
   Markdown edit; keep lint/render scope unchanged for ordinary edits.
+- **Q14, CI report comments (2026-10-11):** The user requested the CI report in
+  a PR comment. Replace the original read-only publishing choice with a host
+  publishing step using `pull-requests: write`; analysis remains offline with no
+  credentials. Publish MegaLinter and custom results together, update an existing
+  Actions bot report, and keep artifacts. Fork tokens cannot publish comments in
+  this workflow; use logs/artifacts there without a privileged fork workflow.
+- **Q15, local QA evidence (2026-10-11):** The user requested automatic local
+  hook evidence and then simplified its presentation. Successful staged-quality
+  hook runs save a local receipt; `pr-report.mjs` validates it against HEAD and
+  generates the PR body. Show the compact evidence table and a green checkmark,
+  with Oslo completion time and unquoted time/platform/image values. Omit the
+  machine row, executed-check list and explanatory footer from the PR description.
+  Keep machine and detailed results in the ignored receipt for validation.
 
 ### Alternatives reviewed
 
@@ -309,7 +332,8 @@ and include the Mermaid, link, and whitespace checks in the same quality result.
 If implementation separates jobs, make sure skipped/missing/failed child checks
 cannot yield a successful MegaLinter aggregate result. Document the exact emitted
 status name for the owner's Settings configuration. Use the normal PR workflow
-with read-only analysis permissions and no automatic fix commits.
+with read-only source access and no automatic fix commits. The host report
+publisher may use `pull-requests: write`; do not pass its token into quality containers.
 
 MegaLinter's default/template choices are not automatically this project's
 policy: explicitly verify full-repository mode, enabled linters, failure settings,
@@ -397,12 +421,34 @@ of their evidence contract is recorded with representative findings under
 `.agents/quality/verification.md`; specialists have no editing/commit responsibility.
 
 The workflow has one job named `MegaLinter`, runs the full command for every PR
-update to main without path filters, uses read-only permissions and uploads failed
-reports. Actual GitHub failure/success status and artifact delivery have not yet
-been verified in a real PR. Publishing requires separate authorization under the
-implementation skill. Keep Status Not implemented until that verification passes.
+update to main without path filters, and uploads reports even after failure.
+On 2026-10-11, PR #9 at `2c90efe` had a successful MegaLinter check in
+[run 38090096572](https://github.com/Pipehill/advent-calendar/actions/runs/38090096572).
+Real failure/artifact verification remains pending. Keep Status Not implemented
+until all required verification passes.
 Owner merge-gate configuration and failed/missing-check bypass verification remain
 pending separately; tooling must not claim enforced merge blocking.
+
+### PR reporting follow-up (2026-10-11)
+
+`tools/quality/ci-comment.mjs` publishes the generated MegaLinter Markdown report
+and custom `summary.txt` after CI checks, including setup/check outcomes, checked
+PR head and run/artifact link. It creates or updates one marked Actions bot comment,
+handles comment pagination, skips outdated heads and bounds oversized bodies.
+Missing reports are explicit; API errors fail the job. The normal pull_request
+workflow grants `contents: read` and `pull-requests: write`, passes the token only
+to the host publisher and keeps quality containers offline. The built-in MegaLinter
+comment reporter remains disabled. Fork PRs and manual runs use logs/artifacts.
+Per-PR concurrency cancels superseded runs. Publisher tests run as part of CI.
+
+Six focused publisher tests passed locally: aggregate success/failure/missing
+reports, Unicode size limits, creation, pagination and updates, outdated heads,
+and API errors. Real Actions bot comment creation/update and failed-run reporting
+remain pending until these changes are committed, pushed and executed in PR #9.
+Full local QA passed for the updated workflow, publisher, documentation and plan,
+including actionlint, Markdown/YAML/JSON checks and custom documentation checks.
+Local PR body generation also reflects the user's requested compact presentation
+and Oslo timestamps; summer/winter time and date rollover were checked locally.
 
 ### Work order
 
@@ -415,6 +461,9 @@ pending separately; tooling must not claim enforced merge blocking.
 - [x] Correct existing in-scope lint failures without changing agreed product meaning.
 - [ ] Add the full-repository PR workflow and verify visible failure/success reporting.
 - [x] Preserve failed-run reports/logs and document local/CI access to them.
+- [x] Implement CI report comment publishing and verify the publisher locally.
+- [ ] Verify report comment creation/update and failed-run reporting in a real PR.
+- [x] Generate and validate compact local pre-commit evidence for the PR description.
 - [x] Define specialist report-analysis agents and the main-agent handoff under
   `.agents`; verify diagnoses against deliberately failing reports.
 - [x] Document the exact successful quality-check status and instructions for the
@@ -457,6 +506,11 @@ pending separately; tooling must not claim enforced merge blocking.
   Mermaid, broken-link, and runner failures. Confirm findings identify the exact
   rule/location when available, evidence, cause, proposed correction, and runnable
   verification command; missing evidence must be reported as uncertainty.
+- Verify one Actions bot comment contains MegaLinter output and additional-check
+  diagnostics after success and failure; reruns update that comment. Missing
+  reports must show an incomplete result, not success. Confirm run/artifact links,
+  truncation, outdated-head rejection, API error handling, and fork/manual skips.
+  Confirm the GitHub token is passed only to the host publisher, not containers.
 - Use the specialist findings to correct representative failures as the main
   agent and verify the checks pass. Confirm specialists do not edit or commit,
   delegation instructions are discoverable, and direct use of the same instructions

@@ -16,6 +16,7 @@ for installation, rules and troubleshooting.
 | `node tools/quality/run.mjs test` | Run custom checks and focused checker regressions. |
 | `node tools/quality/verify.mjs` | Verify hooks and staging behavior in a disposable clone. |
 | `node tools/quality/pr-report.mjs` | Generate a PR body with local hook evidence matching HEAD. |
+| `node --test tools/quality/ci-comment.test.mjs` | Verify CI comment rendering and API behavior without publishing. |
 | `node tools/quality/run.mjs clean` | Remove all quality images that no container references. |
 
 | File | Responsibility |
@@ -25,6 +26,8 @@ for installation, rules and troubleshooting.
 | `checks.mjs` | Inspect filenames, text, links and Mermaid fences. |
 | `verify.mjs` | Verify successful and failing cases without changing the original repository. |
 | `pr-report.mjs` | Verify local hook evidence and populate the PR template's Local QA section. |
+| `ci-comment.mjs` | Create or update the CI report comment after isolated quality checks. |
+| `ci-comment.test.mjs` | Verify report outcomes, size limits, comment updates and API failures. |
 | `Dockerfile` | Install the pinned tools, Python packages and Chromium. |
 | `package*.json`, `requirements.txt` | Pin container dependencies. |
 | `pre-commit-requirements.txt` | Pin the host hook dependencies. |
