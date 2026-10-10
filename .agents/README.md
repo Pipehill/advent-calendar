@@ -12,3 +12,19 @@ Shared content uses Markdown and remains independent of any model or agent tool.
 The root `AGENTS.md` is the entry point. Read relevant skills and plans as needed.
 Tools that do not automatically read `AGENTS.md` must be directed to it at startup.
 Any tool-specific entry files should link to shared content rather than duplicate rules.
+
+## Implementation rules
+
+Read the rules relevant to the component or boundary being changed. The
+[architecture document](../docs/architecture.md) explains the agreed design;
+these files own the actionable implementation instructions.
+
+| Rules | When to read |
+| --- | --- |
+| [Architecture](rules/architecture.md) | Application structure, frontend/BFF, SSR, UI/forms, builds/tests, environments, dependency policy, and logs |
+| [API contracts](rules/api-contracts.md) | Authored OpenAPI, tRPC inputs, generated DTOs/controllers/clients, wire formats, validation, errors, deadlines, and retries |
+| [Data and migrations](rules/data-and-migrations.md) | PostgreSQL/Npgsql/Dapper, DbUp SQL, startup, transactions, and published migration integrity |
+| [Authentication and calendar access](rules/authentication-and-calendar-access.md) | Identity, owner provisioning, cookies, session lifecycle, ownership/membership, opening times, editing, and protected caches |
+
+The [documentation rules](rules/documentation.md) still apply to every task;
+read [pull request rules](rules/pull-requests.md) when creating or updating a PR.

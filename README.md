@@ -1,1 +1,24 @@
-# advent-calendar
+# Advent calendar
+
+A planned online advent calendar for invited users, including children. This
+repository currently contains the product and architecture documentation; a
+runnable application and deployment have not yet been implemented.
+
+Visitors will enter an invitation code on the public landing page, then register
+with an email and password or sign in. Calendar use requires login. Each code
+invites a user to a particular calendar.
+
+The project owner will create separate administrator accounts. Administrators
+will manage their own calendars and invitation codes, preview and edit every
+door before and during the calendar period, and move content between doors that
+have not yet reached their scheduled opening time.
+
+Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
+so children can open them in the morning. Earlier doors will remain available
+to members; future content stays hidden until opening. Ordinary users will stay
+signed in for up to 30 days and administrators for up to eight hours from login,
+unless they log out or their session is invalidated. Activity will not extend
+these periods.
+
+See the [technology stack and architecture](docs/architecture.md) for the agreed
+technical design and the decisions reserved for later implementation.
