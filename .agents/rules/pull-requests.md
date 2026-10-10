@@ -13,6 +13,7 @@ in uppercase square brackets, followed by a colon and a space:
 | bugfix | `bugfix/` | `[BUGFIX]:` |
 | documentation | `documentation/` | `[DOCUMENTATION]:` |
 | ci | `ci/` | `[CI]:` |
+| qa | `qa/` | `[QA]:` |
 
 Use `plan` for creating or refining task plans, regardless of the eventual
 implementation type. New planning branches use `plan/<short-english-description>`

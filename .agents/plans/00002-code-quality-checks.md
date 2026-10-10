@@ -1,6 +1,6 @@
 # 00002: Enforce code quality before commits and PR merges
 
-Status: Not implemented
+Status: Implemented
 
 Last updated: 2026-10-11
 
@@ -16,10 +16,9 @@ builds, and tests will be integrated when application code is introduced.
 Define specialist agents that analyze failed MegaLinter reports and return
 precise, actionable findings to the main agent responsible for fixes and commits.
 
-Repository tooling is implemented on `ci/code-quality-checks` and local verification
-has passed. PR #9 has a successful MegaLinter check; real failure/artifact and new
-comment-publishing verification remain required before marking this plan
-Implemented. Repository merge settings remain an owner-managed follow-up.
+Repository tooling is implemented and merged through PR #9. The owner confirmed
+completion on 2026-10-11; the plan's status and work checklist have been updated
+accordingly. Repository merge settings remain an owner-managed follow-up.
 
 ## Requirements
 
@@ -424,8 +423,8 @@ The workflow has one job named `MegaLinter`, runs the full command for every PR
 update to main without path filters, and uploads reports even after failure.
 On 2026-10-11, PR #9 at `2c90efe` had a successful MegaLinter check in
 [run 38090096572](https://github.com/Pipehill/advent-calendar/actions/runs/38090096572).
-Real failure/artifact verification remains pending. Keep Status Not implemented
-until all required verification passes.
+Failure/artifact verification was still recorded as pending at that stage; the
+owner's completion confirmation on 2026-10-11 supersedes that progress state.
 Owner merge-gate configuration and failed/missing-check bypass verification remain
 pending separately; tooling must not claim enforced merge blocking.
 
@@ -448,7 +447,8 @@ Per-PR concurrency cancels superseded runs. Publisher tests run as part of CI.
 Six focused publisher tests passed locally: aggregate success/failure/missing
 reports, Unicode size limits, creation, pagination and updates, outdated heads,
 and API errors. Real Actions bot comment creation/update and failed-run reporting
-remain pending until these changes are committed, pushed and executed in PR #9.
+were still recorded as pending before PR #9 was merged. The owner confirmed
+completion on 2026-10-11.
 Full local QA passed for the updated workflow, publisher, documentation and plan,
 including actionlint, Markdown/YAML/JSON checks and custom documentation checks.
 Local PR body generation also reflects the user's requested compact presentation
@@ -463,10 +463,10 @@ and Oslo timestamps; summer/winter time and date rollover were checked locally.
   checks, and filename checks for Windows; retain check-only execution.
 - [x] Add the agreed custom documentation checks and focused regression cases.
 - [x] Correct existing in-scope lint failures without changing agreed product meaning.
-- [ ] Add the full-repository PR workflow and verify visible failure/success reporting.
+- [x] Add the full-repository PR workflow and verify visible failure/success reporting.
 - [x] Preserve failed-run reports/logs and document local/CI access to them.
 - [x] Implement CI report comment publishing and verify the publisher locally.
-- [ ] Verify report comment creation/update and failed-run reporting in a real PR.
+- [x] Verify report comment creation/update and failed-run reporting in a real PR.
 - [x] Generate and validate compact local pre-commit evidence for the PR description.
 - [x] Define specialist report-analysis agents and the main-agent handoff under
   `.agents`; verify diagnoses against deliberately failing reports.
@@ -474,7 +474,8 @@ and Oslo timestamps; summer/winter time and date rollover were checked locally.
   owner to require it on main with the chosen emergency override; leave Settings
   configuration and review-policy changes to the owner.
 - [x] Document local setup, troubleshooting, rule ownership, and deferred app integration.
-- [ ] Run the verification below; only then mark this plan and its index Implemented.
+- [x] Complete verification and mark this plan and its index Implemented, as confirmed
+  by the owner on 2026-10-11.
 
 ## Verification
 
