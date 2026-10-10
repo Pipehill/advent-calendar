@@ -129,11 +129,9 @@ None.
   Recheck supported compatible releases when implementing and pin the selected
   version. MCP, CLI, and any enabled MegaLinter copy/paste check must use compatible
   settings and documented version alignment.
-- Plan 00003 has already been assigned on `plan/developer-setup-doctor` and is
-  available in [PR #11][setup-plan-pr]. It is not on this plan's main-based branch.
-  Number 00004 avoids reusing that assignment. Integrate the plans before depending
-  on repository-relative paths or implementing setup/doctor changes; do not merge
-  the other PR implicitly.
+- [Plan 00003](00003-developer-setup-doctor.md) was merged through PR #11 and is
+  included after integrating main at `a075fe9`. It defines setup and doctor;
+  implementation of those scripts remains a prerequisite for their jscpd integration.
 
 ### PR code health reporting
 
@@ -287,6 +285,5 @@ the ignored quality-report directory.
 [jscpd-health]: https://jscpd.dev/guides/health
 [jscpd-changelog]: https://jscpd.dev/project/changelog
 [jscpd-install]: https://jscpd.dev/start/installation
-[setup-plan-pr]: https://github.com/Pipehill/advent-calendar/pull/11
 [codex-mcp]: https://learn.chatgpt.com/docs/extend/mcp?surface=cli
 [codex-config]: https://learn.chatgpt.com/docs/config-file/config-basic
