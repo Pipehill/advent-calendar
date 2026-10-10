@@ -1,5 +1,8 @@
 # Advent calendar
 
+[![pre-commit][pre-commit-badge]](https://pre-commit.com/)
+[![MegaLinter][megalinter-badge]](https://megalinter.io/)
+
 A planned online advent calendar for invited users, including children. This
 repository currently contains the product and architecture documentation; a
 runnable application and deployment have not yet been implemented.
@@ -27,3 +30,6 @@ technical design and the decisions reserved for later implementation.
 
 See [code quality](docs/code-quality.md) for local prerequisites, installing commit
 hooks, full checks, reports, troubleshooting and the owner's merge-check setup.
+
+[pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
+[megalinter-badge]: https://img.shields.io/badge/MegaLinter-enabled-brightgreen
