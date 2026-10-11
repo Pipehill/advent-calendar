@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { compatible, imageName, pinnedDependencies, normalizePin } from './requirements.mjs';
+import { baseline, compatible, imageName, pinnedDependencies, normalizePin } from './requirements.mjs';
 import { installTool } from './adapters.mjs';
 import { readLocalSettings, preCommitPath } from '../quality/local-settings.mjs';
 
@@ -29,6 +29,7 @@ export function diagnose(root = repositoryRoot, platform = process.platform, run
     expected: 'working supported Git',
     remedy: 'Run setup to install Git; restart terminal/IDE after installation.',
   });
+  checkAdvisoryAnalyzer(context, node);
   const python = checkExecutable(context, {
     name: 'python',
     candidates: pythonCandidates(root, settings, platform, run),
@@ -86,10 +87,29 @@ export function setup(root = repositoryRoot, platform = process.platform, run = 
   saveSettings(root, { runtime: runtimePath, python: state.python });
 
   preparePythonEnvironment(context, state);
+  prepareAdvisoryAnalyzer(context, state.node);
   prepareQualityImage(context, runtimePath);
   installCommitHooks(context, state.git);
 
   return printDiagnosis(diagnose(root, platform, run));
+}
+
+export function checkAdvisoryAnalyzer({ root, run, checks }, node) {
+  const expected = `jscpd ${baseline.jscpd}, MCP handshake/refresh and CLI health on authored source`;
+  let result = { status: 1, output: 'Compatible Node unavailable' };
+  if (node) {
+    result = run(node, [path.join(root, 'tools/quality/health.mjs'), 'doctor']);
+  }
+  checks.push({
+    name: 'Advisory code health analyzer', passed: result.status === 0,
+    detected: result.output || result.stdout || 'No readiness evidence', expected,
+    remedy: 'Run setup to install the lockfile-pinned analyzer; check platform binary, MCP and source scope diagnostics.',
+  });
+}
+
+export function prepareAdvisoryAnalyzer({ root, run }, node) {
+  const result = run(node, [path.join(root, 'tools/quality/install-analysis.mjs')], true);
+  if (result.status !== 0) throw new Error('jscpd installation failed; readiness is unavailable.');
 }
 
 // Executable discovery and command execution.

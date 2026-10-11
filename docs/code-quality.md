@@ -267,3 +267,19 @@ TypeScript checking, builds, Vitest, .NET compilation/xUnit, OpenAPI/Redocly gen
 SQL and application Dockerfile checks will be added when their inputs exist.
 The existing architecture and API contract choices remain in force. No placeholder
 application jobs, secret detection or large-file checks are included here.
+
+## Advisory measurements during development
+
+Use the pinned [code health commands](../tools/quality/health.md) to capture saved
+source before and after changes. Duplication comes from jscpd's built-in MCP server;
+health, complexity and supported dead-code findings come from CLI JSON reports.
+Lint saved working-tree source with `node tools/quality/run.mjs full` after meaningful
+changes and before completion, without staging unfinished work.
+
+Code health compares the full target tree with the candidate merge tree in the
+GitHub Actions PR comment alongside MegaLinter results. Complexity hotspots and
+heuristic dead-code findings have separate tables. Numeric values, deltas, colors and
+text make regressions and unavailable evidence visible. These scores do not block
+merging; required behavior can legitimately increase complexity. Regenerate after
+target/head changes, and explain regressions and tradeoffs. Existing local hook
+receipts and required lint checks remain independent.

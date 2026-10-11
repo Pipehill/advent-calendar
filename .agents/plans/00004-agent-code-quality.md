@@ -1,6 +1,6 @@
 # 00004: Code quality verification during agent development
 
-Status: Not implemented
+Status: Implemented (2026-10-11)
 
 Last updated: 2026-10-11
 
@@ -16,9 +16,8 @@ measured quality improved, stayed unchanged, or deteriorated.
 
 The measurements are advisory. Existing lint failures continue to block as before.
 Provide concrete Codex MCP setup and generic stdio guidance for other clients.
-Include whole-codebase before/after measurements in PR descriptions so reviewers
-can see the quality and complexity impact of merging a change. This plan does not
-implement the tooling.
+Include whole-codebase before/after measurements in GitHub Actions PR comments so reviewers
+can see the quality and complexity impact of merging a change.
 
 ## Requirements
 
@@ -60,8 +59,8 @@ implement the tooling.
 12. Give agents a documented way to run applicable lint checks on the saved working
     tree during development using the same rules as hooks/CI. Do not require staging
     incomplete edits solely to obtain development feedback.
-13. Add a `Code health` section to PR descriptions immediately after `Description`
-    and before `Local QA`. Include old and new values, numeric deltas, and colored
+13. Add a `Code health` section to the existing MegaLinter GitHub Actions comment,
+    with separate complexity and dead-code file tables. Include old and new values, numeric deltas, and colored
     status indicators for overall health and related duplication, complexity, and
     supported dead-code measurements.
 14. Measure the complete authored codebase using the agreed exclusions, not only
@@ -86,6 +85,22 @@ None.
 ## Implementation details and work order
 
 ### Confirmed decisions and repository context
+
+- On 2026-10-11 the owner requested a shorter PR Code health section: remove the
+  mixed-results/rationale and advisory paragraphs, detailed measurement identity
+  and limitations. Place target/head/candidate identity above the metric table and
+  group file references in a findings table. This supersedes the original verbose
+  PR layout below; complete evidence and development explanations remain in local reports.
+
+- Implementation uses `qa/agent-code-quality` from synchronized main at `e81e073`,
+  as explicitly authorized by the owner on 2026-10-11.
+- On 2026-10-11 the owner explicitly deferred native macOS/Linux installation,
+  setup/doctor and client tests. Windows and Linux-container evidence are recorded
+  separately in [health verification](../../tools/quality/health-verification.md).
+  The [native follow-up rule](../rules/development-quality.md#temporary-native-platform-follow-up)
+  requires recording failures, fixes and successful reruns when those hosts become
+  available. Interactive Codex client connection remains a recorded limitation;
+  the configuration follows official documentation and protocol startup is tested.
 
 - The user selected implementation type `qa`. Planning uses
   `plan/agent-code-quality`; a separately requested planning PR uses `[PLAN]:`.
@@ -135,10 +150,11 @@ None.
 
 ### PR code health reporting
 
-Add `## Code health` to `.github/pull_request_template.md` and extend
-`tools/quality/pr-report.mjs` to populate it while preserving `Description` and
-the separate verified `Local QA` section. Provide an explicit unavailable state
-in the template for PRs without matching measurements.
+Publish `## Code health` in the existing GitHub Actions comment alongside MegaLinter
+results. Keep `.github/pull_request_template.md` and `tools/quality/pr-report.mjs`
+focused on `Description` and the separate verified `Local QA` section. Provide an
+explicit unavailable state in the comment for failed or mismatched measurements.
+Use separate file tables for complexity hotspots and heuristic dead-code findings.
 
 Compare the current target-branch tree with the candidate merge tree using the
 same pinned analyzer, configuration, scoring dimensions, and authored-code scope.
@@ -180,22 +196,22 @@ the ignored quality-report directory.
 ### Planned work steps
 
 - [x] Clarify enforcement, metrics, and client scope with the user.
-- [ ] Inventory authored-code scope, existing tool versions, report contracts,
+- [x] Inventory authored-code scope, existing tool versions, report contracts,
   and the available setup/doctor implementation. Verify current jscpd capabilities
   with its CLI and MCP handshake using disposable fixtures.
-- [ ] Define shared jscpd configuration and dependency pins. Ensure the launch path
+- [x] Define shared jscpd configuration and dependency pins. Ensure the launch path
   works on supported platforms and does not download an unpinned release every
   time an agent starts a scan. Use [official installation guidance][jscpd-install].
-- [ ] Add a repository launch command for the built-in stdio MCP server, with
+- [x] Add a repository launch command for the built-in stdio MCP server, with
   repository path resolution and shared scan settings. Keep stdout reserved for
   protocol traffic and diagnostics separate. Document the agreed client setup,
   server lifecycle, refresh behavior, and failure remedies.
-- [ ] Document and connect development-time lint commands against the saved working
+- [x] Document and connect development-time lint commands against the saved working
   tree. Reuse the existing full-check command initially; extend applicable language
   coverage and any scoped commands with the same configuration when inputs exist.
   Agent instructions must call the relevant checks after meaningful edits and
   before completion while preserving the separate staged verification boundary.
-- [ ] Add repeatable baseline and comparison commands under `tools/quality`.
+- [x] Add repeatable baseline and comparison commands under `tools/quality`.
   Capture measurements before the task's edits, rescan saved source afterwards,
   and produce machine-readable evidence and a concise comparison. Keep reports
   ignored by Git and identify both inputs. Preserve existing edits and index state.
@@ -203,37 +219,57 @@ the ignored quality-report directory.
   direction; show raw values alongside the overall score and explanations.
   Mark comparisons invalid when versions or measurement settings differ; changed
   source is expected, changed exclusions or scoring dimensions require explanation.
-- [ ] Add separate CLI reports for health-score, complexity, and dead-code findings
+- [x] Add separate CLI reports for health-score, complexity, and dead-code findings
   with the same version and authored-code scope as the duplication measurements.
   Include overall score, available sub-scores, concrete findings, and deltas in
   the comparison. Report unsupported dimensions and confidence limitations.
   Keep the measurements advisory and preserve existing main/staged/CI enforcement.
   Do not enable MegaLinter's copy/paste checker as a new blocking gate under this
   plan; if used for reporting, verify that its findings remain advisory.
-- [ ] Add whole-codebase PR comparison generation using the target base and
-  candidate merged tree. Extend `.github/pull_request_template.md` and
-  `tools/quality/pr-report.mjs` with the `Code health` section, numeric/color table,
+- [x] Add whole-codebase PR comparison generation using the target base and
+  candidate merged tree. Extend the existing GitHub Actions PR comment
+  with the `Code health` section, numeric/color table,
   evidence identity, unavailable states, and advisory note described above.
   Document regenerating the section for each relevant head/base update and
   preserve the existing description and local hook evidence generation.
-- [ ] Extend agent instructions with the development verification sequence and
+- [x] Extend agent instructions with the development verification sequence and
   findings contract. Update `.agents/README.md`, applicable rules, and
   `.agents/skills/implement-plan/SKILL.md` so implementation work discovers the
   checks. Explain regressions, fixes, remaining findings, and missing evidence.
   Keep agent workflow material out of the root README.
-- [ ] Add the maintenance rule under `.agents/rules`: introducing a language
+- [x] Add the maintenance rule under `.agents/rules`: introducing a language
   requires updating MegaLinter and local lint coverage in the same change.
   Update `docs/code-quality.md` and `tools/quality/README.md` with developer-facing
   commands, scope, diagnostics, and the selected quality policy.
-- [ ] Integrate jscpd installation/version checks and readiness diagnostics into
+- [x] Integrate jscpd installation/version checks and readiness diagnostics into
   plan 00003's setup/doctor tooling. Verify protocol startup and the configured
   repository scope as well as executable presence.
   If plan 00003 is not yet implemented, record that prerequisite and coordinate
   implementation order rather than silently implementing the entire onboarding
   plan as part of this task.
-- [ ] Verify improvements, regressions, and execution failures with disposable
+- [x] Verify improvements, regressions, and execution failures with disposable
   fixtures and supported-platform checks; update plan status and index only after
   the selected requirements are implemented and verified.
+
+### Implementation evidence
+
+Implemented on 2026-10-11 with jscpd 5.4.1 pinned separately from MegaLinter's
+verified bundled 5.0.16. Shared MCP/CLI scope, immutable source snapshots,
+development baselines, merge-tree PR comparisons, colored numeric reporting,
+setup/doctor integration and discoverable agent maintenance instructions exist.
+Windows and Linux-container fixtures, full lint and the eleven-scenario real
+hook/staging/receipt verifier passed. Codex accepted the example's stdio fields
+through temporary CLI overrides; the documented launcher passed protocol calls
+from an unrelated cwd. Native macOS/Linux and interactive IDE follow-ups remain
+explicitly recorded in [verification](../../tools/quality/health-verification.md).
+
+The final development measurement is mixed: health 41.9 → 46.2, zero clones before
+and after, complexity sub-score 60.1 → 59.3, maximum file complexity 116 → 122.
+Analyzer readiness/reporting adds required behavior and complexity; heuristic
+dead-code and size normalization limit score interpretation. Existing hook and CI
+enforcement remains independent of these advisory metrics. No application
+language or placeholder linter was introduced; the new maintenance rule requires
+local/CI coverage and invalid/corrected fixtures whenever a language is adopted.
 
 ## Verification
 
@@ -266,8 +302,8 @@ the ignored quality-report directory.
 - Verify a jscpd regression is reported without blocking a commit or PR on score
   grounds, while an existing lint violation still blocks as before. Verify agent
   instructions require analyzing and explaining the regression.
-- Verify generated PR descriptions preserve section order: `Description`,
-  `Code health`, then `Local QA`. Check before/after numbers, signed deltas, units,
+- Verify generated PR descriptions preserve `Description` and `Local QA`, with
+  `Code health` in the MegaLinter comment. Check before/after numbers, signed deltas, units,
   color indicators, text labels, advisory wording, and regression explanations.
 - Verify the PR analysis includes unchanged authored code and new/deleted files,
   comparing the target branch with the actual candidate merge result. Test a PR
@@ -275,7 +311,7 @@ the ignored quality-report directory.
   dimensions. Incorrect comparison identity must never display a valid improvement.
 - Use improved, unchanged, regressed, and mixed-metric fixtures to verify colors
   and labels. Confirm that an overall health improvement does not hide worsening
-  complexity, and a clearly lower health score remains prominent in the PR body.
+  complexity, and a clearly lower health score remains prominent in the PR comment.
 - Verify PR generation retains valid local hook evidence when code health is
   unavailable, and reports a health decline without introducing a merge gate.
   Check that intentional complexity increases can be explained in the PR section.

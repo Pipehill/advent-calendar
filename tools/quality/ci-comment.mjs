@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { renderComparison } from './health-report.mjs';
 
 export const commentMarker = '<!-- advent-code-quality-report -->';
 
@@ -20,23 +21,31 @@ function stepStatus(outcome) {
   return `${outcome === 'success' ? '✅' : '❌'} ${labels[outcome] || 'Incomplete'}`;
 }
 
-export function buildComment({ revision, runUrl, setupOutcome, checkOutcome, megaReport, summary }) {
+export function buildComment({ revision, baseRevision, runUrl, setupOutcome, checkOutcome,
+  healthOutcome, healthComparison, megaReport, summary }) {
   const passed = setupOutcome === 'success' && checkOutcome === 'success';
-  const commitUrl = `${runUrl.split('/actions/runs/')[0]}/commit/${revision}`;
   const report = cleanMegaReport(megaReport || '');
   const custom = clip(summary || 'No additional-check report was produced.');
   const fence = '`'.repeat(Math.max(3, ...Array.from(custom.matchAll(/`+/g), match => match[0].length + 1)));
   const additionalChecks = summary?.trim() === 'All applicable checks passed.' ? [] : [
     '### Additional repository checks', '', fence, custom, fence, '',
   ];
+  let comparison = healthComparison;
+  if (healthOutcome !== 'success' || !comparison) {
+    comparison = { available: false, reason: 'Health analysis failed, was skipped or produced no comparison' };
+  } else if (comparison.available && (comparison.identity?.head !== revision
+    || comparison.identity?.base !== baseRevision)) {
+    comparison = { available: false, reason: 'Health comparison does not match the current PR target and head' };
+  }
   const body = [
-    commentMarker, `## Code Quality - HEAD [${revision.slice(0, 7)}](${commitUrl})`, '',
+    commentMarker, '## Code Quality', '',
     `Overall code quality: ${passed ? '✅ **Passed**' : '❌ **Failed or incomplete**'}`, '',
     `[CI run and report artifacts](${runUrl})`, '',
     `- ${stepStatus(setupOutcome)} — **Quality tool setup**`,
     `- ${stepStatus(checkOutcome)} — **Lint and repository checks**`, '',
     clip(report || 'No MegaLinter report was produced. See the CI run for execution errors.'), '',
     ...additionalChecks,
+    renderComparison(comparison, { compact: true }), '',
   ].join('\n');
   // GitHub limits comment bodies; retain a link to the complete reports if truncated.
   const bytes = Buffer.from(body);
@@ -45,7 +54,7 @@ export function buildComment({ revision, runUrl, setupOutcome, checkOutcome, meg
     : body;
 }
 
-export async function publishComment({ repository, number, revision, body, token, fetchImpl = fetch }) {
+export async function publishComment({ repository, number, revision, baseRevision, body, token, fetchImpl = fetch }) {
   async function request(endpoint, method = 'GET', payload) {
     const response = await fetchImpl(`https://api.github.com/repos/${repository}${endpoint}`, {
       method,
@@ -61,8 +70,8 @@ export async function publishComment({ repository, number, revision, body, token
   }
 
   const pull = await request(`/pulls/${number}`);
-  if (pull.head.sha !== revision) {
-    console.log('Skipping report for an outdated PR head.');
+  if (pull.head.sha !== revision || (baseRevision && pull.base.sha !== baseRevision)) {
+    console.log('Skipping report for an outdated PR target or head.');
     return;
   }
   let existing;
@@ -83,6 +92,14 @@ function readReport(filename) {
   return fs.existsSync(filename) ? fs.readFileSync(filename, 'utf8') : '';
 }
 
+function readHealthComparison() {
+  try {
+    return JSON.parse(readReport('quality-reports/health/pr/comparison.json'));
+  } catch {
+    return { available: false, reason: 'Missing or invalid health comparison report' };
+  }
+}
+
 async function main() {
   const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
   const repository = process.env.GITHUB_REPOSITORY;
@@ -93,15 +110,18 @@ async function main() {
   const token = process.env.GH_TOKEN;
   if (!token) throw new Error('GH_TOKEN is required for PR comment publishing.');
   const revision = event.pull_request.head.sha;
+  const baseRevision = event.pull_request.base.sha;
   const runUrl = `${process.env.GITHUB_SERVER_URL}/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`;
   const body = buildComment({
-    revision, runUrl,
+    revision, baseRevision, runUrl,
     setupOutcome: process.env.QUALITY_SETUP_OUTCOME,
     checkOutcome: process.env.QUALITY_CHECK_OUTCOME,
+    healthOutcome: process.env.QUALITY_HEALTH_OUTCOME,
+    healthComparison: readHealthComparison(),
     megaReport: readReport('quality-reports/full/megalinter/megalinter-report.md'),
     summary: readReport('quality-reports/full/summary.txt'),
   });
-  await publishComment({ repository, number: event.pull_request.number, revision, body, token });
+  await publishComment({ repository, number: event.pull_request.number, revision, baseRevision, body, token });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

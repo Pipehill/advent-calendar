@@ -66,6 +66,12 @@ answers in the plan, and update `Last updated`.
 
 ## 3. Implement and track progress
 
+For coding work, follow the [development quality rules](../../rules/development-quality.md):
+capture a baseline before edits, check saved source after meaningful changes, and
+produce the final advisory comparison alongside relevant lint/tests. Readiness
+failures and unsupported metrics must remain visible. Keep working-tree feedback
+separate from staged receipts and PR merge comparisons.
+
 Carry out the plan's work steps and required verification within the authorized
 scope. Read relevant repository rules before changing their components. Keep
 completed steps checked in the plan and update `Last updated` after each edit.

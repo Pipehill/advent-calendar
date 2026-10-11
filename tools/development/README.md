@@ -19,8 +19,14 @@ bash tools/development/doctor.sh
 Setup installs missing tools, prepares `.quality-cache/venv` from the existing
 pinned requirements, prepares the quality image using the existing runner, and
 installs and initializes commit hooks. Rerun it after cloning, dependency changes,
-partial installation, or a required restart. Compatible tools, machines and images
-are reused. Existing incompatible Node installations and venvs are preserved and
+partial installation, or a required restart. It also installs lockfile-pinned jscpd
+5.4.1 platform packages and reuses a matching installation. Doctor checks its binary,
+MCP initialization/tool schemas/refresh, authored-source scope and CLI reports without
+persisting measurements. See [code health](../quality/health.md) for client setup and
+diagnostics. Rerun setup if optional native packages were omitted or are missing.
+
+Compatible tools, machines and images are reused. Existing incompatible Node
+installations and venvs are preserved and
 require the reported manual remedy. Python 3.14 can be installed alongside older
 system Python; setup never changes the distribution's Python symlink.
 

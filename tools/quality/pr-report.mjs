@@ -58,7 +58,8 @@ try {
     `| Markdown link sources checked | ${receipt.input.linkSelected.length} |`,
     '',
   ].join('\n');
-  const body = template.slice(0, offset) + '\n' + qa + (nextSection < 0 ? '' : template.slice(nextSection));
+  const body = template.slice(0, offset) + '\n' + qa
+    + (nextSection < 0 ? '' : template.slice(nextSection));
   fs.writeFileSync(destination, body);
   console.log(`Generated ${destination}\nVerified local hook evidence for ${commit}.`);
 } catch (error) {

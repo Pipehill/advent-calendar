@@ -2,11 +2,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { version as jscpdVersion } from '../quality/jscpd.mjs';
 
 export const baseline = {
   node: 24,
   python: '3.14',
   uv: '0.13.0',
+  jscpd: jscpdVersion,
 };
 
 // Python package names treat hyphens, underscores and dots as equivalent.

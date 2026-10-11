@@ -78,3 +78,19 @@ rule can be removed while retaining this history.
 
 See the [plan](../../.agents/plans/00003-developer-setup-doctor.md) for the original
 verification scenarios and the owner-approved acceptance exception.
+
+## jscpd onboarding extension (2026-10-11)
+
+Plan 00004 adds lockfile-pinned jscpd 5.4.1 installation/reuse and readiness checks.
+On Windows x64, installation, repeat installation and full developer doctor passed
+with Node 24.14.0 selected in the process PATH. Doctor checked the native binary,
+MCP initialization/schema/refresh, authored-source scope and CLI health reports.
+Linux x64 musl container installation/reuse and analyzer readiness also passed;
+this is not native Linux onboarding evidence. Shared Windows/Linux test suites
+passed with the other platform's bootstrap test skipped as appropriate.
+
+The owner explicitly deferred native macOS/Linux jscpd setup/doctor and client tests
+on 2026-10-11. Follow the [code health platform rule](../../.agents/rules/development-quality.md#temporary-native-platform-follow-up)
+and record actual installation failures, fixes and reruns in
+[health verification](../quality/health-verification.md). Interactive Codex client
+connection remains unverified; protocol tests use the repository's stdio client.
