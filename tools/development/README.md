@@ -111,6 +111,11 @@ for staged snapshots, receipts and reports.
 
 ## Maintenance and verification
 
+`environment.mjs` owns the ordered setup workflow and runtime preparation.
+`diagnostics.mjs` collects read-only readiness checks; `commands.mjs` owns
+argument-array command execution and PATH discovery. Platform installation stays
+in `adapters.mjs`, and versions remain in `requirements.mjs`.
+
 When introducing or changing a local prerequisite, update setup, doctor, their
 shared requirements, these instructions and relevant tests in the same change.
 Dependency lists and image pins remain owned by the existing quality files.

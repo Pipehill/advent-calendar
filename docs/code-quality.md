@@ -1,7 +1,7 @@
 # Code quality
 
 Every pull request targeting `main`, including documentation changes and PR updates,
-runs the full repository through the **MegaLinter** job in **Code quality**.
+runs the full repository through the **Code Quality Checks** job in **Code Quality**.
 Failures block that job; no check changes files or creates commits.
 
 ## Install after cloning
@@ -245,13 +245,14 @@ endings. Do not use fixing whitespace hooks or automatic fix commits in CI.
 
 ## Require the merge check in GitHub Settings
 
-The stable required status is **MegaLinter** (workflow display: **Code quality / MegaLinter**).
+The stable required status is **Code Quality Checks**
+(workflow display: **Code Quality / Code Quality Checks**).
 There is one job, with no path filters or optional child jobs. A setup failure,
 MegaLinter failure or custom-check failure makes that status fail.
 
 After a real PR has emitted the status, the repository owner should use Settings →
 Rules → Rulesets (or branch protection) to target `refs/heads/main`, require pull
-requests and add **MegaLinter** from GitHub Actions as a required status check.
+requests and add **Code Quality Checks** from GitHub Actions as a required status check.
 Keep the owner's emergency bypass available for very important exceptions. Avoid
 changing existing review requirements as part of this setup. Verify a failed/missing
 status blocks an ordinary merge and that the intended owner can still bypass it.
