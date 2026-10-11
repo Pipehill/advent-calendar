@@ -1,0 +1,21 @@
+@baseUrl = http://localhost:8080
+# Replace with a POST response ID, or use the idempotent local seed ID below.
+@calendarId = 5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026
+
+### Create: 201, calendar body and Location header
+POST {{baseUrl}}/calendars
+Content-Type: application/json
+
+{"title":"  My advent calendar  "}
+
+### Retrieve persisted calendar: 200
+GET {{baseUrl}}/calendars/{{calendarId}}
+
+### Invalid title: 400, ProblemDetails with title field errors
+POST {{baseUrl}}/calendars
+Content-Type: application/json
+
+{"title":"   "}
+
+### Unknown calendar: 404, ProblemDetails
+GET {{baseUrl}}/calendars/00000000-0000-4000-8000-000000000000

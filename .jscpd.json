@@ -2,7 +2,7 @@
   "minLines": 5,
   "minTokens": 50,
   "mode": "mild",
-  "pattern": "**/*.{js,mjs,cjs,jsx,ts,tsx,cs,py,rs,go,sh,ps1}",
+  "pattern": "**/*.{js,mjs,cjs,jsx,ts,tsx,cs,sql,py,rs,go,sh,ps1}",
   "formatsExts": { "javascript": ["js", "mjs", "cjs"] },
   "ignore": [
     "**/node_modules/**", "**/.git/**", "**/.quality-cache/**",

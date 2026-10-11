@@ -1,0 +1,23 @@
+{
+  "runtime": "Net100",
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "openapi.json"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpController": {
+      "className": "Calendars",
+      "namespace": "Calendar.Api.Generated",
+      "controllerStyle": "Abstract",
+      "controllerBaseClass": "Microsoft.AspNetCore.Mvc.ControllerBase",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "useActionResultType": true,
+      "generateDataAnnotations": false,
+      "jsonLibrary": "SystemTextJson",
+      "dateTimeType": "System.DateTimeOffset",
+      "generateNullableReferenceTypes": true,
+      "output": "../backend/Calendar.Api/generated/Contract.cs"
+    }
+  }
+}

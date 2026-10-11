@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);generated/**</DefaultItemExcludes>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Npgsql" Version="10.0.3" />
+        <PackageReference Include="Dapper" Version="2.1.89" />
+        <PackageReference Include="dbup-postgresql" Version="7.0.1" />
+        <EmbeddedResource Include="Migrations/*.sql" />
+        <Compile Include="generated/Contract.cs" />
+    </ItemGroup>
+    <Target Name="GenerateContract" BeforeTargets="BeforeCompile">
+        <Exec
+            WorkingDirectory="$(MSBuildProjectDirectory)/../../.."
+            Command="dotnet tool run nswag run src/contract/nswag.json"
+        />
+    </Target>
+</Project>

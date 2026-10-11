@@ -24,6 +24,14 @@ export function diagnose(root = repositoryRoot, platform = process.platform, run
     expected: 'working supported Git',
     remedy: 'Run setup to install Git; restart terminal/IDE after installation.',
   });
+  const dotnet = checkExecutable(context, {
+    name: 'dotnet',
+    candidates: [process.env.DOTNET_EXE, settings.dotnet,
+      path.join(root, '.quality-cache/dotnet', platform === 'win32' ? 'dotnet.exe' : 'dotnet'),
+      'dotnet'].filter(Boolean),
+    expected: `.NET SDK ${baseline.dotnet} (global.json)`,
+    remedy: 'Run setup to install the pinned SDK alongside existing installations.',
+  });
   checkAdvisoryAnalyzer(context, node);
   const python = checkExecutable(context, {
     name: 'python',
@@ -45,8 +53,14 @@ export function diagnose(root = repositoryRoot, platform = process.platform, run
   const runtime = findRuntime(context);
   const image = imageName(root);
   checkContainerRuntime(context, runtime, image);
+  const compose = run(runtime, ['compose', 'version']);
+  checks.push({
+    name: 'Compose provider', passed: compose.status === 0,
+    detected: compose.output, expected: 'Docker Compose v2+ compatible provider for the selected runtime',
+    remedy: 'Run setup or install Docker Compose; Podman delegates to an external provider.',
+  });
 
-  return { checks, node, git, python, venvPython, runtime, image };
+  return { checks, node, git, dotnet, python, venvPython, runtime, image };
 }
 
 export function checkAdvisoryAnalyzer({ root, run, checks }, node) {
@@ -269,7 +283,13 @@ function checkLinuxExecution(root, runtime, image, run) {
     'const fs = require("fs");',
     'const isLinux = process.platform === "linux";',
     'const mountReadable = fs.existsSync("/workspace/.pre-commit-config.yaml");',
-    'if (!isLinux || !mountReadable) process.exit(1);',
+    'const cp = require("child_process");',
+    'const tools = [["dotnet", "10.0.401"], ["csharpier", "1.3.0"], ["sqlfluff", "4.3.0"]];',
+    'const toolsReady = tools.every(([tool, version]) => {',
+    '  const result = cp.spawnSync(tool, ["--version"], {encoding: "utf8"});',
+    '  return result.status === 0 && result.stdout.includes(version);',
+    '});',
+    'if (!isLinux || !mountReadable || !toolsReady) process.exit(1);',
   ].join('\n');
 
   return run(runtime, [

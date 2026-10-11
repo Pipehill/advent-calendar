@@ -31,6 +31,7 @@ jobs:
           node --test tools/quality/ci-comment.test.mjs tools/quality/snapshot.test.mjs
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
+          node tools/quality/run.mjs test
       - name: Advisory whole-codebase health evidence
         id: health
         if: always()

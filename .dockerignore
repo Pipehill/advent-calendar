@@ -1,0 +1,9 @@
+.git
+.quality-cache
+quality-reports
+megalinter-reports
+**/node_modules
+**/bin
+**/obj
+**/generated
+src/backend/publish

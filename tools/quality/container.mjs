@@ -80,6 +80,10 @@ function runContentLinters() {
   }
   const workflows = yaml.filter(name => name.startsWith('.github/workflows/'));
   if (workflows.length) runTool('actionlint', 'actionlint', ['-shellcheck=', '-pyflakes=', ...workflows]);
+  const sql = selectedFilesMatching(/\.sql$/i);
+  if (sql.length) runTool('sqlfluff', '/venvs/sqlfluff/bin/sqlfluff', ['lint', '--config', '.sqlfluff', ...sql]);
+  const csharp = selectedFilesMatching(/\.(cs|csproj|props|targets)$/i);
+  if (csharp.length) runTool('csharpier', 'csharpier', ['check', ...csharp]);
 }
 
 function runOfficialHooks() {
@@ -157,7 +161,32 @@ function runCheckerRegressions(scratch) {
   verifyTextAndMarkdownChecks();
   verifyEncodedLinkTargets(scratch);
   verifyFilenameChecks(scratch);
+  verifyBackendLinters(scratch);
   console.log('Focused checker regressions passed.');
+}
+
+function verifyBackendLinters(scratch) {
+  const csharp = path.join(scratch, 'Fixture.cs');
+  fs.writeFileSync(csharp, 'public class Fixture{public int Value{get;set;}}\n');
+  const checkCsharp = () => spawnSync('csharpier', ['check', csharp], { encoding: 'utf8' });
+  const invalidCsharp = checkCsharp();
+  assert.equal(invalidCsharp.status, 1, invalidCsharp.stdout + invalidCsharp.stderr);
+  const format = spawnSync('csharpier', ['format', '--no-cache', csharp], { encoding: 'utf8' });
+  assert.equal(format.status, 0, format.stderr);
+  const correctedCsharp = checkCsharp();
+  assert.equal(correctedCsharp.status, 0, correctedCsharp.stdout + correctedCsharp.stderr);
+
+  const sql = path.join(scratch, 'fixture.sql');
+  const checkSql = () => spawnSync('sqlfluff', [
+    'lint', '--config', path.join(workspace, '.sqlfluff'), sql,
+  ], { encoding: 'utf8' });
+  fs.writeFileSync(sql, 'select 1;\n');
+  const invalidSql = checkSql();
+  assert.equal(invalidSql.status, 1, invalidSql.stdout + invalidSql.stderr);
+  fs.writeFileSync(sql, 'SELECT 1;\n');
+  assert.equal(checkSql().status, 0);
+  fs.writeFileSync(path.join(reportsDirectory, 'backend-linter-fixtures.log'),
+    'CSharpier and SQLFluff rejected invalid fixtures and accepted corrected fixtures.\n');
 }
 
 function verifyEncodedLinkTargets(scratch) {

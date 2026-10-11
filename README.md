@@ -4,8 +4,8 @@
 [![MegaLinter][megalinter-badge]](https://megalinter.io/)
 
 A planned online advent calendar for invited users, including children. This
-repository currently contains the product and architecture documentation; a
-runnable application and deployment have not yet been implemented.
+repository includes a runnable backend for creating and retrieving calendars,
+with PostgreSQL persistence. Frontend, user access and deployment are planned.
 
 Visitors will enter an invitation code on the public landing page, then register
 with an email and password or sign in. Calendar use requires login. Each code
@@ -47,6 +47,26 @@ installation permissions, restart requirements and manual recovery.
 
 See [code quality](docs/code-quality.md) for local prerequisites, installing commit
 hooks, full checks, reports, troubleshooting and the owner's merge-check setup.
+
+## Run the backend locally
+
+After developer setup, build and start the API and persistent PostgreSQL database:
+
+```powershell
+./tools/development/run-local.ps1
+```
+
+```bash
+bash tools/development/run-local.sh
+```
+
+The launcher prints `http://localhost:8080` after readiness succeeds. Create with
+`POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
+with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.
+The local sample ID is `5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026`.
+
+See [backend commands and API examples](src/backend/README.md) for host development,
+tests, configuration, seed activation, stopping containers and log inspection.
 
 [pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
 [megalinter-badge]: https://img.shields.io/badge/MegaLinter-enabled-brightgreen

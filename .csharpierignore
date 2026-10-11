@@ -1,0 +1,4 @@
+**/generated/
+**/bin/
+**/obj/
+src/backend/publish/

@@ -1,11 +1,18 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-10-10
+Last reviewed: 2026-10-11
 
 This document describes the agreed design for the advent calendar. The repository
-currently contains documentation and contribution resources; it has no runnable
-application, authored API contract, migrations, build automation, or deployment.
-The workflows and checks below are requirements for subsequent implementation.
+now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
+PostgreSQL migrations, API integration tests and local/CI build commands. The
+initial Compose stack runs backend and database; frontend/BFF, identity, calendar
+access rules and deployment remain future work. The implemented POST/GET API
+requires no user context. See [backend workflows](../src/backend/README.md).
+
+Application source belongs under root `src/`: the backend is in `src/backend`,
+the authored OpenAPI contract and generator settings in the sibling `src/contract`,
+and future frontend/BFF source will use `src/frontend`. Developer tooling remains
+under `tools/`.
 
 ## System responsibilities
 

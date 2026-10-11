@@ -10,3 +10,9 @@ indent_size = 2
 
 [*.{bat,cmd}]
 end_of_line = crlf
+
+[*.{cs,sql,csproj,props,slnx}]
+indent_size = 4
+
+[**/generated/*.cs]
+generated_code = true

@@ -47,6 +47,8 @@ test('baseline versions and normalized package names reject incompatible tools',
   assert(!compatible('node', 'v26.0.0'));
   assert(compatible('python', 'Python 3.14.8'));
   assert(!compatible('python', 'Python 3.13.0'));
+  assert(compatible('dotnet', '10.0.401'));
+  assert(!compatible('dotnet', '10.0.400'));
   assert.equal(normalizePin('pre_commit==4.6.2'), normalizePin('pre-commit==4.6.2'));
   assert.notEqual(normalizePin('pre_commit==4.6.1'), normalizePin('pre-commit==4.6.2'));
 });
@@ -105,6 +107,9 @@ test('native and Docker readiness failures never reset data; stopped selected Po
 
     if (argumentsList[0] === 'info') {
       return { status: started ? 0 : 1 };
+    }
+    if (argumentsList[0] === 'compose') {
+      return { status: 1, stdout: '', output: 'provider missing' };
     }
     if (argumentsList[1] === 'list') {
       const machines = [{ Name: 'existing', Running: false }];
@@ -197,6 +202,9 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
       return success('working version');
     }
 
+    if (argumentsList[0] === 'compose') {
+      return { status: 1, stdout: '', output: 'provider missing' };
+    }
     throw new Error(`Unexpected command: ${executable} ${argumentsList.join(' ')}`);
   };
 

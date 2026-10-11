@@ -9,6 +9,10 @@ when changing those boundaries; those files own their respective instructions.
 
 ## Stack and service boundaries
 
+- Keep application source under root `src/`: backend in `src/backend`, frontend/BFF
+  in `src/frontend`, and authored API contracts/generator settings in `src/contract`
+  alongside those application folders. Developer tooling remains under `tools/`.
+
 - Use TypeScript, React, TanStack Start, TanStack Router, and TanStack Query for
   the frontend; host the TypeScript BFF in TanStack Start.
 - Keep three long-running containers: frontend/BFF, ASP.NET Core C# backend,

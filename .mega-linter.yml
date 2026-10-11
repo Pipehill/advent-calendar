@@ -3,6 +3,8 @@ ENABLE_LINTERS:
   - YAML_YAMLLINT
   - JSON_JSONLINT
   - ACTION_ACTIONLINT
+  - SQL_SQLFLUFF
+  - CSHARP_CSHARPIER
 VALIDATE_ALL_CODEBASE: true
 FLAVOR_SUGGESTIONS: false
 APPLY_FIXES: none
@@ -11,8 +13,12 @@ MARKDOWN_MARKDOWNLINT_DISABLE_ERRORS: false
 YAML_YAMLLINT_DISABLE_ERRORS: false
 JSON_JSONLINT_DISABLE_ERRORS: false
 ACTION_ACTIONLINT_DISABLE_ERRORS: false
+SQL_SQLFLUFF_DISABLE_ERRORS: false
+SQL_SQLFLUFF_CONFIG_FILE: .sqlfluff
+CSHARP_CSHARPIER_DISABLE_ERRORS: false
 IGNORE_GITIGNORED_FILES: true
-FILTER_REGEX_EXCLUDE: '(^|/)(node_modules|megalinter-reports|quality-reports|\.quality-cache)/|^\.quality-input\.json$'
+FILTER_REGEX_EXCLUDE: >-
+  (^|/)(node_modules|megalinter-reports|quality-reports|\.quality-cache|generated|bin|obj|publish)/|^\.quality-input\.json$
 LINTER_RULES_PATH: .
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
