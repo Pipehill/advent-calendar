@@ -148,6 +148,13 @@ test('candidate merge includes advanced target, new/deleted files; conflicts are
   const status = git(directory, 'status', '--porcelain');
   const comparison = await prComparison(base, head, directory);
   assert(comparison.available, comparison.reason);
+  const compact = renderComparison(comparison);
+  assert(compact.indexOf('Target commit:') < compact.indexOf('| Metric |'));
+  assert.match(compact, /### Complexity hotspots\n\n\| File \| Complexity \|/);
+  assert.match(compact, /### Dead-code findings \(heuristic\)\n\n\| File \| Finding \| Line \| Confidence \|/);
+  const hotspots = compact.split('### Complexity hotspots')[1].split('### Dead-code findings')[0];
+  assert.doesNotMatch(hotspots, /unused-file|confidence/i);
+  assert.match(compact, /### Duplication locations/);
   assert.equal(comparison.identity.base, base);
   assert.equal(comparison.identity.head, head);
   const stale = structuredClone(comparison);
@@ -230,7 +237,7 @@ test('protocol failures, missing tool schemas, failed tools and malformed JSON a
   }), /ENOENT/);
 });
 
-test('PR body section order and verified local receipt survive unavailable health', t => {
+test('PR body contains description and verified local QA without requiring health', t => {
   const directory = fixture(t);
   save(directory, 'source.mjs', block);
   save(directory, '.github/pull_request_template.md', fs.readFileSync(path.join(root, '.github/pull_request_template.md')));
@@ -251,20 +258,10 @@ test('PR body section order and verified local receipt survive unavailable healt
     const result = run(base);
     assert.equal(result.status, 0, result.stderr);
     const body = fs.readFileSync(path.join(directory, 'quality-reports/pull-request.md'), 'utf8');
-    assert(body.indexOf('## Description') < body.indexOf('## Code health'));
-    assert(body.indexOf('## Code health') < body.indexOf('## Local QA'));
+    assert(body.indexOf('## Description') < body.indexOf('## Local QA'));
+    assert.doesNotMatch(body, /## Code health/);
     assert.match(body, /pre-commit hook: ✅ \*\*Passed\*\*/);
-    if (base === 'missing-base') assert.match(body, /Unavailable/);
-    else {
-      assert.match(body, /Before merge.*After merge/);
-      assert(body.includes(head));
-      assert.match(body, /Regressed/);
-      const health = body.slice(body.indexOf('## Code health'), body.indexOf('## Local QA'));
-      assert(health.indexOf('Target commit:') < health.indexOf('| Metric |'));
-      assert.match(health, /\| File \| Findings \|/);
-      assert.doesNotMatch(health, /Mixed results|Rationale:|Measurement identity:|Limitations:/);
-      assert.doesNotMatch(health, /do not block merging|configuration SHA-256|Before source SHA-256/);
-    }
+    assert(body.includes(head));
   }
   receipt.tree = 'mismatch';
   save(directory, 'quality-reports/local-hook.json', JSON.stringify(receipt));

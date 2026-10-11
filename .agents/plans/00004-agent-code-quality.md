@@ -16,7 +16,7 @@ measured quality improved, stayed unchanged, or deteriorated.
 
 The measurements are advisory. Existing lint failures continue to block as before.
 Provide concrete Codex MCP setup and generic stdio guidance for other clients.
-Include whole-codebase before/after measurements in PR descriptions so reviewers
+Include whole-codebase before/after measurements in GitHub Actions PR comments so reviewers
 can see the quality and complexity impact of merging a change.
 
 ## Requirements
@@ -59,8 +59,8 @@ can see the quality and complexity impact of merging a change.
 12. Give agents a documented way to run applicable lint checks on the saved working
     tree during development using the same rules as hooks/CI. Do not require staging
     incomplete edits solely to obtain development feedback.
-13. Add a `Code health` section to PR descriptions immediately after `Description`
-    and before `Local QA`. Include old and new values, numeric deltas, and colored
+13. Add a `Code health` section to the existing MegaLinter GitHub Actions comment,
+    with separate complexity and dead-code file tables. Include old and new values, numeric deltas, and colored
     status indicators for overall health and related duplication, complexity, and
     supported dead-code measurements.
 14. Measure the complete authored codebase using the agreed exclusions, not only
@@ -150,10 +150,11 @@ None.
 
 ### PR code health reporting
 
-Add `## Code health` to `.github/pull_request_template.md` and extend
-`tools/quality/pr-report.mjs` to populate it while preserving `Description` and
-the separate verified `Local QA` section. Provide an explicit unavailable state
-in the template for PRs without matching measurements.
+Publish `## Code health` in the existing GitHub Actions comment alongside MegaLinter
+results. Keep `.github/pull_request_template.md` and `tools/quality/pr-report.mjs`
+focused on `Description` and the separate verified `Local QA` section. Provide an
+explicit unavailable state in the comment for failed or mismatched measurements.
+Use separate file tables for complexity hotspots and heuristic dead-code findings.
 
 Compare the current target-branch tree with the candidate merge tree using the
 same pinned analyzer, configuration, scoring dimensions, and authored-code scope.
@@ -226,8 +227,8 @@ the ignored quality-report directory.
   Do not enable MegaLinter's copy/paste checker as a new blocking gate under this
   plan; if used for reporting, verify that its findings remain advisory.
 - [x] Add whole-codebase PR comparison generation using the target base and
-  candidate merged tree. Extend `.github/pull_request_template.md` and
-  `tools/quality/pr-report.mjs` with the `Code health` section, numeric/color table,
+  candidate merged tree. Extend the existing GitHub Actions PR comment
+  with the `Code health` section, numeric/color table,
   evidence identity, unavailable states, and advisory note described above.
   Document regenerating the section for each relevant head/base update and
   preserve the existing description and local hook evidence generation.
@@ -301,8 +302,8 @@ local/CI coverage and invalid/corrected fixtures whenever a language is adopted.
 - Verify a jscpd regression is reported without blocking a commit or PR on score
   grounds, while an existing lint violation still blocks as before. Verify agent
   instructions require analyzing and explaining the regression.
-- Verify generated PR descriptions preserve section order: `Description`,
-  `Code health`, then `Local QA`. Check before/after numbers, signed deltas, units,
+- Verify generated PR descriptions preserve `Description` and `Local QA`, with
+  `Code health` in the MegaLinter comment. Check before/after numbers, signed deltas, units,
   color indicators, text labels, advisory wording, and regression explanations.
 - Verify the PR analysis includes unchanged authored code and new/deleted files,
   comparing the target branch with the actual candidate merge result. Test a PR
@@ -310,7 +311,7 @@ local/CI coverage and invalid/corrected fixtures whenever a language is adopted.
   dimensions. Incorrect comparison identity must never display a valid improvement.
 - Use improved, unchanged, regressed, and mixed-metric fixtures to verify colors
   and labels. Confirm that an overall health improvement does not hide worsening
-  complexity, and a clearly lower health score remains prominent in the PR body.
+  complexity, and a clearly lower health score remains prominent in the PR comment.
 - Verify PR generation retains valid local hook evidence when code health is
   unavailable, and reports a health decline without introducing a merge gate.
   Check that intentional complexity increases can be explained in the PR section.

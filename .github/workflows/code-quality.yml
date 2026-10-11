@@ -32,6 +32,8 @@ jobs:
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
       - name: Advisory whole-codebase health evidence
+        id: health
+        if: always()
         continue-on-error: true
         env:
           HEALTH_BASE: ${{ github.event.pull_request.base.sha }}
@@ -60,4 +62,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           QUALITY_SETUP_OUTCOME: ${{ steps.setup.outcome }}
           QUALITY_CHECK_OUTCOME: ${{ steps.checks.outcome }}
+          QUALITY_HEALTH_OUTCOME: ${{ steps.health.outcome }}
         run: node tools/quality/ci-comment.mjs

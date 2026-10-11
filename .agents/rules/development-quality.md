@@ -23,10 +23,11 @@ check-only. Quality measurements supplement relevant tests and review.
    Keep actual old/new values and deltas, duplication percentages, absolute clone/
    line counts, scope, input identity, tool version and configuration with reports.
 5. When a PR is authorized, fetch its target and regenerate the whole-codebase merge
-   comparison and PR body using the documented commands after each head/base change.
-   Place Code health after Description and before Local QA. Keep stale/conflicting
-   evidence unavailable. Use the compact PR layout: commit identity above metrics,
-   file findings in a table, and detailed explanations/limitations in local reports.
+   comparison after each head/base change. GitHub Actions publishes Code health in
+   the same comment as MegaLinter; the PR body retains Description and Local QA.
+   Keep stale/conflicting evidence unavailable. Use the compact comment layout:
+   commit identity above metrics, separate complexity and dead-code findings tables,
+   and detailed explanations/limitations in report artifacts.
    Preserve the description when updating generated sections; these commands do
    not authorize publishing a PR.
 

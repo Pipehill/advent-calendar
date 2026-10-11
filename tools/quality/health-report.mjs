@@ -20,24 +20,23 @@ export function assessment(oldValue, newValue, higher = false) {
 }
 
 function appendFileTable(output, report) {
-  const findings = new Map();
-  function add(file, detail) {
-    if (!findings.has(file)) findings.set(file, []);
-    findings.get(file).push(detail);
-  }
+  output.push('### Complexity hotspots', '', '| File | Complexity |', '| --- | --- |');
   for (const file of report.complexity.files.slice(0, 5)) {
-    add(file.path, `Complexity: ${file.complexity}`);
+    output.push(`| ${safe(file.path)} | ${file.complexity} |`);
   }
+  if (!report.complexity.files.length) output.push('| No reported hotspots | n/a |');
+  output.push('', '### Dead-code findings (heuristic)', '',
+    '| File | Finding | Line | Confidence |', '| --- | --- | --- | --- |');
   for (const finding of report.deadCode.findings.slice(0, 5)) {
-    add(finding.path, `${finding.category} at line ${finding.start.line} (${finding.confidence}% confidence)`);
+    output.push(`| ${safe(finding.path)} | ${safe(finding.category)} | ${finding.start.line} | ${finding.confidence}% |`);
   }
+  if (!report.deadCode.findings.length) output.push('| No reported findings in supported inputs | n/a | n/a | n/a |');
+  output.push('');
+  if (!report.mcp.refresh.duplications.length) return;
+  output.push('### Duplication locations', '',
+    '| File | Line | Shared with | Lines |', '| --- | --- | --- | --- |');
   for (const clone of report.mcp.refresh.duplications.slice(0, 10)) {
-    add(clone.fileA, `Clone at line ${clone.startA}: ${clone.lines} lines shared with ${clone.fileB}:${clone.startB}`);
-  }
-  if (!findings.size) return;
-  output.push('| File | Findings |', '| --- | --- |');
-  for (const [file, details] of findings) {
-    output.push(`| ${safe(file)} | ${details.map(safe).join('; ')} |`);
+    output.push(`| ${safe(clone.fileA)} | ${clone.startA} | ${safe(clone.fileB)}:${clone.startB} | ${clone.lines} |`);
   }
   output.push('');
 }

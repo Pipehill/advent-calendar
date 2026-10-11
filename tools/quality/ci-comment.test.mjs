@@ -87,6 +87,43 @@ function fakeApi(responses) {
   };
 }
 
+test('health shares the MegaLinter comment and failed or stale evidence stays unavailable', () => {
+  const identity = { kind: 'pr-merge', base: 'base123', head: context.revision, candidate: 'tree123' };
+  const measurement = {
+    available: true, schema: 1, tool: { version: '5.4.1', configHash: 'config123' },
+    input: { scope: '*.mjs' }, health: { score: 50, dimensions: [] },
+    complexity: { files: [{ path: 'example.mjs', complexity: 12 }] },
+    deadCode: { findings: [{ path: 'example.mjs', category: 'unused-file', start: { line: 1 }, confidence: 70 }] },
+    mcp: { statistics: { statistics: { total: {
+      sources: 1, lines: 20, percentage: 0, clones: 0, duplicatedLines: 0,
+    } } }, refresh: { duplications: [] } },
+  };
+  const healthComparison = {
+    available: true, identity,
+    before: { ...measurement, identity: { commit: identity.base } },
+    after: { ...measurement, identity },
+  };
+  const input = { ...context, baseRevision: identity.base, healthOutcome: 'success', healthComparison };
+  const body = buildComment(input);
+  assert(body.indexOf(context.megaReport) < body.indexOf('## Code health'));
+  assert(body.includes('| example.mjs | 12 |'));
+  assert(body.includes('| example.mjs | unused-file | 1 | 70% |'));
+  for (const healthOutcome of ['failure', 'skipped', 'cancelled', undefined]) {
+    const failed = buildComment({ ...input, healthOutcome });
+    assert.match(failed, /Unavailable/);
+    assert(!failed.includes('| example.mjs |'));
+    assert(failed.includes('Overall code quality: ✅ **Passed**'));
+  }
+  for (const changed of [{ revision: 'new-head' }, { baseRevision: 'new-base' }, { healthComparison: undefined }]) {
+    const stale = buildComment({ ...input, ...changed });
+    assert.match(stale, /Unavailable/);
+    assert(!stale.includes('| example.mjs |'));
+  }
+  const conflicting = structuredClone(healthComparison);
+  conflicting.after.identity = { ...identity, candidate: 'wrong-tree' };
+  assert.match(buildComment({ ...input, healthComparison: conflicting }), /Unavailable.*Conflicting/);
+});
+
 const request = { repository: 'owner/repo', number: 9, revision: 'abc123', body: 'report', token: 'test-token' };
 
 test('creates a comment when no bot report exists', async () => {
@@ -113,6 +150,12 @@ test('paginates and updates only the matching Actions bot comment', async () => 
 test('an outdated PR run does not overwrite the current report', async () => {
   const api = fakeApi([{ data: { head: { sha: 'new-head' } } }]);
   await publishComment({ ...request, fetchImpl: api.fetchImpl });
+  assert.equal(api.calls.length, 1);
+});
+
+test('an advanced PR target does not receive an outdated health report', async () => {
+  const api = fakeApi([{ data: { head: { sha: request.revision }, base: { sha: 'new-base' } } }]);
+  await publishComment({ ...request, baseRevision: 'old-base', fetchImpl: api.fetchImpl });
   assert.equal(api.calls.length, 1);
 });
 

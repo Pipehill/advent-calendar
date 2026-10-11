@@ -122,20 +122,20 @@ If analysis settings change, the PR uses one common set for both trees; explain 
 policy change separately. Development baseline comparisons reject differing settings.
 
 After committing with the existing hooks, run `node tools/quality/pr-report.mjs`
-(or provide the target ref as its argument). It regenerates health rather than
-trusting a saved comparison and retains separately verified Local QA. Copy the
-generated sections into the PR description; preserve the description. The compact
-Code health section places target/head/merge-tree identity above the metric table
-and groups file findings in a second table. Detailed identities, limitations and
-development regression explanations stay in local reports. Regenerate whenever either the target or PR head
-changes, including after a rebase. A previously pasted section becomes stale when
-these identities change; label it unavailable until refreshed. No PR is published
-or edited by these commands. CI produces fresh advisory evidence for PR updates;
-target-only advancement also requires regeneration or a new workflow run.
+to generate separately verified Local QA. Copy that section into the PR description;
+preserve the description. Code health is published by GitHub Actions in the existing
+MegaLinter PR comment. Its compact section places target/head/merge-tree identity
+above the metric table, with separate tables for complexity hotspots and heuristic
+dead-code findings. Duplication locations have their own table when present.
+Detailed identities, limitations and development regression explanations remain in
+report artifacts. Failed, missing or mismatched comparisons are unavailable and do
+not change the lint outcome. Publication checks the current PR target and head.
+Regenerate whenever either changes, including after a rebase; target-only
+advancement requires a new workflow run. Local commands do not publish or edit a PR.
 
 Reports and generated bodies remain in ignored `quality-reports/`. Health failure
 does not invalidate an otherwise matching Local QA receipt; receipt failure still
-prevents claiming local verification. The PR template starts explicitly unavailable.
+prevents claiming local verification. The PR template retains Description and Local QA.
 
 ## Diagnostics
 

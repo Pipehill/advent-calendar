@@ -276,8 +276,9 @@ health, complexity and supported dead-code findings come from CLI JSON reports.
 Lint saved working-tree source with `node tools/quality/run.mjs full` after meaningful
 changes and before completion, without staging unfinished work.
 
-Code health compares the full target tree with the candidate merge tree in PR
-descriptions, between Description and Local QA. Numeric values, deltas, colors and
+Code health compares the full target tree with the candidate merge tree in the
+GitHub Actions PR comment alongside MegaLinter results. Complexity hotspots and
+heuristic dead-code findings have separate tables. Numeric values, deltas, colors and
 text make regressions and unavailable evidence visible. These scores do not block
 merging; required behavior can legitimately increase complexity. Regenerate after
 target/head changes, and explain regressions and tradeoffs. Existing local hook
