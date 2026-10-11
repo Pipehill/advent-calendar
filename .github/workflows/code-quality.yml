@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Build pinned quality tools
         id: setup
         run: node tools/quality/run.mjs setup
@@ -30,6 +31,19 @@ jobs:
           node --test tools/quality/ci-comment.test.mjs
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
+      - name: Advisory whole-codebase health evidence
+        continue-on-error: true
+        env:
+          HEALTH_BASE: ${{ github.event.pull_request.base.sha }}
+          HEALTH_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node tools/quality/install-analysis.mjs
+          node --test tools/quality/health.test.mjs
+          if [ -n "$HEALTH_BASE" ] && [ -n "$HEALTH_HEAD" ]; then
+            node tools/quality/health.mjs pr "$HEALTH_BASE" "$HEALTH_HEAD"
+          else
+            node tools/quality/health.mjs doctor
+          fi
       - name: Publish reports even after failure
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2

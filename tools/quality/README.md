@@ -9,6 +9,8 @@ commands from the repository root with Node, Git and a reachable Linux container
 runtime. Setup saves the runtime path in ignored local settings; an explicit
 `QUALITY_CONTAINER_RUNTIME` takes precedence. CI uses Docker without local settings.
 See [code quality](../../docs/code-quality.md) for rules and troubleshooting.
+See [advisory code health](health.md) for pinned MCP/CLI setup, development baselines,
+whole-codebase PR merge comparisons and measurement limitations.
 
 | Command | Purpose |
 | --- | --- |
@@ -18,6 +20,9 @@ See [code quality](../../docs/code-quality.md) for rules and troubleshooting.
 | `node tools/quality/run.mjs test` | Run custom checks and focused checker regressions. |
 | `node tools/quality/verify.mjs` | Verify hooks and staging behavior in a disposable clone. |
 | `node tools/quality/pr-report.mjs` | Generate a PR body with local hook evidence matching HEAD. |
+| `node tools/quality/health.mjs baseline` | Capture advisory saved-source measurements before a task. |
+| `node tools/quality/health.mjs compare` | Compare saved source with the preserved baseline. |
+| `node tools/quality/health.mjs pr origin/main HEAD` | Measure target and candidate merge trees. |
 | `node --test tools/quality/ci-comment.test.mjs` | Verify CI comment rendering and API behavior without publishing. |
 | `node tools/quality/run.mjs clean` | Remove all quality images that no container references. |
 

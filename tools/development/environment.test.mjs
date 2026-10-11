@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { compatible, normalizePin, imageName, pinnedDependencies } from './requirements.mjs';
 import { installationCommand, linuxSupported, installTool } from './adapters.mjs';
-import { diagnose, prepareRuntime } from './environment.mjs';
+import { diagnose, prepareRuntime, checkAdvisoryAnalyzer, prepareAdvisoryAnalyzer } from './environment.mjs';
 import { selectRuntime, preCommitPath } from '../quality/local-settings.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -169,6 +169,9 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
     if (argumentsList[0] === 'config' || argumentsList[0] === 'image') {
       return { status: 1, stdout: '', output: 'not present' };
     }
+    if (argumentsList[1] === 'doctor') {
+      return { status: 1, stdout: '', output: 'jscpd missing' };
+    }
     if (argumentsList[0] === 'rev-parse') {
       return success('.git/hooks/pre-commit');
     }
@@ -194,6 +197,7 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
     'Commit hook',
     'Quality dependency image',
     'Linux execution and mount',
+    'Advisory code health analyzer',
   ];
   for (const name of expectedFailures) {
     const check = result.checks.find(item => item.name === name);
@@ -202,6 +206,24 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
   }
   assert(result.checks.find(item => item.name === 'node').passed);
   assert(result.checks.find(item => item.name === 'Container runtime').passed);
+});
+
+test('analyzer readiness and installation failures are reported with their recovery', () => {
+  for (const platform of ['win32', 'darwin', 'linux']) {
+    const checks = [];
+    const calls = [];
+    const run = (executable, args) => {
+      calls.push({ executable, args });
+      return { status: 1, output: 'MCP initialization failed' };
+    };
+    const context = { root, platform, checks, run };
+    checkAdvisoryAnalyzer(context, '/compatible/node');
+    assert.equal(checks[0].passed, false);
+    assert.match(checks[0].detected, /MCP initialization failed/);
+    assert.match(checks[0].expected, /5.4.1/);
+    assert.throws(() => prepareAdvisoryAnalyzer(context, '/compatible/node'), /installation failed/);
+    assert(calls[1].args[0].endsWith('install-analysis.mjs'));
+  }
 });
 
 const bashTestOptions = { skip: process.platform === 'win32' };

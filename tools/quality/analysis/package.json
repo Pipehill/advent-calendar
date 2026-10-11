@@ -1,0 +1,8 @@
+{
+  "name": "advent-calendar-advisory-analysis",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jscpd": "5.4.1"
+  }
+}
