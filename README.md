@@ -28,6 +28,23 @@ technical design and the decisions reserved for later implementation.
 
 ## Contribution checks
 
+Prepare your clone and diagnose local prerequisites:
+
+```powershell
+# Windows (PowerShell)
+./tools/development/setup.ps1
+./tools/development/doctor.ps1
+```
+
+```bash
+# macOS or Linux (Bash)
+bash tools/development/setup.sh
+bash tools/development/doctor.sh
+```
+
+See [developer setup](tools/development/README.md) for supported platforms,
+installation permissions, restart requirements and manual recovery.
+
 See [code quality](docs/code-quality.md) for local prerequisites, installing commit
 hooks, full checks, reports, troubleshooting and the owner's merge-check setup.
 

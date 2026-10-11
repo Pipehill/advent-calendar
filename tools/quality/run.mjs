@@ -6,17 +6,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { selectRuntime } from './local-settings.mjs';
 
 const toolingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-const containerRuntime = process.env.QUALITY_CONTAINER_RUNTIME || 'docker';
+const containerRuntime = selectRuntime(repositoryRoot);
 const supportedModes = ['setup', 'clean', 'staged', 'full', 'custom', 'test'];
 const imageInputs = ['Dockerfile', 'package.json', 'package-lock.json', 'requirements.txt'];
 const mountedToolFiles = ['checks.mjs', 'container.mjs', 'puppeteer.json'];
 const qualityImagePattern = /^localhost\/advent-quality:[a-f0-9]{20}$/;
 const sharedSettingsPrefixes = [
   '.markdownlint', '.yamllint', '.mega-linter', '.pre-commit',
-  '.gitattributes', '.editorconfig', 'tools/quality/',
+  '.gitattributes', '.editorconfig', 'tools/quality/', 'tools/development/',
 ];
 const binaryExtensionPattern = /\.(png|jpe?g|gif|ico|pdf|woff2?|zip)$/i;
 

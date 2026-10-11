@@ -4,9 +4,11 @@ This tool checks repository formatting, filenames, local Markdown links and Merm
 diagrams. It runs pinned linters in an isolated Linux container and preserves source
 files and the original Git index. Reports are saved in `quality-reports/<mode>/`.
 
-Run commands from the repository root with Node, Git and Docker available. Podman is
-also supported through `QUALITY_CONTAINER_RUNTIME`. See [code quality](../../docs/code-quality.md)
-for installation, rules and troubleshooting.
+Start with [developer setup and doctor](../development/README.md). Run quality
+commands from the repository root with Node, Git and a reachable Linux container
+runtime. Setup saves the runtime path in ignored local settings; an explicit
+`QUALITY_CONTAINER_RUNTIME` takes precedence. CI uses Docker without local settings.
+See [code quality](../../docs/code-quality.md) for rules and troubleshooting.
 
 | Command | Purpose |
 | --- | --- |
