@@ -11,7 +11,8 @@ Implementation type: feature
 Implement the first backend feature: create a calendar from a title and retrieve
 the persisted calendar. Establish the backend controller, service, and repository
 layers, using the previously agreed API-contract and PostgreSQL stack. Provide
-one locally seeded calendar for convenient manual testing.
+one locally seeded calendar and a simple script for starting the local backend
+and database together in Docker or Podman.
 
 This task includes backend infrastructure required to run and verify these two
 operations. Frontend, BFF, user accounts, administrators, ownership, membership,
@@ -73,6 +74,14 @@ authentication, door opening schedules, and calendar editing are outside scope.
     completed migrations and current database availability. Healthy checks return
     `200`; failed readiness returns `503`. Do not signal readiness before successful
     migrations. A running process remains live during a database outage.
+16. Establish a local application launcher under `tools/development/`, with
+    PowerShell and Bash entry points following the existing tooling pattern.
+    After developer setup, one command must build and start backend and PostgreSQL
+    containers using the selected Docker or Podman runtime, enable local seeding,
+    wait for readiness within a bounded timeout, and print the reachable localhost
+    API URL. Repeat execution must preserve database data and avoid duplicate
+    application instances. Keep the initial launcher focused on these two services
+    and structured so later tasks can extend it to the rest of the application.
 
 ## Outstanding questions
 
@@ -91,6 +100,11 @@ None.
 - On 2026-10-11 the owner added `.http` examples, an injected `TimeProvider`,
   concrete liveness/readiness endpoints, and Unicode boundary verification.
   The owner selected Unicode code point counting for the 1-100 title limit.
+- On 2026-10-11 the owner required the first version of a local application
+  startup script. It starts backend and PostgreSQL in Docker or Podman and makes
+  the API reachable from the host. Reuse the existing development tooling pattern
+  and selected runtime. This task establishes the script for later extension;
+  external API-client usage does not need additional instructions in this plan.
 - No application backend, authored OpenAPI contract, .NET solution, SQL
   migrations, application Dockerfiles, or Compose configuration currently exist.
   Existing setup and quality tooling must be extended rather than replaced.
@@ -197,6 +211,27 @@ None.
   readiness dependencies, and mode-appropriate connection addresses.
   Add the backend SDK/runtime multistage Dockerfile and embedded migrations.
   No frontend/BFF service is created by this task.
+- [ ] Add `tools/development/run-local.ps1` and `run-local.sh` launchers with
+  shared orchestration in `run-local.mjs`, following the existing PowerShell/Bash
+  entry-point pattern and readable-tooling rules. Resolve paths relative to the
+  repository so invocation works from another directory and with spaces in paths.
+  Reuse setup's saved runtime selection and explicit override behavior.
+- [ ] Check the selected container engine and Compose provider, build the backend
+  from current source with contract generation inside the image build, and start
+  the two local services using the shared Compose configuration. Keep containers
+  running after the launcher returns. Bind the API's configurable published port
+  to localhost, use service DNS for PostgreSQL, and enable `Development` plus the
+  explicit local seed setting in this local workflow.
+- [ ] Wait for PostgreSQL health and API readiness within a bounded timeout.
+  Print the API URL only after successful startup; return nonzero with useful
+  diagnostics on missing prerequisites, port conflicts, build/start failure, or
+  readiness timeout. Reuse the named database volume and existing Compose project
+  on subsequent runs. Document startup, stopping services while preserving data,
+  and where to inspect logs. Keep runtime/Compose prerequisite management in
+  setup/doctor and extend their checks for the provider used with each runtime.
+  Verify actual provider compatibility; [Podman Compose][podman-compose] delegates
+  to an external provider, and [Docker Compose startup][docker-compose-up] documents
+  build, background execution, and readiness options.
 - [ ] Configure ASP.NET Core health checks at `/health/live` and `/health/ready`.
   Keep database checks out of liveness; readiness requires successful migrations
   and a bounded current database connection/query check. Point the backend Compose
@@ -274,6 +309,16 @@ None.
   and prevents API startup on database retry exhaustion or migration failure.
 - Run host and container workflows against the persistent development volume.
   Keep test databases isolated and verify API readiness follows migration success.
+- Run the local launcher against both Docker and Podman. Verify one command builds
+  and starts both services, enables the local seed, waits for readiness, prints the
+  correct localhost URL, and leaves the API reachable after the launcher exits.
+  Rerun it and stop/start the stack; verify persisted calendars and the single
+  seeded calendar remain intact without duplicate service instances.
+- Verify launcher path handling from another directory and a path containing
+  spaces, runtime selection/override, unavailable engine/provider, occupied port,
+  failed build/start, and readiness timeout. Failures must exit nonzero rather
+  than report a usable local environment. Record actual runtime/platform evidence
+  separately from simulated script tests.
 - Verify `/health/live` and `/health/ready` return `200` after successful startup.
   During a database outage the running API's liveness remains `200` and readiness
   becomes `503`; after recovery readiness returns `200`. Preserve the rule that
@@ -292,3 +337,5 @@ None.
 [postgres-strings]: https://www.postgresql.org/docs/current/functions-string.html
 [dotnet-timeprovider]: https://learn.microsoft.com/en-us/dotnet/standard/datetime/timeprovider-overview
 [dotnet-health]: https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks
+[podman-compose]: https://docs.podman.io/en/latest/markdown/podman-compose.1.html
+[docker-compose-up]: https://docs.docker.com/reference/cli/docker/compose/up/
