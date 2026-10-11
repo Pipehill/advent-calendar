@@ -24,7 +24,6 @@ function stepStatus(outcome) {
 export function buildComment({ revision, baseRevision, runUrl, setupOutcome, checkOutcome,
   healthOutcome, healthComparison, megaReport, summary }) {
   const passed = setupOutcome === 'success' && checkOutcome === 'success';
-  const commitUrl = `${runUrl.split('/actions/runs/')[0]}/commit/${revision}`;
   const report = cleanMegaReport(megaReport || '');
   const custom = clip(summary || 'No additional-check report was produced.');
   const fence = '`'.repeat(Math.max(3, ...Array.from(custom.matchAll(/`+/g), match => match[0].length + 1)));
@@ -39,7 +38,7 @@ export function buildComment({ revision, baseRevision, runUrl, setupOutcome, che
     comparison = { available: false, reason: 'Health comparison does not match the current PR target and head' };
   }
   const body = [
-    commentMarker, `## Code Quality - HEAD [${revision.slice(0, 7)}](${commitUrl})`, '',
+    commentMarker, '## Code Quality', '',
     `Overall code quality: ${passed ? '✅ **Passed**' : '❌ **Failed or incomplete**'}`, '',
     `[CI run and report artifacts](${runUrl})`, '',
     `- ${stepStatus(setupOutcome)} — **Quality tool setup**`,
