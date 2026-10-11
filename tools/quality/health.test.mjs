@@ -193,6 +193,7 @@ test('invalid results and empty/unsupported scopes never become passing evidence
 });
 
 test('per-metric directions, unavailable dimensions and mixed results remain explicit', () => {
+  assert.match(renderComparison({ available: false }), /Unavailable.*Missing or failed measurement/);
   assert.equal(assessment(1, 2, true), '🟢 Improved');
   assert.equal(assessment(1, 2), '🔴 Regressed');
   assert.equal(assessment(1, 1), '🟡 Unchanged');

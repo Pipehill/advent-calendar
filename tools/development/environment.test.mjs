@@ -7,7 +7,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { compatible, normalizePin, imageName, pinnedDependencies } from './requirements.mjs';
 import { installationCommand, linuxSupported, installTool } from './adapters.mjs';
-import { diagnose, prepareRuntime, checkAdvisoryAnalyzer, prepareAdvisoryAnalyzer } from './environment.mjs';
+import { prepareRuntime, prepareAdvisoryAnalyzer } from './environment.mjs';
+import { diagnose, checkAdvisoryAnalyzer } from './diagnostics.mjs';
 import { selectRuntime, preCommitPath } from '../quality/local-settings.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,14 @@ function fixture(testContext) {
   testContext.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   fs.mkdirSync(path.join(directory, '.quality-cache'), { recursive: true });
   return directory;
+}
+
+function copyQualityRequirements(directory) {
+  const target = path.join(directory, 'tools/quality');
+  fs.mkdirSync(target, { recursive: true });
+  for (const name of ['Dockerfile', 'package.json', 'package-lock.json', 'requirements.txt', 'pre-commit-requirements.txt']) {
+    fs.copyFileSync(path.join(root, 'tools/quality', name), path.join(target, name));
+  }
 }
 
 function clearRuntimeOverride(testContext) {
@@ -121,7 +130,7 @@ test('native and Docker readiness failures never reset data; stopped selected Po
 test('doctor reports all missing prerequisites, runs no installation, and preserves files', t => {
   clearRuntimeOverride(t);
   const directory = fixture(t);
-  fs.cpSync(path.join(root, 'tools'), path.join(directory, 'tools'), { recursive: true });
+  copyQualityRequirements(directory);
 
   const calls = [];
   const before = fs.readdirSync(path.join(directory, '.quality-cache'));
@@ -152,7 +161,7 @@ test('image key uses the quality runner dependency inputs', () => {
 test('doctor distinguishes stale images, dependency versions, and missing hooks with recovery instructions', t => {
   clearRuntimeOverride(t);
   const directory = fixture(t);
-  fs.cpSync(path.join(root, 'tools'), path.join(directory, 'tools'), { recursive: true });
+  copyQualityRequirements(directory);
   fs.writeFileSync(path.join(directory, '.quality-cache/development.json'), '{"runtime":"podman"}');
 
   const runIncompleteEnvironment = (executable, argumentsList) => {

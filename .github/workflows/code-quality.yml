@@ -28,7 +28,7 @@ jobs:
       - name: Check the complete repository
         id: checks
         run: |
-          node --test tools/quality/ci-comment.test.mjs
+          node --test tools/quality/ci-comment.test.mjs tools/quality/snapshot.test.mjs
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
       - name: Advisory whole-codebase health evidence

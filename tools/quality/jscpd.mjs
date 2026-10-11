@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const version = '5.4.1';
-export const wrapper = path.join(root, 'tools/quality/analysis/node_modules/jscpd/run-jscpd.js');
+const wrapper = path.join(root, 'tools/quality/analysis/node_modules/jscpd/run-jscpd.js');
 export const configuration = path.join(root, '.jscpd.json');
 
 export function executable() {

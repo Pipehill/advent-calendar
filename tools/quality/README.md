@@ -29,6 +29,7 @@ whole-codebase PR merge comparisons and measurement limitations.
 | File | Responsibility |
 | --- | --- |
 | `run.mjs` | Prepare snapshots, manage images, start containers and remove temporary inputs. |
+| `snapshot.mjs`, `snapshot.test.mjs` | Copy saved/indexed inputs, select QA scope and verify deletion/preservation behavior. |
 | `container.mjs` | Run checks inside the container and collect reports. |
 | `checks.mjs` | Inspect filenames, text, links and Mermaid fences. |
 | `verify.mjs` | Verify successful and failing cases without changing the original repository. |
@@ -39,6 +40,9 @@ whole-codebase PR merge comparisons and measurement limitations.
 | `package*.json`, `requirements.txt` | Pin container dependencies. |
 | `pre-commit-requirements.txt` | Pin the host hook dependencies. |
 | `puppeteer.json` | Configure Chromium for diagram rendering. |
+
+See the [2026-10-11 code health review](code-health-review.md) for the file inventory,
+verified dead-code callers, concrete corrections and measurement tradeoffs.
 
 The dependency image changes only when the Dockerfile or container dependency files
 change. Check scripts and browser settings are mounted read-only from the snapshot,

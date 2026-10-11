@@ -41,36 +41,22 @@ function appendFileTable(output, report) {
   output.push('');
 }
 
-export function renderComparison(comparison, { compact = Boolean(comparison.identity) } = {}) {
-  const { before, after, identity } = comparison;
-  let reason = comparison.available ? comparable(before, after) : comparison.reason;
-  if (!reason && identity && (identity.kind !== 'pr-merge'
-    || before.identity.commit !== identity.base
-    || after.identity.base !== identity.base || after.identity.head !== identity.head
-    || after.identity.candidate !== identity.candidate)) {
-    reason = 'Conflicting PR measurement identity; regenerate for the current target and head';
-  }
-  const output = ['## Code health', ''];
-  if (reason) {
-    output.push(`⚪ **Unavailable**: ${safe(reason)}.`, '');
-    if (!compact) output.push(advisory, '');
-    return output.join('\n');
-  }
-  if (compact && identity) {
-    output.push(`Target commit: ${identity.base}; PR head: ${identity.head}; candidate merge tree: ${identity.candidate}.`, '');
-  }
+function appendMetrics(output, before, after, development) {
   const rows = [];
   function add(label, oldValue, newValue, unit = '', higher = false, neutral = false) {
     const valid = Number.isFinite(oldValue) && Number.isFinite(newValue);
     const delta = valid ? newValue - oldValue : undefined;
     const change = valid ? `${delta > 0 ? '+' : ''}${Number(delta.toFixed(10))}${unit === '%' ? ' pp' : unit}` : 'n/a';
     const status = neutral && valid ? '⚪ Context' : assessment(oldValue, newValue, higher);
-    rows.push({ label, oldValue, newValue, status });
+    rows.push({ label, status });
     output.push(`| ${label} | ${valid ? oldValue + unit : 'n/a'} | ${valid ? newValue + unit : 'n/a'} | ${change} | ${status} |`);
   }
   const overall = assessment(before.health.score, after.health.score, true);
+  const headings = development
+    ? '| Metric | Baseline | Saved working tree | Change | Assessment |'
+    : '| Metric | Before merge | After merge | Change | Assessment |';
   output.push(`Overall health: **${overall}**.`, '',
-    '| Metric | Before merge | After merge | Change | Assessment |',
+    headings,
     '| --- | --- | --- | --- | --- |');
   add('Overall health (0–100)', before.health.score, after.health.score, '', true);
   for (const id of ['duplication', 'complexity', 'dead-code']) {
@@ -90,21 +76,63 @@ export function renderComparison(comparison, { compact = Boolean(comparison.iden
   add('Dead-code findings (heuristic)', before.deadCode.findings.length, after.deadCode.findings.length);
   add('Analyzed files', left.sources, right.sources, '', false, true);
   add('Analyzed lines', left.lines, right.lines, '', false, true);
-  if (compact) {
-    output.push('');
-    appendFileTable(output, after);
-    return output.join('\n');
+  return { overall, rows };
+}
+
+function comparisonProblem({ available, reason, before, after, identity }) {
+  if (!available) return reason || 'Missing or failed measurement';
+  const mismatch = comparable(before, after);
+  if (mismatch) return mismatch;
+  if (identity && (identity.kind !== 'pr-merge'
+    || before.identity.commit !== identity.base
+    || after.identity.base !== identity.base || after.identity.head !== identity.head
+    || after.identity.candidate !== identity.candidate)) {
+    return 'Conflicting PR measurement identity; regenerate for the current target and head';
   }
+  return undefined;
+}
+
+function appendRegressions(output, rows, overall) {
   const regressions = rows.filter(row => row.status.includes('Regressed')).map(row => row.label);
   const improvements = rows.some(row => row.status.includes('Improved'));
-  output.push('');
   if (regressions.length) {
-    output.push(`${overall.includes('Regressed') ? '**Overall health declined.** ' : ''}${improvements ? '🟡 Mixed results. ' : ''}Regressions: ${regressions.join(', ')}.`,
+    const decline = overall.includes('Regressed') ? '**Overall health declined.** ' : '';
+    const mixed = improvements ? '🟡 Mixed results. ' : '';
+    output.push(decline + mixed + 'Regressions: ' + regressions.join(', ') + '.',
       'Rationale: explain the required behavior and tradeoffs for these increases before publishing.', '');
   }
   if (rows.some(row => row.status.includes('Unavailable'))) {
     output.push('Unavailable dimensions are unsupported or were not measurable; n/a does not mean clean code.', '');
   }
+}
+
+function appendClones(output, clones) {
+  if (!clones.length) output.push('- No reported clones.');
+  for (const clone of clones.slice(0, 10)) {
+    output.push(`- ${safe(clone.fileA)}:${clone.startA} ↔ ${safe(clone.fileB)}:${clone.startB} (${clone.lines} lines).`);
+  }
+}
+
+export function renderComparison(comparison, { compact = Boolean(comparison.identity) } = {}) {
+  const { before, after, identity } = comparison;
+  const reason = comparisonProblem(comparison);
+  const output = ['## Code health', ''];
+  if (reason) {
+    output.push(`⚪ **Unavailable**: ${safe(reason)}.`, '');
+    if (!compact) output.push(advisory, '');
+    return output.join('\n');
+  }
+  if (compact && identity) {
+    output.push(`Target commit: ${identity.base}; PR head: ${identity.head}; candidate merge tree: ${identity.candidate}.`, '');
+  }
+  const { overall, rows } = appendMetrics(output, before, after, !compact && !identity);
+  if (compact) {
+    output.push('');
+    appendFileTable(output, after);
+    return output.join('\n');
+  }
+  output.push('');
+  appendRegressions(output, rows, overall);
   output.push(advisory, '', 'Measurement identity:', '',
     `- jscpd ${before.tool.version}; configuration SHA-256: ${before.tool.configHash}.`,
     `- Scope: ${safe(before.input.scope)}; exclusions: ${before.tool.config.ignore.map(safe).join(', ')}.`,
@@ -114,26 +142,17 @@ export function renderComparison(comparison, { compact = Boolean(comparison.iden
   } else {
     output.push(`- Development baseline: ${safe(JSON.stringify(before.identity))}; current: ${safe(JSON.stringify(after.identity))}.`,
       '- Working-tree measurements; these are not staged hook evidence or PR merge measurements.');
-    // Use accurate headings for the distinct development comparison.
-    output[output.indexOf('| Metric | Before merge | After merge | Change | Assessment |')] =
-      '| Metric | Baseline | Saved working tree | Change | Assessment |';
   }
   output.push('', 'Complexity hotspots after the change:', '');
   for (const file of after.complexity.files.slice(0, 5)) {
     output.push(`- ${safe(file.path)}: complexity ${file.complexity}.`);
   }
   output.push('', 'Affected clone files after the change:', '');
-  const clones = after.mcp.refresh.duplications;
-  if (!clones.length) output.push('- No reported clones.');
-  for (const clone of clones.slice(0, 10)) {
-    output.push(`- ${safe(clone.fileA)}:${clone.startA} ↔ ${safe(clone.fileB)}:${clone.startB} (${clone.lines} lines).`);
-  }
+  appendClones(output, after.mcp.refresh.duplications);
   const oldClones = before.mcp.refresh.duplications;
   if (oldClones.length) {
     output.push('', 'Clone locations before the change:', '');
-    for (const clone of oldClones.slice(0, 10)) {
-      output.push(`- ${safe(clone.fileA)}:${clone.startA} ↔ ${safe(clone.fileB)}:${clone.startB} (${clone.lines} lines).`);
-    }
+    appendClones(output, oldClones);
   }
   output.push('', 'Dead-code findings after the change (inspect confidence):', '');
   if (!after.deadCode.findings.length) output.push('- No reported findings in supported inputs.');

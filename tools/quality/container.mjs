@@ -155,8 +155,19 @@ function saveReports() {
 // Focused regressions run inside Linux, which can represent Windows-illegal filenames.
 function runCheckerRegressions(scratch) {
   verifyTextAndMarkdownChecks();
+  verifyEncodedLinkTargets(scratch);
   verifyFilenameChecks(scratch);
   console.log('Focused checker regressions passed.');
+}
+
+function verifyEncodedLinkTargets(scratch) {
+  const names = ['target#part.md', 'target?query.md'];
+  for (const name of names) {
+    fs.writeFileSync(path.join(scratch, name), '# Heading\n');
+    const href = `${encodeURIComponent(name)}?view=source#heading`;
+    assert.equal(linkFindings(scratch, 'source.md', `[Target](${href})\n`, names).length, 0);
+    assert.equal(linkFindings(scratch, 'source.md', `[Target](${href}-missing)\n`, names).length, 1);
+  }
 }
 
 function verifyTextAndMarkdownChecks() {

@@ -102,14 +102,10 @@ function repositoryTargets(files) {
 
 function localLinkError(root, name, href, targets) {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(href)) return null;
-  let decoded;
-  try {
-    decoded = decodeURIComponent(href);
-  } catch {
-    decoded = href;
-  }
-  const [targetWithQuery, fragment] = decoded.split('#');
-  const target = targetWithQuery.split('?')[0];
+  // Split URL delimiters before decoding: %23 and %3F may belong to a filename.
+  const [targetWithQuery, rawFragment = ''] = href.split(/#(.*)/s);
+  const target = decodeLinkPart(targetWithQuery.split('?')[0]);
+  const fragment = decodeLinkPart(rawFragment);
   const directory = target.startsWith('/') ? '' : path.posix.dirname(name);
   const resolved = target
     ? path.posix.normalize(path.posix.join(directory, target.replace(/^\//, ''))).replace(/\/$/, '')
@@ -122,6 +118,14 @@ function localLinkError(root, name, href, targets) {
     if (!headingIds(contents).has(fragment)) return `Missing heading/anchor: ${href}`;
   }
   return null;
+}
+
+function decodeLinkPart(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function markdownLinks(text) {

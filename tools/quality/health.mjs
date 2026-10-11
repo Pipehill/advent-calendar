@@ -13,7 +13,7 @@ export function git(directory, ...args) {
   return execFileSync('git', args, { cwd: directory, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
 }
 
-export const digest = value => createHash('sha256').update(value).digest('hex');
+const digest = value => createHash('sha256').update(value).digest('hex');
 
 function authored(name) {
   const config = JSON.parse(fs.readFileSync(configuration, 'utf8'));
@@ -22,7 +22,7 @@ function authored(name) {
   return !ignored && extensions.includes(path.extname(name).slice(1));
 }
 
-export function inputFiles(directory, tree) {
+function inputFiles(directory, tree) {
   const output = tree
     ? git(directory, 'ls-tree', '-r', '--name-only', '-z', tree)
     : git(directory, 'ls-files', '--cached', '--others', '--exclude-standard', '-z');
@@ -148,7 +148,7 @@ export async function prComparison(baseRef = 'origin/main', headRef = 'HEAD', di
   return comparison;
 }
 
-export function workingIdentity(directory) {
+function workingIdentity(directory) {
   return { kind: 'working-tree', commit: git(directory, 'rev-parse', 'HEAD') };
 }
 
