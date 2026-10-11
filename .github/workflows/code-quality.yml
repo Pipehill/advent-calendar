@@ -28,6 +28,7 @@ jobs:
         id: checks
         run: |
           node --test tools/quality/ci-comment.test.mjs
+          node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
       - name: Publish reports even after failure
         if: always()

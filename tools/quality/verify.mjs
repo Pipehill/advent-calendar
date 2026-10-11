@@ -5,10 +5,13 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
+import { selectRuntime, preCommitPath } from './local-settings.mjs';
 
 const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 const cloneDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'advent-quality-verification-'));
-const preCommitExecutable = process.env.QUALITY_PRE_COMMIT || path.join(repositoryRoot, '.quality-cache/venv/Scripts/pre-commit.exe');
+const preCommitExecutable = process.env.QUALITY_PRE_COMMIT || preCommitPath(repositoryRoot);
+// Disposable clones have no machine settings; forward the parent's resolved runtime.
+process.env.QUALITY_CONTAINER_RUNTIME = selectRuntime(repositoryRoot);
 const reportsDirectory = path.join(repositoryRoot, 'quality-reports/verification');
 fs.mkdirSync(reportsDirectory, { recursive: true });
 const commandRecords = [];
@@ -28,7 +31,7 @@ function main() {
     runScenario('Shared configuration changes', verifyConfigurationChangesExpandScope);
     runScenario('Full checks in a detached checkout', verifyDetachedCheckout);
     runScenario('Missing container runtime', verifyMissingContainerRuntime);
-    console.log('Windows clone/hook/staging/enforcement integration checks passed.');
+    console.log(`${process.platform} clone/hook/staging/enforcement integration checks passed.`);
   } finally {
     fs.writeFileSync(path.join(reportsDirectory, 'commands.json'), JSON.stringify(commandRecords, null, 2));
     // This path was created by mkdtemp for this verification only.

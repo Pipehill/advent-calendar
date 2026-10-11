@@ -11,24 +11,30 @@ with a running Linux machine. The host Node process only creates snapshots; Merm
 runs under the Node version supplied by the pinned container. Allow several GB of
 disk space for the documentation image and Chromium. No application is installed.
 
-Run from the repository root in PowerShell:
+Use the [developer setup and doctor scripts](../tools/development/README.md):
 
 ```powershell
-python -m venv .quality-cache/venv
-.quality-cache/venv/Scripts/python.exe -m pip install -r tools/quality/pre-commit-requirements.txt
-node tools/quality/run.mjs setup
-.quality-cache/venv/Scripts/pre-commit.exe install
+./tools/development/setup.ps1
+./tools/development/doctor.ps1
 ```
 
-For Podman, set the runtime before setup and before committing:
+On Linux/macOS run `bash tools/development/setup.sh` and
+`bash tools/development/doctor.sh`. Setup bootstraps missing Node, installs missing
+system prerequisites, prepares the pinned Python environment and quality image,
+and installs hooks. Installation may require administrator privileges and a
+terminal/IDE restart. Rerun setup after resolving any reported failure.
 
-```powershell
-$env:QUALITY_CONTAINER_RUNTIME = 'podman'
-```
+Setup persists the selected runtime in ignored `.quality-cache/development.json`.
+`QUALITY_CONTAINER_RUNTIME` remains an explicit override, including an absolute
+executable path. New terminals and IDE commits can use the saved path without a
+setup-only environment variable. CI ignores local settings and uses Docker.
+Doctor reports paths, versions and remedies without installing or repairing tools.
 
-An absolute executable path also works. Keep the variable in the environment used
-by your IDE if commits originate there. On Linux/macOS use the virtual environment's
-`bin/python` and `bin/pre-commit` executables instead of `Scripts/*.exe`.
+For manual recovery, create `.quality-cache/venv` with Python 3.14, install
+`tools/quality/pre-commit-requirements.txt`, run `node tools/quality/run.mjs setup`,
+and install pre-commit hooks. Windows venv executables live under `Scripts`;
+Linux/macOS executables live under `bin`. See the developer tooling instructions
+for package-manager installation, PATH, virtualization and Python alias recovery.
 
 Hooks must be installed after every clone. The branch guard runs even for empty
 commits and rejects `main`; create a task branch before committing.
@@ -66,8 +72,8 @@ binary extensions are also excluded from Git text conversion in `.gitattributes`
 Symlinks, submodules and unmerged index entries fail explicitly in this initial scope.
 
 `verify.mjs` runs commit/staging enforcement tests in a disposable clone, never in
-the working repository. It expects pre-commit at the documented Windows venv path;
-on Linux/macOS set `QUALITY_PRE_COMMIT` to its absolute executable path. Evidence is
+the working repository. It discovers pre-commit in the platform-specific local venv;
+use `QUALITY_PRE_COMMIT` only to override its absolute executable path. Evidence is
 retained under `quality-reports/verification/`; test commits disappear with the clone.
 
 The hooks never run the complete MegaLinter orchestrator for an ordinary commit.

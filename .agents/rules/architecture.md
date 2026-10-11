@@ -40,7 +40,43 @@ when changing those boundaries; those files own their respective instructions.
 - Follow [calendar access rules](authentication-and-calendar-access.md) for
   protected data, user/session cache changes, access-mode isolation, and refresh.
 
+## Readable developer tooling
+
+- Write scripts under `tools/development/` for humans to read and maintain,
+  including Bash, PowerShell, JavaScript modules, and their tests. Use descriptive
+  names, explicit control flow, consistent indentation, and whitespace between
+  logical steps. Avoid compressed one-line branches, nested ternaries, and long
+  expressions that combine discovery, execution, evaluation, and reporting.
+- Keep the main setup and doctor workflows visible as ordered, named steps.
+  Extract cohesive operations into small functions when this clarifies the flow;
+  do not add abstractions merely to shorten code. Use named intermediate values
+  and multiline argument arrays or objects for complex commands and diagnostics.
+- Add short comments explaining intent, platform constraints, and preservation
+  decisions. Do not narrate obvious statements. Apply these conventions when
+  adding or changing a local prerequisite and its verification.
+
+## Temporary Linux/macOS installation follow-up
+
+Plan 00003 was accepted on 2026-10-11 with native Linux/macOS installation testing
+deferred because test machines were unavailable. When someone runs setup on
+Ubuntu/Debian or macOS, investigate any installation failure and fix defects in
+the bootstrap, adapters, shared setup/doctor checks, or recovery instructions.
+Record the failure, fix, and rerun result in
+[developer tooling verification](../../tools/development/verification.md).
+
+After setup, a repeat setup run, doctor, and the quality/hook workflow have been
+confirmed on both supported Linux and macOS, record the platform evidence and
+remove this temporary rule. A successful run on one platform only clears that
+platform's follow-up. Preserve the verification history and the permanent
+developer-tooling maintenance rules.
+
 ## Builds, environments, and tests
+
+- Adopting or changing a local prerequisite must update developer setup, doctor,
+  their shared requirements, developer documentation, and relevant verification
+  in the same change. See [developer tooling](../../tools/development/README.md).
+  Keep system installation in platform adapters; use shared checks for readiness.
+  Record real platform integration evidence separately from simulated tests.
 
 - Use GitHub Actions for CI/CD. Share generation, validation, and build workflows
   between local and CI execution; follow [API contracts](api-contracts.md) for

@@ -1,6 +1,6 @@
 # 00003: Developer setup and doctor scripts
 
-Status: Not implemented
+Status: Implemented (2026-10-11)
 
 Last updated: 2026-10-11
 
@@ -56,6 +56,10 @@ developer tooling; it does not create the planned application.
 11. Verify bootstrap, setup repeatability, diagnostics, and actual quality workflow
     readiness across the supported operating systems. Record unverified platform
     scenarios explicitly instead of claiming support from mocked tests alone.
+    Owner-approved exception on 2026-10-11: remaining platform integration tests
+    are deferred because no test machines are available. Accept the implementation
+    with the evidence and limitations recorded in the verification report, and
+    apply the temporary Linux/macOS installation follow-up rule below.
 
 ## Outstanding questions
 
@@ -65,11 +69,23 @@ None.
 
 ### Confirmed decisions and current baseline
 
+- Confirmed on 2026-10-11: mark this plan implemented using the completed checks.
+  The owner explicitly deferred the remaining platform installation verification
+  because test machines are unavailable. This status does not claim those tests
+  passed. Follow the [temporary Linux/macOS installation rule](../rules/architecture.md#temporary-linuxmacos-installation-follow-up)
+  when a developer first exercises those installation paths.
+
+- Confirmed on 2026-10-11: developer scripts and their tests must be easy for
+  humans to read. Follow the [developer tooling readability rules](../rules/architecture.md#readable-developer-tooling).
+
 - Planning uses `plan/developer-setup-doctor` and `[PLAN]:` for a separately
   requested planning PR. Implementation uses `qa/...` and `[QA]:`, registered in
   the [naming rules](../rules/pull-requests.md).
 - Automatic system-tool installation is in scope. Initial Linux installation
   covers Ubuntu/Debian with apt. Other distributions receive manual guidance.
+- Confirmed on 2026-10-11: when apt cannot provide Python 3.14, an additional
+  installation tool is allowed. Use repository-local uv 0.13.0 and managed Python
+  without replacing the distribution Python or modifying shell profiles.
 - PowerShell and Bash entry points perform the bootstrap needed before shared
   Node logic can run. Keep these entry points small and share subsequent checks,
   requirement definitions, diagnostics, and setup orchestration.
@@ -93,50 +109,58 @@ None.
 
 ### Work steps
 
-- [ ] Inventory the reference Windows environment and existing requirements.
+- [x] Inventory the reference Windows environment and existing requirements.
   Record resolved paths, versions, runtime selection, hook configuration, and a
   successful quality invocation. Distinguish host dependencies from tools already
   supplied by the container. GitHub CLI is not a required quality prerequisite.
-- [ ] Add `tools/development/setup.ps1`, `setup.sh`, `doctor.ps1`, and `doctor.sh`,
+- [x] Add `tools/development/setup.ps1`, `setup.sh`, `doctor.ps1`, and `doctor.sh`,
   with shared Node modules in the same directory. Use script-relative repository
   paths and argument arrays so paths with spaces work independently of the caller's
   directory. Doctor bootstrap must report missing Node without installing it.
-- [ ] Add platform installation adapters for Windows, macOS, and Ubuntu/Debian.
+- [x] Add platform installation adapters for Windows, macOS, and Ubuntu/Debian.
   Validate package identifiers, supported versions, installation methods, and
   executable discovery against upstream documentation during implementation.
   Detect a missing package manager and explain how to install it. Make required
   elevation, virtualization prerequisites, shell refresh, or reboot steps visible;
   do not report the environment ready before those steps have completed.
-- [ ] Implement shared requirement checks and diagnoses. Keep one definition for
+- [x] Implement shared requirement checks and diagnoses. Keep one definition for
   each prerequisite used by both setup and doctor; reference existing pinned files
   instead of duplicating dependency lists. Report incompatible installed tools
   with remediation rather than silently replacing unrelated installations.
-- [ ] Implement setup orchestration: install missing prerequisites, resolve and
+- [x] Implement setup orchestration: install missing prerequisites, resolve and
   prepare the selected runtime, create or reuse the local Python environment,
   install pinned hook dependencies, prepare the quality image through the existing
   command, and install hooks. Finish by running the readiness checks used by doctor.
   Propagate failures and allow rerunning after a partially completed installation.
-- [ ] Handle runtime readiness on each platform. Podman requires a Linux machine
+- [x] Handle runtime readiness on each platform. Podman requires a Linux machine
   on Windows/macOS; Linux can use its native engine. Reuse existing machines and
   connections. Validate access to the repository mount and Linux container execution.
   Do not reset an existing machine to repair a failed check.
-- [ ] Integrate persistent repository-local runtime selection with the quality
+- [x] Integrate persistent repository-local runtime selection with the quality
   runner and verification command as needed. Explicit environment overrides take
   precedence. Keep machine-specific paths/settings ignored by Git and account for
   disposable clones and CI, which must not depend on a developer's local settings.
-- [ ] Update Windows-specific pre-commit discovery in `tools/quality/verify.mjs`
+- [x] Update Windows-specific pre-commit discovery in `tools/quality/verify.mjs`
   and any other affected tooling. Preserve staged snapshots, check-only behavior,
   hook enforcement, local QA receipt semantics, and the existing CI runtime path.
-- [ ] Update `README.md`, `docs/code-quality.md`, and `tools/quality/README.md`
+- [x] Update `README.md`, `docs/code-quality.md`, and `tools/quality/README.md`
   with onboarding commands and links to detailed setup/doctor documentation.
   Add a developer-tooling README if needed. Add the maintenance rule to
   `.agents/rules/architecture.md`: adopting or changing a local prerequisite must
   update setup, doctor, documentation, and relevant verification in the same change.
   Keep agent-specific instructions under `.agents`.
-- [ ] Complete platform verification and record results before marking this plan
-  implemented. Keep the plan index and status consistent with actual evidence.
+- [x] Record completed verification and remaining unverified scenarios; accept
+  the owner-approved deferral of remaining platform integration tests on
+  2026-10-11. Add the temporary Linux/macOS installation follow-up rule and keep
+  the plan index and status consistent with this decision and actual evidence.
 
 ### Installation references
+
+Implementation progress and actual platform evidence are recorded in
+[developer tooling verification](../../tools/development/verification.md).
+The implementation is accepted with the owner-approved verification deferral.
+Simulated adapter tests and Linux container execution do not establish native
+Linux/macOS installation readiness; retain that distinction in future reports.
 
 Use [WinGet installation documentation][winget] for Windows and
 [Homebrew installation documentation][homebrew] when evaluating macOS packages.
