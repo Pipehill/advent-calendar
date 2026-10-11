@@ -25,10 +25,16 @@ Implementation date: 2026-10-11. Branch: `feature/calendar-api`, based on `f098d
   Liveness and outage assertions remain strict. After this correction and splitting
   combined scenarios into Given/When/Then tests with readable xUnit display names,
   the full shared backend command passed locally with all 42 tests and publish;
-  SDK formatting/analyzers also passed. See [PR #19 checks][pr19-checks] for the
-  corrected commit's remote result.
-- 14 development tooling checks passed; the native Bash bootstrap check was
-  skipped on Windows. Launcher tests cover runtime override, stable absolute
+  SDK formatting/analyzers also passed. Commit `2690421` passed both GitHub
+  workflows: Ubuntu/Docker validation, generation, build, all 42 tests, publish,
+  SDK lint and launcher tests; Code Quality also passed. See
+  [PR #19 checks][pr19-checks] for subsequent commits' remote results.
+- All backend tests have sentence-style xUnit `DisplayName` values and explicit
+  Given/When/Then phases. Node test names and custom checker/hook scenario output
+  use the same format, required by the shared development quality rule.
+- The five Node suites contain 125 cases: 124 passed with Node 24.14.0 and the
+  native Bash bootstrap case was skipped on Windows. Launcher tests cover runtime
+  override, stable absolute
   Compose paths containing spaces, invalid port/timeout, unavailable engine,
   failed builds, readiness retry and timeout. Simulated cases are separate from
   actual runtime evidence.
@@ -55,8 +61,14 @@ Implementation date: 2026-10-11. Branch: `feature/calendar-api`, based on `f098d
   saved runtime and Compose provider. CSharpier and SQLFluff rejected invalid
   disposable fixtures and accepted their corrections. Full MegaLinter and
   repository checks passed without editing source; SDK lint also passed.
-- Development/launcher/snapshot tests passed (18 passed, one Windows-inapplicable
-  Bash bootstrap skipped); quality health/report tests passed (20 passed).
+- The expanded development/launcher/snapshot and quality health/report tests
+  preserve the earlier checks while separating unrelated outcomes. Eight custom
+  Linux checker regression groups passed, including invalid/corrected C# and SQL.
+- All 11 disposable-clone hook integration scenarios passed on Windows, covering
+  branch protection, partial staging, preserved edits, stale receipts, checker
+  failures/corrections, incoming links, expanded configuration scope, detached
+  checks and missing runtime diagnostics. Image cleanup was verified separately
+  from concurrent quality runs, which correctly keep images still in use.
 
 ## Advisory code health
 
@@ -66,7 +78,7 @@ under the adopted SQL configuration for a like-for-like comparison. Configuratio
 SHA-256: `8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
 Generated code, dependencies and build/report/cache directories are excluded.
 
-| Metric | Base | Final source | Change |
+| Metric | Base | Initial implementation | Change |
 | --- | --- | --- | --- |
 | Overall health | 48.3 | 54.0 | +5.7 |
 | Duplication score | 90.4 | 92.1 | +1.7 |
@@ -92,18 +104,40 @@ output was corrected to the lowercase excluded path before final measurement.
 Detailed identities/raw findings remain in ignored `quality-reports/health/`.
 These saved-source reports are advisory, not staged hook receipts or PR evidence.
 
+### Given/When/Then follow-up
+
+**Overall health declined from 54.0 to 52.2 (-1.8)** against the preserved
+pre-readability baseline. Complexity score declined from 70.1 to 64.0 (-6.1),
+complexity share rose from 27.5% to 35.8% (+8.3 pp), and maximum file complexity
+rose from 77 to 94. Dead-code score declined from 19.0 to 18.6 (-0.4), while its
+share decreased from 25.9% to 24.7% (-1.2 pp) and coverage rose from 75.9% to
+76.0% (+0.1 pp). Duplication score rose from 92.1 to 93.2 (+1.1); duplicated
+lines/clones/percentage remained 0/0/0.0%. Analyzed scope remained 43 files,
+with 4966 to 6073 lines (+1107); the same five heuristic findings remain.
+
+The extra lines and branches come from explicit input cases, separate behaviors,
+and named lifecycle phases in the test suites. The largest hotspots are
+`environment.test.mjs` (94) and `health.test.mjs` (82): these file-level totals
+combine many individual scenarios. This is a readability and coverage tradeoff;
+no exclusions, analyzer suppressions or scoring changes were introduced.
+The tool version, authored scope and configuration hash above are unchanged.
+Baseline source SHA-256 is
+`ebea24f5b095671474972a41b6a80dd918b7998f1426945e0751ec591b4898fb`;
+final authored-source SHA-256 is
+`da54ccf561f4ff9afaf602bab3e4f650c96c03d11eac9a73dd1947ad32c9cc3d`.
+Saved-source measurements and PR merge identities are retained in
+`quality-reports/health/`. Tests exercise real MCP refresh/statistics and clone
+locations; unsupported analysis dimensions remain unavailable.
+
 ## Limitations and follow-up
 
-- On 2026-10-11 the owner explicitly deferred actual Docker verification because
-  Docker is absent. The Docker-compatible launcher/Compose path and CI workflow
-  exist, but Docker execution must be confirmed on a Docker host.
+- Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local
+  Docker launcher verification remains deferred because Docker is absent on this
+  workstation; Windows Podman launch and persistence were verified above.
 - Native macOS/Linux host installation and launcher verification remain unavailable
   on this Windows workstation. Linux containers do not establish native host
   readiness. Existing development-tooling follow-up rules remain in force.
-- The initial GitHub Actions backend run for PR #19 failed the health recovery
-  assertion after 29 passing tests; its Code Quality workflow passed. Current
-  Ubuntu/Docker evidence is available in [PR #19 checks][pr19-checks].
-  Prior-release migration integrity checks await release tooling.
+- Prior-release migration integrity checks await release tooling.
 - Redocly recommended rules report four advisory warnings for the private
   license, localhost-only server and health endpoints without 4xx responses.
   No contract validation errors occur; these accurately describe the local API.

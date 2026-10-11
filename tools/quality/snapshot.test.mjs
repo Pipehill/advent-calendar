@@ -22,7 +22,8 @@ function commit(root) {
     '-c', 'core.hooksPath=disabled-fixture-hooks', 'commit', '-qm', 'Snapshot fixture']);
 }
 
-test('saved deletions, unstaged edits and untracked paths are copied without changing the index', t => {
+test('Given saved edits and deleted or new files, When a full snapshot is copied, Then saved contents and Git state are preserved', t => {
+  // Given tracked source with a saved edit, a deletion and an untracked path.
   const { root, output } = fixture(t);
   fs.writeFileSync(path.join(root, 'deleted.md'), '# Deleted\n');
   fs.writeFileSync(path.join(root, 'partial staging.md'), '# Original\n');
@@ -32,7 +33,11 @@ test('saved deletions, unstaged edits and untracked paths are copied without cha
   fs.writeFileSync(path.join(root, 'new file.md'), '# New\n');
   const index = gitOutput(root, ['ls-files', '--stage', '-z']);
   const status = gitOutput(root, ['status', '--porcelain']);
+
+  // When the complete saved working tree is copied.
   const { files } = copyRepositorySnapshot(root, output, 'full');
+
+  // Then the snapshot reflects saved files without modifying the source index or status.
   assert(!files.includes('deleted.md'));
   assert(files.includes('new file.md'));
   assert.equal(fs.readFileSync(path.join(output, 'partial staging.md'), 'utf8'), '# Saved edit\n');
@@ -40,17 +45,23 @@ test('saved deletions, unstaged edits and untracked paths are copied without cha
   assert.equal(gitOutput(root, ['status', '--porcelain']), status);
 });
 
-test('staged snapshots include indexed files even when their working copies are deleted', t => {
+test('Given an indexed file with a deleted working copy, When a staged snapshot is copied, Then the indexed contents are included', t => {
+  // Given a committed file whose working copy was subsequently deleted.
   const { root, output } = fixture(t);
   fs.writeFileSync(path.join(root, 'deleted.md'), '# Indexed\n');
   commit(root);
   fs.unlinkSync(path.join(root, 'deleted.md'));
+
+  // When the staged snapshot is copied from the index.
   const { files } = copyRepositorySnapshot(root, output, 'staged');
+
+  // Then the indexed file and bytes remain in the snapshot.
   assert(files.includes('deleted.md'));
   assert.equal(fs.readFileSync(path.join(output, 'deleted.md'), 'utf8'), '# Indexed\n');
 });
 
-test('removed targets and changed Markdown expand incoming-link checks without expanding content lint', t => {
+test('Given a deleted Markdown target, When staged checks are selected, Then incoming links are checked without unrelated content lint', t => {
+  // Given a staged target deletion, an incoming link and unrelated JSON content.
   const { root, output } = fixture(t);
   fs.writeFileSync(path.join(root, 'target.md'), '# Target\n');
   fs.writeFileSync(path.join(root, 'incoming.md'), '# Incoming\n\n[Target](target.md)\n');
@@ -58,27 +69,40 @@ test('removed targets and changed Markdown expand incoming-link checks without e
   commit(root);
   fs.unlinkSync(path.join(root, 'target.md'));
   gitOutput(root, ['add', '--all']);
+
+  // When snapshot metadata and check selections are created.
   const { files, indexEntries } = copyRepositorySnapshot(root, output, 'staged');
   const selectedFiles = selectFilesToCheck(root, files, 'staged');
-  assert(selectedFiles.includes('incoming.md'));
-  assert(!selectedFiles.includes('unrelated.json'));
   const metadata = createSnapshotMetadata({
     root, mode: 'staged', image: 'fixture', snapshotDirectory: output, files, indexEntries, selectedFiles,
   });
+
+  // Then incoming links are checked while unrelated content and the deleted target stay excluded.
+  assert(selectedFiles.includes('incoming.md'));
+  assert(!selectedFiles.includes('unrelated.json'));
   assert(metadata.linkSelected.includes('incoming.md'));
   assert(!metadata.files.includes('target.md'));
 });
 
-test('tracked directories and symlinks are rejected instead of copied', t => {
-  const { root, output } = fixture(t);
-  const source = path.join(root, 'source.md');
-  fs.writeFileSync(source, '# Source\n');
-  commit(root);
-  fs.unlinkSync(source);
-  fs.mkdirSync(source);
-  assert.throws(() => copyRepositorySnapshot(root, output, 'full'), /Unsupported source/);
-  fs.rmdirSync(source);
-  // Directory junctions work without Windows symlink elevation and must also be rejected.
-  fs.symlinkSync(output, source, process.platform === 'win32' ? 'junction' : 'dir');
-  assert.throws(() => copyRepositorySnapshot(root, output, 'full'), /Unsupported source/);
-});
+for (const sourceType of ['directory', 'symlink']) {
+  test(`Given a tracked path replaced by a ${sourceType}, When a full snapshot is attempted, Then the unsupported source is rejected`, t => {
+    // Given a tracked file replaced by a directory or a directory link.
+    const { root, output } = fixture(t);
+    const source = path.join(root, 'source.md');
+    fs.writeFileSync(source, '# Source\n');
+    commit(root);
+    fs.unlinkSync(source);
+    if (sourceType === 'directory') {
+      fs.mkdirSync(source);
+    } else {
+      // Junctions exercise the same rejection without requiring Windows symlink elevation.
+      fs.symlinkSync(output, source, process.platform === 'win32' ? 'junction' : 'dir');
+    }
+
+    // When the unsupported source is copied.
+    const copy = () => copyRepositorySnapshot(root, output, 'full');
+
+    // Then the snapshot refuses to follow or copy that source.
+    assert.throws(copy, /Unsupported source/);
+  });
+}
