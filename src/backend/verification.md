@@ -18,12 +18,15 @@ Implementation date: 2026-10-11. Branch: `feature/calendar-api`, based on `f098d
   vulnerability audit reported no vulnerable dependencies in either project.
 - PR #19's first Ubuntu/Docker CI run passed validation, generation and build,
   but failed the health recovery test: the first readiness request immediately
-  after restarting PostgreSQL returned 503 instead of 200. The test now polls
-  only transient 503 responses within a 30-second deadline before requiring 200;
-  outage and liveness assertions remain strict. The full shared backend command
-  passed locally with all 30 tests and publish after this correction, and full
-  repository lint passed. See [PR #19 checks][pr19-checks] for the corrected
-  commit's remote result.
+  after restarting PostgreSQL returned 503 instead of 200. Retrying for 30 seconds
+  still failed on Ubuntu/Docker. The outage scenario now suspends and resumes the
+  existing PostgreSQL container, retaining its published endpoint throughout the
+  lifecycle, and probes real readiness recovery within a bounded deadline.
+  Liveness and outage assertions remain strict. After this correction and splitting
+  combined scenarios into Given/When/Then tests with readable xUnit display names,
+  the full shared backend command passed locally with all 42 tests and publish;
+  SDK formatting/analyzers also passed. See [PR #19 checks][pr19-checks] for the
+  corrected commit's remote result.
 - 14 development tooling checks passed; the native Bash bootstrap check was
   skipped on Windows. Launcher tests cover runtime override, stable absolute
   Compose paths containing spaces, invalid port/timeout, unavailable engine,
