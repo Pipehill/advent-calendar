@@ -16,6 +16,14 @@ Implementation date: 2026-10-11. Branch: `feature/calendar-api`, based on `f098d
   startup connection exhaustion and actual migration failure, concurrent trace
   isolation, and database outage health/recovery. NuGet's direct/transitive
   vulnerability audit reported no vulnerable dependencies in either project.
+- PR #19's first Ubuntu/Docker CI run passed validation, generation and build,
+  but failed the health recovery test: the first readiness request immediately
+  after restarting PostgreSQL returned 503 instead of 200. The test now polls
+  only transient 503 responses within a 30-second deadline before requiring 200;
+  outage and liveness assertions remain strict. The full shared backend command
+  passed locally with all 30 tests and publish after this correction, and full
+  repository lint passed. See [PR #19 checks][pr19-checks] for the corrected
+  commit's remote result.
 - 14 development tooling checks passed; the native Bash bootstrap check was
   skipped on Windows. Launcher tests cover runtime override, stable absolute
   Compose paths containing spaces, invalid port/timeout, unavailable engine,
@@ -89,8 +97,12 @@ These saved-source reports are advisory, not staged hook receipts or PR evidence
 - Native macOS/Linux host installation and launcher verification remain unavailable
   on this Windows workstation. Linux containers do not establish native host
   readiness. Existing development-tooling follow-up rules remain in force.
-- GitHub Actions is authored and checked locally; no remote CI run or PR is
-  claimed. Prior-release migration integrity checks await release tooling.
+- The initial GitHub Actions backend run for PR #19 failed the health recovery
+  assertion after 29 passing tests; its Code Quality workflow passed. Current
+  Ubuntu/Docker evidence is available in [PR #19 checks][pr19-checks].
+  Prior-release migration integrity checks await release tooling.
 - Redocly recommended rules report four advisory warnings for the private
   license, localhost-only server and health endpoints without 4xx responses.
   No contract validation errors occur; these accurately describe the local API.
+
+[pr19-checks]: https://github.com/Pipehill/advent-calendar/pull/19/checks

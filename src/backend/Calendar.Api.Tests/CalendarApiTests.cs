@@ -304,7 +304,19 @@ public sealed class CalendarApiTests(ApiFixture fixture)
         {
             await fixture.Database.StartAsync();
         }
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
+
+        // Container restart and database connections can recover at different times.
+        using var recoveryDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        HttpStatusCode recoveryStatus;
+        do
+        {
+            using var response = await client.GetAsync("/health/ready", recoveryDeadline.Token);
+            recoveryStatus = response.StatusCode;
+            if (recoveryStatus == HttpStatusCode.ServiceUnavailable)
+                await Task.Delay(TimeSpan.FromMilliseconds(250), recoveryDeadline.Token);
+        } while (recoveryStatus == HttpStatusCode.ServiceUnavailable);
+
+        Assert.Equal(HttpStatusCode.OK, recoveryStatus);
     }
 
     private static async Task AssertProblem(HttpResponseMessage response, HttpStatusCode status)
