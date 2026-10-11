@@ -65,7 +65,7 @@ try {
   if (healthOffset < 0 || healthOffset > offset) throw new Error('PR template must place Code health before Local QA.');
   // Always regenerate from resolved commits: an old saved comparison is never trusted.
   const comparison = await prComparison(process.argv[2] || 'origin/main', 'HEAD', root);
-  const body = template.slice(0, healthOffset) + '\n' + renderComparison(comparison)
+  const body = template.slice(0, healthOffset) + '\n' + renderComparison(comparison, { compact: true })
     + '\n' + qa + (nextSection < 0 ? '' : template.slice(nextSection));
   fs.writeFileSync(destination, body);
   console.log(`Generated ${destination}\nVerified local hook evidence for ${commit}.`);

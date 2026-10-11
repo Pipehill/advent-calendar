@@ -259,7 +259,11 @@ test('PR body section order and verified local receipt survive unavailable healt
       assert.match(body, /Before merge.*After merge/);
       assert(body.includes(head));
       assert.match(body, /Regressed/);
-      assert.match(body, /legitimately increase complexity/);
+      const health = body.slice(body.indexOf('## Code health'), body.indexOf('## Local QA'));
+      assert(health.indexOf('Target commit:') < health.indexOf('| Metric |'));
+      assert.match(health, /\| File \| Findings \|/);
+      assert.doesNotMatch(health, /Mixed results|Rationale:|Measurement identity:|Limitations:/);
+      assert.doesNotMatch(health, /do not block merging|configuration SHA-256|Before source SHA-256/);
     }
   }
   receipt.tree = 'mismatch';

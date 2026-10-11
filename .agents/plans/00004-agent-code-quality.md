@@ -86,6 +86,12 @@ None.
 
 ### Confirmed decisions and repository context
 
+- On 2026-10-11 the owner requested a shorter PR Code health section: remove the
+  mixed-results/rationale and advisory paragraphs, detailed measurement identity
+  and limitations. Place target/head/candidate identity above the metric table and
+  group file references in a findings table. This supersedes the original verbose
+  PR layout below; complete evidence and development explanations remain in local reports.
+
 - Implementation uses `qa/agent-code-quality` from synchronized main at `e81e073`,
   as explicitly authorized by the owner on 2026-10-11.
 - On 2026-10-11 the owner explicitly deferred native macOS/Linux installation,

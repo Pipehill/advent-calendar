@@ -19,7 +19,30 @@ export function assessment(oldValue, newValue, higher = false) {
   return (newValue > oldValue) === higher ? '🟢 Improved' : '🔴 Regressed';
 }
 
-export function renderComparison(comparison) {
+function appendFileTable(output, report) {
+  const findings = new Map();
+  function add(file, detail) {
+    if (!findings.has(file)) findings.set(file, []);
+    findings.get(file).push(detail);
+  }
+  for (const file of report.complexity.files.slice(0, 5)) {
+    add(file.path, `Complexity: ${file.complexity}`);
+  }
+  for (const finding of report.deadCode.findings.slice(0, 5)) {
+    add(finding.path, `${finding.category} at line ${finding.start.line} (${finding.confidence}% confidence)`);
+  }
+  for (const clone of report.mcp.refresh.duplications.slice(0, 10)) {
+    add(clone.fileA, `Clone at line ${clone.startA}: ${clone.lines} lines shared with ${clone.fileB}:${clone.startB}`);
+  }
+  if (!findings.size) return;
+  output.push('| File | Findings |', '| --- | --- |');
+  for (const [file, details] of findings) {
+    output.push(`| ${safe(file)} | ${details.map(safe).join('; ')} |`);
+  }
+  output.push('');
+}
+
+export function renderComparison(comparison, { compact = Boolean(comparison.identity) } = {}) {
   const { before, after, identity } = comparison;
   let reason = comparison.available ? comparable(before, after) : comparison.reason;
   if (!reason && identity && (identity.kind !== 'pr-merge'
@@ -30,8 +53,12 @@ export function renderComparison(comparison) {
   }
   const output = ['## Code health', ''];
   if (reason) {
-    output.push(`⚪ **Unavailable**: ${safe(reason)}.`, '', advisory, '');
+    output.push(`⚪ **Unavailable**: ${safe(reason)}.`, '');
+    if (!compact) output.push(advisory, '');
     return output.join('\n');
+  }
+  if (compact && identity) {
+    output.push(`Target commit: ${identity.base}; PR head: ${identity.head}; candidate merge tree: ${identity.candidate}.`, '');
   }
   const rows = [];
   function add(label, oldValue, newValue, unit = '', higher = false, neutral = false) {
@@ -64,6 +91,11 @@ export function renderComparison(comparison) {
   add('Dead-code findings (heuristic)', before.deadCode.findings.length, after.deadCode.findings.length);
   add('Analyzed files', left.sources, right.sources, '', false, true);
   add('Analyzed lines', left.lines, right.lines, '', false, true);
+  if (compact) {
+    output.push('');
+    appendFileTable(output, after);
+    return output.join('\n');
+  }
   const regressions = rows.filter(row => row.status.includes('Regressed')).map(row => row.label);
   const improvements = rows.some(row => row.status.includes('Improved'));
   output.push('');

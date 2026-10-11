@@ -144,7 +144,7 @@ export async function prComparison(baseRef = 'origin/main', headRef = 'HEAD', di
     comparison = { available: false, identity, reason: error.message };
   }
   fs.writeFileSync(reportFile, JSON.stringify(comparison, null, 2) + '\n');
-  fs.writeFileSync(path.join(output, 'comparison.md'), renderComparison(comparison));
+  fs.writeFileSync(path.join(output, 'comparison.md'), renderComparison(comparison, { compact: true }));
   return comparison;
 }
 
@@ -157,7 +157,7 @@ async function main() {
   const reports = path.join(root, 'quality-reports', 'health');
   if (mode === 'pr') {
     const report = await prComparison(process.argv[3], process.argv[4]);
-    console.log(renderComparison(report));
+    console.log(renderComparison(report, { compact: true }));
     return; // Availability and scores are advisory for PRs.
   }
   if (mode === 'doctor') {

@@ -9,13 +9,10 @@
 <!-- Generate with node tools/quality/health.mjs pr origin/main HEAD,
 or use node tools/quality/pr-report.mjs after committing.
 Fetch and regenerate whenever the target base or PR head changes.
-Copy quality-reports/health/pr/comparison.md here, explain regressions/tradeoffs,
-and preserve those explanations when regenerating. -->
+Copy the compact section from quality-reports/health/pr/comparison.md here.
+Detailed measurement identity, limitations and findings remain in local JSON reports. -->
 
 ⚪ **Unavailable**: no whole-codebase comparison matching the target and PR head.
-
-These measurements support review and do not block merging. Required behavior
-can legitimately increase complexity; review the changes and their rationale.
 
 ## Local QA
 

@@ -25,8 +25,10 @@ check-only. Quality measurements supplement relevant tests and review.
 5. When a PR is authorized, fetch its target and regenerate the whole-codebase merge
    comparison and PR body using the documented commands after each head/base change.
    Place Code health after Description and before Local QA. Keep stale/conflicting
-   evidence unavailable. Preserve the description and regression explanations when
-   updating generated sections; these commands do not authorize publishing a PR.
+   evidence unavailable. Use the compact PR layout: commit identity above metrics,
+   file findings in a table, and detailed explanations/limitations in local reports.
+   Preserve the description when updating generated sections; these commands do
+   not authorize publishing a PR.
 
 An overall decline and contributing regressions must remain prominent even when
 other metrics improve. Added complexity can support required behavior; document

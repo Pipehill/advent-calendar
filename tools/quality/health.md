@@ -124,8 +124,10 @@ policy change separately. Development baseline comparisons reject differing sett
 After committing with the existing hooks, run `node tools/quality/pr-report.mjs`
 (or provide the target ref as its argument). It regenerates health rather than
 trusting a saved comparison and retains separately verified Local QA. Copy the
-generated sections into the PR description; preserve the description and explain
-measured regressions/tradeoffs. Regenerate whenever either the target or PR head
+generated sections into the PR description; preserve the description. The compact
+Code health section places target/head/merge-tree identity above the metric table
+and groups file findings in a second table. Detailed identities, limitations and
+development regression explanations stay in local reports. Regenerate whenever either the target or PR head
 changes, including after a rebase. A previously pasted section becomes stale when
 these identities change; label it unavailable until refreshed. No PR is published
 or edited by these commands. CI produces fresh advisory evidence for PR updates;
