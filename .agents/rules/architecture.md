@@ -44,6 +44,23 @@ when changing those boundaries; those files own their respective instructions.
 - Follow [calendar access rules](authentication-and-calendar-access.md) for
   protected data, user/session cache changes, access-mode isolation, and refresh.
 
+## Interface localization
+
+- Use Paraglide JS for application interface translations. Initially support
+  Norwegian as the default language and English as a user-selectable alternative.
+- Translate application-owned interface text, labels, prompts, help text,
+  loading/status messages, and user-facing error/validation messages.
+- Preserve user-authored content in its original language, including calendar
+  titles and door text. Do not automatically translate it, require translations,
+  or introduce per-language copies or localized database fields for it.
+- Changing the interface language must not modify stored user-authored content.
+- Keep translations in maintained message catalogs. Ensure SSR and browser
+  hydration use the same selected language and isolate language state between
+  concurrent server requests. Set the HTML language attribute accordingly.
+- Verify both translated interface/error states and unchanged user-authored
+  content when switching languages. Project documentation, code comments, and
+  other development content follow the [documentation rules](documentation.md).
+
 ## Readable developer tooling
 
 - Write scripts under `tools/development/` for humans to read and maintain,

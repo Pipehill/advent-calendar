@@ -1,6 +1,6 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-10-11
+Last reviewed: 2026-10-13
 
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
@@ -102,6 +102,21 @@ separately. Client validation provides feedback, while BFF and backend validatio
 remain independent enforcement boundaries. The
 [TanStack Form component integration](https://ui.shadcn.com/docs/forms/tanstack-form)
 supports this UI choice. It does not select automatic OpenAPI-to-Zod generation.
+
+## Interface languages
+
+The application interface will initially support Norwegian and English, with
+Norwegian as the default and a language selector for switching. Use Paraglide JS
+for interface translations; TanStack documents its
+[Start/SSR integration](https://tanstack.com/router/latest/docs/guide/internationalization-i18n).
+The selected language must agree between server-rendered HTML and browser
+hydration, with language state isolated between server requests.
+
+Translation covers application-owned interface text, labels, prompts, and
+user-facing error/validation messages. User-authored content, including calendar
+titles and door text, stays in the language in which it was written. Switching
+interface languages does not change stored content or require per-language
+versions of it.
 
 ## Contracts and generated code
 
