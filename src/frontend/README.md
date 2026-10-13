@@ -7,22 +7,45 @@ ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
 server code. The initial calendar is server-rendered and its query cache hydrates
 without a duplicate request. Door contents are omitted from this page's BFF data.
 
-## Run the complete stack
+## Run locally
 
-After developer setup, run `./tools/development/run-local.ps1` on Windows or
-`bash tools/development/run-local.sh` on macOS/Linux. It starts frontend/BFF,
-backend and PostgreSQL with readiness dependencies and persistent database storage.
+After developer setup, run `./run-local.ps1` on Windows or
+`bash run-local.sh` on macOS/Linux from the repository root. It builds the backend
+image, runs backend integration and frontend unit tests, starts backend/PostgreSQL
+containers, waits for API readiness and starts Vite in the current terminal.
+Frontend changes use hot reload; backend changes require another launch to rebuild.
 Open `http://localhost:3000`; the API remains at `http://localhost:8080`.
 
+```powershell
+# Entire application in containers, including the built frontend.
+./run-local.ps1 --frontend=container
+
+# Quick repeat development run using the existing backend image.
+./run-local.ps1 --skip-build --skip-test
+```
+
+The Bash launcher accepts the same flags. `--frontend=dev` explicitly selects the
+default Vite mode; `--help` lists available options. `--skip-build` only skips
+application image builds and fails if a required image is missing. Tests and
+dev contract generation can still compile source. `--skip-test` skips both test
+suites. Container mode builds both images unless skipped and exits after readiness.
+
 `FRONTEND_PORT`, `API_PORT` and `DATABASE_PORT` override published host ports.
+Vite uses `FRONTEND_PORT` with strict port selection, binds to localhost and calls
+the API at the selected `API_PORT`; container BFF calls `http://backend:8080`.
 `LOCAL_START_TIMEOUT_SECONDS` bounds each application's readiness wait (default
 120 seconds). Reruns preserve the existing database and service identities.
+Switching to dev stops the frontend container before Vite starts. Stop a running
+Vite session with Ctrl+C before switching to container mode; the launcher never
+kills another host process to free an occupied port. Ctrl+C leaves backend/database
+running so another frontend run can reuse them.
 Use `podman compose stop` or `docker compose stop` to stop the stack without
 removing the database volume.
 
-## Host development
+## Host backend development
 
-Start only PostgreSQL in Compose, avoiding duplicate application instances:
+For backend hot reload as well, start only PostgreSQL in Compose, avoiding
+duplicate application instances. Stop the launcher's Vite session first:
 
 ```powershell
 podman compose stop frontend backend

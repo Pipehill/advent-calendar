@@ -132,15 +132,43 @@ provider uses WinGet `Docker.DockerCompose`, Homebrew `docker-compose`, or apt
 Setup restores locked backend packages, the pinned NSwag tool and Redocly CLI.
 `DOTNET_EXE` explicitly overrides the saved SDK for shared backend commands.
 
-The local launcher now starts all three services and prints the frontend and API
-URLs. See [frontend workflows](../../src/frontend/README.md) for host development,
-language selection, production builds and browser verification.
+After setup, run `./run-local.ps1` or `bash run-local.sh` from the repository root.
+These entry scripts forward arguments to `tools/development/run-local.mjs`; all
+implementation helpers remain under `tools/`. Absolute script paths work from
+another directory, including paths with spaces.
 
-After setup, `run-local.ps1` or `bash run-local.sh` builds and starts PostgreSQL
-and the API, waits for readiness and prints the localhost URL. It reuses the
+The launcher builds the backend image, runs backend integration and frontend unit
+tests, starts PostgreSQL/API containers, waits for readiness and starts Vite with
+hot reload in the terminal. `--frontend=dev|container` selects the frontend mode
+(default `dev`). Container mode builds both application images and exits after
+frontend readiness. `--skip-build` reuses existing images and never builds missing
+ones; tests and dev contract generation can still compile source. `--skip-test`
+skips both suites. `--help` prints usage without requiring a container engine.
+An incompatible Node version fails before builds or runtime commands, using the
+same prerequisite version check as setup/doctor. Select Node 24 on PATH first.
+
+Dev mode stops the frontend container before starting Vite. Ctrl+C stops only the
+owned Vite process; backend/database stay running and preserve data. Stop Vite
+before switching to container mode. Port conflicts fail with a diagnostic rather
+than choosing another port or terminating an unrelated process. Failed tests stop
+launch before services are started. Readiness failures print service status/logs.
+
+The launcher reuses the
 saved runtime; `QUALITY_CONTAINER_RUNTIME` overrides it. `API_PORT` (default
-8080), `DATABASE_PORT` (5432) and `LOCAL_START_TIMEOUT_SECONDS` (120, at most
-600) are configurable. See [backend workflows](../../src/backend/README.md).
+8080), `FRONTEND_PORT` (3000), `DATABASE_PORT` (5432) and
+`LOCAL_START_TIMEOUT_SECONDS` (120, at most 600) are configurable. Vite binds to
+localhost on the configured frontend port and the BFF calls the published API port.
+
+Launcher tests use the selected local Podman machine/socket, disable Ryuk for
+rootless Podman unless explicitly configured, and preserve explicit `DOCKER_HOST`
+and `TESTCONTAINERS_RYUK_DISABLED`. Remote connections need an explicit test endpoint.
+Test databases remain disposable and separate from the persistent development
+database. Docker retains native Testcontainers discovery. No persistent shell
+settings, machine connections or volumes are changed.
+
+See [frontend workflows](../../src/frontend/README.md) for host backend hot reload,
+language selection, production builds and browser verification, and
+[backend workflows](../../src/backend/README.md) for API examples and configuration.
 
 Run focused regressions with `node --test tools/development/environment.test.mjs`.
 The tests cover requirement evaluation, runtime precedence, platform adapters,

@@ -3,6 +3,44 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectRuntime } from '../quality/local-settings.mjs';
 import { command, repositoryRoot } from './commands.mjs';
+import { runDevFrontend } from './local-frontend.mjs';
+import { localTestEnvironment } from './local-test-environment.mjs';
+import { waitForReady } from './local-readiness.mjs';
+import { baseline, compatible } from './requirements.mjs';
+
+export { waitForReady } from './local-readiness.mjs';
+
+export const localUsage = `Usage: run-local [--frontend=dev|container] [--skip-build] [--skip-test]
+
+  --frontend=dev        Run Vite with hot reload in this terminal (default).
+  --frontend=container  Run the built frontend in a detached container.
+  --skip-build          Reuse existing application images; fail if missing.
+  --skip-test           Skip backend integration and frontend unit tests.
+  --help, -h            Show this help without starting services.
+
+Tests and dev contract generation can still compile source with --skip-build.
+Ctrl+C stops Vite; backend/database stay running and retain development data.`;
+
+export function parseLocalOptions(args = []) {
+  const options = { frontend: 'dev', skipBuild: false, skipTest: false, help: false };
+  for (const argument of args) {
+    if (argument === '--skip-build') {
+      options.skipBuild = true;
+    } else if (argument === '--skip-test') {
+      options.skipTest = true;
+    } else if (argument === '--help' || argument === '-h') {
+      options.help = true;
+    } else if (argument.startsWith('--frontend=')) {
+      options.frontend = argument.slice('--frontend='.length);
+    } else {
+      throw new Error(`Unknown option: ${argument}. Use --help.`);
+    }
+  }
+  if (!['dev', 'container'].includes(options.frontend)) {
+    throw new Error('--frontend must be dev or container. Use --help.');
+  }
+  return options;
+}
 
 export function localConfiguration(env = process.env, root = repositoryRoot) {
   const port = Number(env.API_PORT || 8080);
@@ -23,47 +61,88 @@ export function localConfiguration(env = process.env, root = repositoryRoot) {
     url: `http://localhost:${port}`,
     frontendUrl: `http://localhost:${frontendPort}`,
     timeout,
+    frontendPort,
+    root,
   };
 }
 
-export async function waitForReady(url, timeout, request = fetch) {
-  const deadline = Date.now() + timeout * 1000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await request(`${url}/health/ready`, { signal: AbortSignal.timeout(2000) });
-      if (response.ok) return;
-    } catch {
-      // A connection failure is expected while the API is starting.
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
+function checkedCommand(run, executable, args, env, failure) {
+  let result;
+  try {
+    result = run(executable, args, true, env);
+  } catch (error) {
+    throw new Error(`${failure} ${error.message}`);
   }
-  throw new Error(`Readiness timeout after ${timeout}s: ${url}/health/ready`);
+  if (result.status !== 0) {
+    throw new Error(failure);
+  }
 }
 
-export async function runLocal(env = process.env, run = command, request = fetch) {
+export async function runLocal(
+  env = process.env,
+  run = command,
+  request = fetch,
+  options = parseLocalOptions(),
+  develop = runDevFrontend,
+  testEnvironment = localTestEnvironment,
+) {
+  if (options.help) {
+    console.log(localUsage);
+    return;
+  }
+  if (!compatible('node', process.version)) {
+    throw new Error(`Node ${baseline.node} is required; detected ${process.version}. Select Node ${baseline.node} on PATH, restart the terminal and run setup/doctor.`);
+  }
   const config = localConfiguration(env);
   for (const args of [['info'], ['compose', 'version']]) {
     const result = run(config.runtime, args, false, env);
     if (result.status !== 0) throw new Error(`Missing engine/Compose provider: ${result.output}. Run setup/doctor.`);
   }
-  const result = run(config.runtime, [...config.args, 'up', '--build', '--detach'], true, env);
-  if (result.status !== 0) throw new Error('Compose build/start failed. Check ports and container logs.');
+  const services = ['backend'];
+  if (options.frontend === 'container') {
+    services.push('frontend');
+  }
+  if (!options.skipBuild) {
+    console.log(`Building application images: ${services.join(', ')}.`);
+    checkedCommand(run, config.runtime, [...config.args, 'build', ...services], env, 'Compose build failed.');
+  }
+  if (!options.skipTest) {
+    console.log('Running backend integration and frontend unit tests.');
+    const testsEnv = testEnvironment(config.runtime, env, run);
+    for (const component of ['backend', 'frontend']) {
+      const script = path.join(config.root, 'tools', component, 'check.mjs');
+      checkedCommand(run, process.execPath, [script, 'test'], testsEnv, `${component} tests failed; startup stopped.`);
+    }
+  }
+  if (options.frontend === 'dev') {
+    // Stop the container frontend before Vite claims the same published port.
+    checkedCommand(run, config.runtime, [...config.args, 'stop', 'frontend'], env, 'Could not stop the container frontend.');
+  }
+  const startArgs = [...config.args, 'up', '--no-build', '--detach', 'database', ...services];
+  checkedCommand(run, config.runtime, startArgs, env, 'Compose start failed. Check ports, images and container logs.');
   try {
     await waitForReady(config.url, config.timeout, request);
-    await waitForReady(config.frontendUrl, config.timeout, request);
+    console.log(`Local API ready: ${config.url}`);
+    if (options.frontend === 'dev') {
+      const frontendEnv = { ...env, BACKEND_API_URL: config.url };
+      const generator = path.join(config.root, 'tools/frontend/check.mjs');
+      checkedCommand(run, process.execPath, [generator, 'generate'], frontendEnv, 'Frontend generation failed. Run setup/doctor.');
+      await develop(config, frontendEnv, request);
+    } else {
+      await waitForReady(config.frontendUrl, config.timeout, request);
+      console.log(`Local calendar ready: ${config.frontendUrl} (container)`);
+    }
   } catch (error) {
     run(config.runtime, [...config.args, 'ps'], true, env);
     run(config.runtime, [...config.args, 'logs', '--tail', '50'], true, env);
     throw error;
   }
-  console.log(`Local API ready: ${config.url}`);
-  console.log(`Local calendar ready: ${config.frontendUrl}`);
   return config.frontendUrl;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    await runLocal();
+    await runLocal(process.env, command, fetch, parseLocalOptions(process.argv.slice(2)));
   } catch (error) {
     console.error(`FAIL: ${error.message}`);
     process.exitCode = 1;
