@@ -1,6 +1,6 @@
 # Developer setup and doctor
 
-These scripts prepare the existing quality workflow, not the planned application.
+These scripts prepare the quality workflow and runnable backend prerequisites.
 They require PowerShell on Windows or Bash on macOS/Linux. Invoke them from any
 directory using their absolute paths; paths containing spaces are supported.
 
@@ -119,7 +119,20 @@ in `adapters.mjs`, and versions remain in `requirements.mjs`.
 When introducing or changing a local prerequisite, update setup, doctor, their
 shared requirements, these instructions and relevant tests in the same change.
 Dependency lists and image pins remain owned by the existing quality files.
-pnpm, .NET, Compose, application packages and databases are deferred until adopted.
+pnpm and frontend/BFF dependencies remain deferred. Backend setup installs the
+exact .NET SDK from `global.json` into `.quality-cache/dotnet` when no matching
+SDK exists, preserves system installations, and saves its resolved executable.
+Doctor reports the matching SDK and selected runtime's Compose provider. A missing
+provider uses WinGet `Docker.DockerCompose`, Homebrew `docker-compose`, or apt
+`docker-compose-v2`; distributions without that package need manual installation.
+Setup restores locked backend packages, the pinned NSwag tool and Redocly CLI.
+`DOTNET_EXE` explicitly overrides the saved SDK for shared backend commands.
+
+After setup, `run-local.ps1` or `bash run-local.sh` builds and starts PostgreSQL
+and the API, waits for readiness and prints the localhost URL. It reuses the
+saved runtime; `QUALITY_CONTAINER_RUNTIME` overrides it. `API_PORT` (default
+8080), `DATABASE_PORT` (5432) and `LOCAL_START_TIMEOUT_SECONDS` (120, at most
+600) are configurable. See [backend workflows](../../src/backend/README.md).
 
 Run focused regressions with `node --test tools/development/environment.test.mjs`.
 The tests cover requirement evaluation, runtime precedence, platform adapters,

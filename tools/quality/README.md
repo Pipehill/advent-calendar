@@ -4,6 +4,14 @@ This tool checks repository formatting, filenames, local Markdown links and Merm
 diagrams. It runs pinned linters in an isolated Linux container and preserves source
 files and the original Git index. Reports are saved in `quality-reports/<mode>/`.
 
+Authored C# and project files use CSharpier 1.3.0; SQL uses SQLFluff 4.3.0 with
+the PostgreSQL dialect in `.sqlfluff`. Both run through MegaLinter and the staged
+runner with the same pins/configuration. The pinned SDK is copied into the quality
+image; checks need no network, restore or running API. `run.mjs test` verifies
+invalid and corrected C#/SQL fixtures in a disposable directory. Backend builds
+also enforce recommended .NET analyzers as errors; `tools/backend/check.mjs lint`
+checks SDK formatting and analyzers. Generated code and build outputs are excluded.
+
 Start with [developer setup and doctor](../development/README.md). Run quality
 commands from the repository root with Node, Git and a reachable Linux container
 runtime. Setup saves the runtime path in ignored local settings; an explicit

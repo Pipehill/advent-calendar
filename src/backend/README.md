@@ -1,0 +1,139 @@
+# Calendar backend
+
+The initial API creates calendars from a title and retrieves their persisted
+contents. Controllers implement generated contracts, services initialize business
+values, and repositories use Npgsql/Dapper with parameterized SQL. Authentication,
+editing, scheduled opening, frontend and BFF are future features.
+
+## Local containers
+
+Run developer setup, then `./tools/development/run-local.ps1` on Windows or
+`bash tools/development/run-local.sh` on macOS/Linux. The launcher uses the saved
+Docker/Podman selection, builds current source including contract validation and
+generation, starts PostgreSQL and the API, and prints the URL after readiness.
+Use `QUALITY_CONTAINER_RUNTIME` for an explicit engine override, `API_PORT` for
+the API port and `DATABASE_PORT` for the host database port. Ports bind to localhost.
+
+The stable Compose project `advent-calendar` and named volume retain calendars
+across repeat launches and stops. With the selected runtime, inspect and stop:
+
+```bash
+podman compose -f compose.yaml -p advent-calendar logs --tail 100 backend
+podman compose -f compose.yaml -p advent-calendar ps
+podman compose -f compose.yaml -p advent-calendar stop
+podman compose -f compose.yaml -p advent-calendar down
+```
+
+Replace `podman` with `docker` when selected. `down` preserves the named volume;
+do not add `--volumes` unless intentionally deleting development data. A failed
+launch exits nonzero; readiness timeout prints service status and recent logs.
+The timeout defaults to 120 seconds after Compose returns, configurable through
+`LOCAL_START_TIMEOUT_SECONDS` (1-600). Compose build/start reports engine errors,
+provider failures and port conflicts; it does not reset existing services or data.
+
+## Host development
+
+Start only PostgreSQL with `podman compose -f compose.yaml up -d database`.
+Stop the backend container first when switching to host development:
+`podman compose -f compose.yaml stop backend`. Configure the host connection
+through `ConnectionStrings__Calendar` when using a nondefault database port.
+
+Use the SDK installed by setup (or a matching SDK on PATH):
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+$env:LocalSeed__Enabled = 'true'
+./.quality-cache/dotnet/dotnet.exe watch --project src/backend/Calendar.Api --urls http://localhost:8080
+```
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development LocalSeed__Enabled=true \
+  .quality-cache/dotnet/dotnet watch --project src/backend/Calendar.Api --urls http://localhost:8080
+```
+
+If setup found an existing SDK, use its saved `dotnet` executable instead. NSwag
+regenerates before compilation, including watch builds. For direct dotnet commands,
+make the selected SDK directory available on PATH so MSBuild invokes that SDK.
+
+## Configuration, migrations and seed
+
+`appsettings.json` has a local host database connection and seeding disabled.
+Nonlocal deployments must supply their connection string and keep seeding disabled.
+The Compose file is exclusively for local development: it selects `Development`
+and enables `LocalSeed__Enabled`. Both are required; Production ignores the seed
+setting even when accidentally enabled. The sample UUID is
+`5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026`; retrieve it to inspect its doors. Seeding
+uses service initialization, inserts atomically and leaves existing content alone.
+
+Startup retries database connection at most `Database__StartupAttempts` times
+(default 10; allowed 1-30), with one-second waits and a three-second connection
+timeout in shipped configuration. DbUp executes numbered embedded SQL resources
+in deterministic order with its PostgreSQL `schemaversions` journal and one
+transaction per script. Failure prevents HTTP startup and exits nonzero. Published
+migrations must remain unchanged; future corrections use new numbered scripts.
+Prior-release integrity checks and deployment integration await release tooling.
+
+`GET /health/live` checks the process; `GET /health/ready` requires migrations and
+a current database query within two seconds. During a database outage, liveness
+remains 200 and readiness returns 503. Readiness never precedes migration success.
+
+## Manual API examples
+
+Open [calendars.http](Calendar.Api/calendars.http) in an HTTP-capable editor.
+Change `baseUrl` and copy an ID returned by POST into `calendarId`, or use the
+sample ID. The file covers creation (201 with `Location`), retrieval (200), an
+invalid title (400), and an unknown UUID (404). Malformed UUIDs return 400.
+
+```bash
+curl -i -H 'Content-Type: application/json' \
+  -d '{"title":"  My calendar  "}' http://localhost:8080/calendars
+curl -i http://localhost:8080/calendars/5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026
+```
+
+Only `title` is accepted. It is trimmed before the 1-100 Unicode code point limit;
+Norwegian letters and simple emoji count as one, combining marks and compound
+emoji components separately. Null/missing/blank/overlong titles and unknown input
+properties return ProblemDetails with structured errors and a request trace ID.
+NUL is rejected because PostgreSQL text cannot store it. Service-generated UUIDs
+are v4; the 24 doors are numbered 1-24 and have non-null empty text. Timestamps
+are identical UTC instants, normalized to PostgreSQL microsecond precision before
+both persistence and the creation response. GET returns stored text and timestamps.
+
+## Contract, build and tests
+
+Exact pins are committed in `global.json`, `.config/dotnet-tools.json`, project
+files and package lockfiles. Generated code under `Calendar.Api/generated` is
+ignored; clean builds require no generated output or running API. The authored
+OpenAPI 3.0.3 document and NSwag System.Text.Json settings are under the sibling
+`src/contract/` directory. Backend application and tests live in `src/backend/`;
+future frontend source belongs in `src/frontend/`.
+
+After setup, use the same commands as GitHub Actions:
+
+```bash
+npm ci --prefix src/contract
+node tools/backend/check.mjs generate
+node tools/backend/check.mjs build
+node tools/backend/check.mjs test
+node tools/backend/check.mjs publish
+node tools/backend/check.mjs lint
+node tools/backend/check.mjs check
+```
+
+`check` validates, generates, restores in locked mode, builds, tests and publishes.
+`lint` checks SDK formatting/analyzers without changing files. Shared repository
+quality checks additionally run CSharpier 1.3.0 and SQLFluff 4.3.0 offline against
+authored code; generated output and build artifacts are excluded.
+
+xUnit uses PostgreSQL Testcontainers with the actual embedded migrations. Test
+databases are disposable and isolated from the persistent development volume.
+For rootless Podman, set `TESTCONTAINERS_RYUK_DISABLED=true`; fixture disposal still
+removes test containers, but an abruptly terminated run may require manual cleanup.
+On this Windows Podman machine, tests use
+`DOCKER_HOST=npipe://localhost/pipe/podman-machine-one`. Replace the machine name
+with your selected machine's pipe. Docker Desktop normally requires no override.
+Linux/macOS endpoint setup follows the
+[Testcontainers runtime guidance](https://dotnet.testcontainers.org/supported_docker_environment/).
+
+See [verification evidence](verification.md) for actual runtime coverage and
+remaining platform limitations.

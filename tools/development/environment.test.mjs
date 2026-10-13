@@ -41,45 +41,137 @@ function clearRuntimeOverride(testContext) {
   });
 }
 
-test('baseline versions and normalized package names reject incompatible tools', () => {
-  assert(compatible('node', 'v24.1.0'));
-  assert(!compatible('node', 'v20.11.0'));
-  assert(!compatible('node', 'v26.0.0'));
-  assert(compatible('python', 'Python 3.14.8'));
-  assert(!compatible('python', 'Python 3.13.0'));
-  assert.equal(normalizePin('pre_commit==4.6.2'), normalizePin('pre-commit==4.6.2'));
-  assert.notEqual(normalizePin('pre_commit==4.6.1'), normalizePin('pre-commit==4.6.2'));
-});
+const versionCases = [
+  ['node', 'v24.1.0', true], ['node', 'v20.11.0', false], ['node', 'v26.0.0', false],
+  ['python', 'Python 3.14.8', true], ['python', 'Python 3.13.0', false],
+  ['dotnet', '10.0.401', true], ['dotnet', '10.0.400', false],
+];
+for (const [tool, version, expected] of versionCases) {
+  test(`Given ${tool} version ${version}, When compatibility is checked, Then it is ${expected ? 'accepted' : 'rejected'}`, () => {
+    // Given a tool version and the repository's pinned compatibility policy.
+    const detected = version;
 
-test('runtime overrides win; CI ignores local settings; fresh clones use Docker', t => {
+    // When that detected version is checked.
+    const result = compatible(tool, detected);
+
+    // Then compatibility matches the supported baseline.
+    assert.equal(result, expected);
+  });
+}
+
+for (const [pin, expectedEqual] of [['pre_commit==4.6.2', true], ['pre_commit==4.6.1', false]]) {
+  test(`Given package pin ${pin}, When names are normalized, Then versions remain ${expectedEqual ? 'equal' : 'distinct'}`, () => {
+    // Given a differently spelled package name and the required version.
+    const required = 'pre-commit==4.6.2';
+
+    // When both dependency pins are normalized.
+    const actual = normalizePin(pin);
+    const expected = normalizePin(required);
+
+    // Then package spelling is normalized without discarding version differences.
+    assert.equal(actual === expected, expectedEqual);
+  });
+}
+
+const runtimeCases = [
+  { condition: 'a fresh clone', settings: undefined, env: {}, expected: 'docker' },
+  { condition: 'a saved Podman path', settings: '{"runtime":"/path with spaces/podman"}', env: {}, expected: '/path with spaces/podman' },
+  { condition: 'an explicit engine override', settings: '{"runtime":"podman"}', env: { QUALITY_CONTAINER_RUNTIME: 'docker' }, expected: 'docker' },
+  { condition: 'CI with saved local settings', settings: '{"runtime":"podman"}', env: { CI: 'true' }, expected: 'docker' },
+  { condition: 'CI with malformed local settings', settings: '{bad', env: { CI: 'true' }, expected: 'docker' },
+];
+for (const scenario of runtimeCases) {
+  test(`Given ${scenario.condition}, When the runtime is selected, Then ${scenario.expected} is used`, t => {
+    // Given local settings and environment variables for this selection scenario.
+    const directory = fixture(t);
+    if (scenario.settings !== undefined) {
+      fs.writeFileSync(path.join(directory, '.quality-cache/development.json'), scenario.settings);
+    }
+
+    // When runtime selection resolves the configured precedence.
+    const runtime = selectRuntime(directory, scenario.env);
+
+    // Then the expected runtime is selected.
+    assert.equal(runtime, scenario.expected);
+  });
+}
+
+test('Given malformed local settings, When a local runtime is selected, Then invalid JSON is rejected', t => {
+  // Given a local settings file that cannot be parsed.
   const directory = fixture(t);
-  assert.equal(selectRuntime(directory, {}), 'docker');
-  const settingsPath = path.join(directory, '.quality-cache/development.json');
-  const settings = { runtime: '/path with spaces/podman' };
-  fs.writeFileSync(settingsPath, JSON.stringify(settings));
-  assert.equal(selectRuntime(directory, {}), '/path with spaces/podman');
-  assert.equal(selectRuntime(directory, { QUALITY_CONTAINER_RUNTIME: 'docker' }), 'docker');
-  assert.equal(selectRuntime(directory, { CI: 'true' }), 'docker');
-  fs.writeFileSync(settingsPath, '{bad');
-  assert.throws(() => selectRuntime(directory, {}));
-  assert.equal(selectRuntime(directory, { CI: 'true' }), 'docker');
+  fs.writeFileSync(path.join(directory, '.quality-cache/development.json'), '{bad');
+
+  // When local runtime selection is attempted.
+  const select = () => selectRuntime(directory, {});
+
+  // Then corrupt settings produce an error.
+  assert.throws(select);
 });
 
-test('platform adapters use explicit identifiers and reject missing managers/unsupported distributions', () => {
-  assert.deepEqual(installationCommand('win32', 'python', () => true).slice(0, 1), ['winget']);
-  assert(installationCommand('win32', 'python', () => true)[1].includes('Python.Python.3.14'));
-  assert.deepEqual(installationCommand('darwin', 'python', () => true), ['brew', ['install', 'python@3.14']]);
-  assert(installationCommand('linux', 'python', () => true, 'ID=debian')[1].includes('python3.14-venv'));
-  const supportedPlatforms = [['win32', ''], ['darwin', ''], ['linux', 'ID=ubuntu']];
-  for (const [platform, release] of supportedPlatforms) {
-    assert.throws(() => installationCommand(platform, 'git', () => false, release));
-  }
-  assert(linuxSupported('ID="ubuntu"'));
-  assert(!linuxSupported('ID=fedora\nID_LIKE=debian'));
-  assert.throws(() => installationCommand('linux', 'git', () => true, 'ID=arch'));
+const installationCases = [
+  ['win32', '', 'winget', 'Python.Python.3.14'],
+  ['darwin', '', 'brew', 'python@3.14'],
+  ['linux', 'ID=debian', 'apt-get', 'python3.14-venv'],
+];
+for (const [platform, release, manager, identifier] of installationCases) {
+  test(`Given ${platform} with its package manager, When Python installation is planned, Then the explicit package identifier is used`, () => {
+    // Given a supported platform with an available package manager.
+    const available = () => true;
+
+    // When the Python installation command is resolved.
+    const command = installationCommand(platform, 'python', available, release);
+
+    // Then it uses the platform manager and explicit pinned-major package identifier.
+    assert.equal(command[0], manager);
+    assert(command[1].includes(identifier));
+    if (platform === 'darwin') {
+      assert.deepEqual(command, ['brew', ['install', 'python@3.14']]);
+    }
+  });
+}
+
+for (const [platform, release] of [['win32', ''], ['darwin', ''], ['linux', 'ID=ubuntu']]) {
+  test(`Given ${platform} without a package manager, When Git installation is planned, Then installation is rejected`, () => {
+    // Given a supported platform whose package manager is missing.
+    const unavailable = () => false;
+
+    // When a Git installation command is requested.
+    const planInstallation = () => installationCommand(platform, 'git', unavailable, release);
+
+    // Then installation refuses to proceed without its manager.
+    assert.throws(planInstallation);
+  });
+}
+
+for (const [label, release, expected] of [
+  ['quoted Ubuntu ID', 'ID="ubuntu"', true],
+  ['Fedora with Debian ancestry', 'ID=fedora\nID_LIKE=debian', false],
+]) {
+  test(`Given ${label}, When Linux support is checked, Then the distribution is ${expected ? 'accepted' : 'rejected'}`, () => {
+    // Given OS release contents identifying the distribution.
+    const osRelease = release;
+
+    // When native Linux installation support is checked.
+    const supported = linuxSupported(osRelease);
+
+    // Then support follows the explicit distribution policy.
+    assert.equal(supported, expected);
+  });
+}
+
+test('Given Arch Linux, When Git installation is planned, Then the unsupported distribution is rejected', () => {
+  // Given an available package manager on an unsupported distribution.
+  const release = 'ID=arch';
+
+  // When native installation is requested.
+  const planInstallation = () => installationCommand('linux', 'git', () => true, release);
+
+  // Then unsupported Linux installation is rejected.
+  assert.throws(planInstallation);
 });
 
-test('installer failures propagate without attempting recovery/reset', () => {
+test('Given denied installer elevation, When Git installation is attempted, Then the failure propagates without retrying', () => {
+  // Given an installer that reports denied elevation on its first invocation.
   const calls = [];
   const installationContext = {
     platform: 'win32',
@@ -90,14 +182,35 @@ test('installer failures propagate without attempting recovery/reset', () => {
     },
   };
 
-  assert.throws(() => installTool(installationContext, 'git'), /elevation denied/);
+
+  // When Git installation is attempted.
+  const install = () => installTool(installationContext, 'git');
+
+  // Then the original failure propagates and no reset or recovery invocation is added.
+  assert.throws(install, /elevation denied/);
   assert.equal(calls.length, 1);
 });
 
-test('native and Docker readiness failures never reset data; stopped selected Podman machine starts', () => {
-  assert.throws(() => prepareRuntime('docker', 'darwin', () => ({ status: 1 })), /unreachable/);
-  assert.throws(() => prepareRuntime('podman', 'linux', () => ({ status: 1 })), /unreachable/);
+for (const [runtime, platform] of [['docker', 'darwin'], ['podman', 'linux']]) {
+  test(`Given unreachable ${runtime} on ${platform}, When runtime preparation is attempted, Then it fails without resetting data`, () => {
+    // Given an engine that reports failure for every invocation.
+    const calls = [];
+    const run = (_executable, args) => {
+      calls.push(args);
+      return { status: 1 };
+    };
 
+    // When engine readiness is requested.
+    const prepare = () => prepareRuntime(runtime, platform, run);
+
+    // Then unavailability is reported without destructive reset commands.
+    assert.throws(prepare, /unreachable/);
+    assert(!calls.some(args => args.includes('reset') || args.includes('rm')));
+  });
+}
+
+test('Given a stopped selected Podman machine, When Windows runtime preparation runs, Then the existing machine starts without reset', () => {
+  // Given a selected existing machine whose engine becomes ready only after start.
   const calls = [];
   let started = false;
   const runRuntimeCommand = (executable, argumentsList) => {
@@ -105,6 +218,9 @@ test('native and Docker readiness failures never reset data; stopped selected Po
 
     if (argumentsList[0] === 'info') {
       return { status: started ? 0 : 1 };
+    }
+    if (argumentsList[0] === 'compose') {
+      return { status: 1, stdout: '', output: 'provider missing' };
     }
     if (argumentsList[1] === 'list') {
       const machines = [{ Name: 'existing', Running: false }];
@@ -122,12 +238,17 @@ test('native and Docker readiness failures never reset data; stopped selected Po
     throw new Error('Unexpected mutation');
   };
 
+
+  // When the Windows Podman runtime is prepared.
   prepareRuntime('podman', 'win32', runRuntimeCommand);
+
+  // Then the selected machine is started and no initialization, deletion or reset occurs.
   assert(calls.some(args => args.join(' ') === 'machine start existing'));
   assert(!calls.some(args => args.includes('init') || args.includes('reset') || args.includes('rm')));
 });
 
-test('doctor reports all missing prerequisites, runs no installation, and preserves files', t => {
+test('Given missing prerequisites, When doctor runs, Then it reports failures without installing or changing files', t => {
+  // Given a clone whose prerequisite commands all report missing tools.
   clearRuntimeOverride(t);
   const directory = fixture(t);
   copyQualityRequirements(directory);
@@ -139,7 +260,11 @@ test('doctor reports all missing prerequisites, runs no installation, and preser
     return { status: 1, stdout: '', output: 'missing' };
   };
 
+
+  // When doctor diagnoses the environment.
   const result = diagnose(directory, 'linux', runMissingCommand);
+
+  // Then all missing checks are reported and no repair or file mutation is performed.
   assert(result.checks.some(check => check.name === 'node' && !check.passed));
   assert(result.checks.some(check => check.name === 'Quality dependency image' && !check.passed));
   assert(!result.checks.some(check => check.passed));
@@ -150,15 +275,36 @@ test('doctor reports all missing prerequisites, runs no installation, and preser
   });
   assert(!attemptedRepair);
   assert.deepEqual(fs.readdirSync(path.join(directory, '.quality-cache')), before);
-  assert.equal(preCommitPath(directory, 'linux'), path.join(directory, '.quality-cache/venv/bin/pre-commit'));
-  assert.equal(preCommitPath(directory, 'win32'), path.join(directory, '.quality-cache/venv/Scripts/pre-commit.exe'));
 });
 
-test('image key uses the quality runner dependency inputs', () => {
-  assert.match(imageName(root), /^localhost\/advent-quality:[a-f0-9]{20}$/);
+for (const [platform, executable] of [
+  ['linux', 'bin/pre-commit'], ['win32', 'Scripts/pre-commit.exe'],
+]) {
+  test(`Given ${platform}, When the hook executable is resolved, Then its platform-specific venv path is returned`, t => {
+    // Given a repository root on the selected platform.
+    const directory = fixture(t);
+
+    // When the pre-commit executable path is resolved.
+    const actual = preCommitPath(directory, platform);
+
+    // Then the path targets the correct venv executable.
+    assert.equal(actual, path.join(directory, '.quality-cache/venv', executable));
+  });
+}
+
+test('Given pinned quality dependencies, When the image key is calculated, Then it contains a deterministic dependency hash', () => {
+  // Given the repository's quality dependency inputs.
+  const directory = root;
+
+  // When the dependency image name is calculated.
+  const image = imageName(directory);
+
+  // Then it names the quality image with a 20-character hexadecimal key.
+  assert.match(image, /^localhost\/advent-quality:[a-f0-9]{20}$/);
 });
 
-test('doctor distinguishes stale images, dependency versions, and missing hooks with recovery instructions', t => {
+test('Given an incomplete environment with working Node and engine, When doctor runs, Then failed prerequisites have recovery instructions', t => {
+  // Given working core tools but stale dependencies, missing hooks, image and analyzer.
   clearRuntimeOverride(t);
   const directory = fixture(t);
   copyQualityRequirements(directory);
@@ -197,10 +343,17 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
       return success('working version');
     }
 
+    if (argumentsList[0] === 'compose') {
+      return { status: 1, stdout: '', output: 'provider missing' };
+    }
     throw new Error(`Unexpected command: ${executable} ${argumentsList.join(' ')}`);
   };
 
+
+  // When doctor inspects the incomplete environment.
   const result = diagnose(directory, 'linux', runIncompleteEnvironment);
+
+  // Then only the missing prerequisites fail and each explains how to recover.
   const expectedFailures = [
     'Pinned hook dependencies',
     'Commit hook',
@@ -217,26 +370,44 @@ test('doctor distinguishes stale images, dependency versions, and missing hooks 
   assert(result.checks.find(item => item.name === 'Container runtime').passed);
 });
 
-test('analyzer readiness and installation failures are reported with their recovery', () => {
-  for (const platform of ['win32', 'darwin', 'linux']) {
+for (const platform of ['win32', 'darwin', 'linux']) {
+  test(`Given a failing analyzer on ${platform}, When readiness is checked, Then the failure identifies the version and recovery`, () => {
+    // Given a compatible Node executable and an analyzer that fails MCP initialization.
     const checks = [];
+    const run = () => ({ status: 1, output: 'MCP initialization failed' });
+    const context = { root, platform, checks, run };
+
+    // When doctor checks the advisory analyzer.
+    checkAdvisoryAnalyzer(context, '/compatible/node');
+
+    // Then the failed check names the pinned version, diagnostic and setup recovery.
+    assert.equal(checks[0].passed, false);
+    assert.match(checks[0].detected, /MCP initialization failed/);
+    assert.match(checks[0].expected, /5.4.1/);
+    assert.match(checks[0].remedy, /setup/);
+  });
+
+  test(`Given a failing analyzer installer on ${platform}, When setup prepares the analyzer, Then installation failure propagates`, () => {
+    // Given an analyzer installation command that exits unsuccessfully.
     const calls = [];
     const run = (executable, args) => {
       calls.push({ executable, args });
       return { status: 1, output: 'MCP initialization failed' };
     };
-    const context = { root, platform, checks, run };
-    checkAdvisoryAnalyzer(context, '/compatible/node');
-    assert.equal(checks[0].passed, false);
-    assert.match(checks[0].detected, /MCP initialization failed/);
-    assert.match(checks[0].expected, /5.4.1/);
-    assert.throws(() => prepareAdvisoryAnalyzer(context, '/compatible/node'), /installation failed/);
-    assert(calls[1].args[0].endsWith('install-analysis.mjs'));
-  }
-});
+    const context = { root, platform, checks: [], run };
+
+    // When analyzer preparation is attempted.
+    const prepare = () => prepareAdvisoryAnalyzer(context, '/compatible/node');
+
+    // Then the installer was invoked and its failure propagates.
+    assert.throws(prepare, /installation failed/);
+    assert(calls[0].args[0].endsWith('install-analysis.mjs'));
+  });
+}
 
 const bashTestOptions = { skip: process.platform === 'win32' };
-test('Bash doctor bootstrap handles missing Node and paths with spaces', bashTestOptions, t => {
+test('Given missing Node and a Bash script path with spaces, When doctor starts, Then it fails without changing files', bashTestOptions, t => {
+  // Given a copied Bash bootstrap on a PATH containing dirname but no Node.
   const directory = fixture(t);
   const scripts = path.join(directory, 'scripts with spaces');
   fs.mkdirSync(scripts);
@@ -245,27 +416,36 @@ test('Bash doctor bootstrap handles missing Node and paths with spaces', bashTes
   fs.copyFileSync(bootstrapSource, bootstrapCopy);
   const dirname = spawnSync('which', ['dirname'], { encoding: 'utf8' }).stdout.trim();
   fs.symlinkSync(dirname, path.join(directory, 'dirname'));
+
+  // When doctor is launched from an unrelated working directory.
   const result = spawnSync('/bin/bash', [bootstrapCopy, 'doctor'], {
     cwd: '/',
     env: { PATH: directory },
     encoding: 'utf8',
   });
+
+  // Then it reports missing Node and leaves the script directory unchanged.
   assert.equal(result.status, 1);
   assert.match(result.stderr, /FAIL Node/);
   assert.deepEqual(fs.readdirSync(scripts), ['bootstrap.sh']);
 });
 
 const powerShellTestOptions = { skip: process.platform !== 'win32' };
-test('PowerShell doctor bootstrap reports missing Node without installing', powerShellTestOptions, t => {
+test('Given missing Node on Windows, When PowerShell doctor starts, Then it fails without installing dependencies', powerShellTestOptions, t => {
+  // Given a PowerShell bootstrap whose PATH contains no Node executable.
   const directory = fixture(t);
   const shell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   const doctorScript = path.join(root, 'tools/development/doctor.ps1');
   const argumentsList = ['-NoProfile', '-NonInteractive', '-File', doctorScript];
+
+  // When doctor is launched.
   const result = spawnSync(shell, argumentsList, {
     cwd: directory,
     env: { ...process.env, PATH: directory },
     encoding: 'utf8',
   });
+
+  // Then Node is reported missing and the dependency directory remains empty.
   assert.equal(result.status, 1);
   assert.match(`${result.stdout}${result.stderr}`, /Node is missing/);
   assert.deepEqual(fs.readdirSync(path.join(directory, '.quality-cache')), []);

@@ -7,6 +7,7 @@ import { installTool } from './adapters.mjs';
 import { readLocalSettings, preCommitPath } from '../quality/local-settings.mjs';
 import { command, discover, repositoryRoot } from './commands.mjs';
 import { diagnose, printDiagnosis } from './diagnostics.mjs';
+import { prepareBackendTools } from './backend-tools.mjs';
 
 // Keep setup's work order visible here; each phase owns its preparation details.
 export function setup(root = repositoryRoot, platform = process.platform, run = command) {
@@ -39,6 +40,7 @@ export function setup(root = repositoryRoot, platform = process.platform, run = 
 
   const runtimePath = prepareSelectedRuntime(context, state.runtime);
   saveSettings(root, { runtime: runtimePath, python: state.python });
+  prepareBackendTools(context, state.dotnet, runtimePath);
 
   preparePythonEnvironment(context, state);
   prepareAdvisoryAnalyzer(context, state.node);

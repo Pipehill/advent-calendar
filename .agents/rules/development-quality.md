@@ -4,6 +4,29 @@ Read [advisory code health](../../tools/quality/health.md) for commands, measure
 scope, MCP setup and limitations. Use the pinned repository tools; all analysis is
 check-only. Quality measurements supplement relevant tests and review.
 
+## Test readability
+
+- All automated tests follow Given/When/Then, including backend C# tests and
+  JavaScript tooling tests in `.mjs` files. Use explicit `// Given`, `// When`,
+  and `// Then` comments with short scenario-specific explanations, separated by
+  blank lines: prepare the scenario, perform the action, then verify its outcome.
+- Give each test a readable sentence describing its condition, action, and
+  expected observable behavior: `Given ..., When ..., Then ...`. In xUnit,
+  set `DisplayName` on every `[Fact]` and `[Theory]` so runners display that
+  sentence; keep method names descriptive. Use the same sentence format for
+  Node test descriptions, including a meaningful case label for parameterized
+  inputs. Theory arguments may supplement the shared display name.
+- Keep one behavior per test. Split unrelated actions and outcomes into separate
+  tests; use theories or parameterized cases for the same behavior across inputs.
+  A lifecycle scenario can contain multiple steps when those steps are necessary
+  to verify one outcome, with each transition clearly identified.
+- Store successful operation results in the When phase and assert in Then.
+  For expected exceptions, prepare an action delegate in When and execute it
+  with the framework's exception assertion in Then.
+- Keep setup and cleanup in fixtures or small clearly named helpers when useful.
+  Helpers must not hide the behavior being tested. Preserve existing coverage
+  when reorganizing tests, including failure cases and isolation checks.
+
 ## Required sequence
 
 1. Before coding, capture `node tools/quality/health.mjs baseline` on saved source.

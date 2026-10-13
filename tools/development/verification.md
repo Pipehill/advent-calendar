@@ -94,3 +94,19 @@ on 2026-10-11. Follow the [code health platform rule](../../.agents/rules/develo
 and record actual installation failures, fixes and reruns in
 [health verification](../quality/health-verification.md). Interactive Codex client
 connection remains unverified; protocol tests use the repository's stdio client.
+
+## Backend prerequisites and launcher (2026-10-11)
+
+Plan 00005 adds exact .NET SDK 10.0.401 discovery/private installation, saved SDK
+selection, contract dependencies and selected-runtime Compose-provider checks.
+Actual Windows setup, repeat setup and doctor passed with Node 24.14.0, Podman
+6.0.2, Docker Compose provider 5.5.1 and the repo-local SDK. Doctor also verified
+offline CSharpier 1.3.0 and SQLFluff 4.3.0 execution in the quality image.
+
+The launcher passed actual backend/database startup, readiness, repeat runs,
+persistent data across stop/start, execution from another directory and a source
+path with spaces, and nonzero failure on an occupied API port. Shared script tests
+cover missing engine/provider, failed builds and readiness timeout separately from
+runtime evidence. See [backend verification](../../src/backend/verification.md).
+Docker execution was explicitly deferred by the owner; native macOS/Linux host
+verification remains unavailable and existing follow-up rules remain in force.

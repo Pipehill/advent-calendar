@@ -1,6 +1,6 @@
 # 00005: Create and retrieve calendars through the backend API
 
-Status: Not implemented
+Status: Implemented (2026-10-11)
 
 Last updated: 2026-10-11
 
@@ -91,6 +91,18 @@ None.
 
 ### Confirmed decisions and repository context
 
+- Implementation starts from synchronized `main` at `f098d82` on
+  `feature/calendar-api`. On 2026-10-11 the owner explicitly deferred actual
+  Docker runtime verification because Docker is not installed; complete and
+  record Podman/Compose verification now. Docker execution remains a follow-up
+  in [backend verification](../../src/backend/verification.md).
+- On 2026-10-11 the owner required all application source under root `src/`:
+  backend in `src/backend`, future frontend in `src/frontend`, and authored
+  contracts in the sibling `src/contract` directory. Tooling remains under `tools`.
+- Service timestamps are normalized once to PostgreSQL microsecond precision;
+  this prevents POST/GET differences caused by .NET's finer clock resolution.
+  NUL titles are rejected because PostgreSQL text cannot store NUL.
+
 - Planning starts from synchronized `main` at `9a04693` on
   `plan/calendar-api`. The next implementation uses work type `feature`.
 - On 2026-10-11 the owner confirmed all three clarification proposals: the
@@ -125,25 +137,32 @@ None.
 
 ### 1. Establish backend infrastructure
 
+Implemented paths: `src/backend/Calendar.Api`,
+`src/backend/Calendar.Api.Tests`, `src/backend/Calendar.slnx`, and sibling
+`src/contract`. Shared commands are `node tools/backend/check.mjs`
+`restore|generate|build|test|publish|check|lint`; local/CI use the same commands.
+Verification and platform exceptions are recorded in
+[backend verification](../../src/backend/verification.md).
+
 - [x] Record the owner's answers, remove resolved outstanding questions, and
   adapt requirements and verification to those decisions before implementation.
-- [ ] Create the backend application and an xUnit integration-test project.
+- [x] Create the backend application and an xUnit integration-test project.
   Record their actual paths and shared restore/build/test/publish commands.
   Keep generated DTO/controller output distinct from handwritten code.
-- [ ] Pin the .NET SDK, dependencies, NSwag tool, and Redocly contract validator;
+- [x] Pin the .NET SDK, dependencies, NSwag tool, and Redocly contract validator;
   retain the applicable lockfiles. Integrate new prerequisites with setup/doctor,
   shared requirements, platform adapters, and developer documentation.
-- [ ] Configure C# and SQL quality checks in existing local and CI workflows.
+- [x] Configure C# and SQL quality checks in existing local and CI workflows.
   Exclude generated output and build artifacts from Git and authored-code analysis.
   Verify invalid and corrected fixtures using the same local/CI rules.
 
 ### 2. Author and generate the backend contract
 
-- [ ] Define the creation request, calendar response, door response, and applicable
+- [x] Define the creation request, calendar response, door response, and applicable
   ProblemDetails/field-error schemas in the authored OpenAPI contract.
   Specify wire names, required fields, explicit nullability, title constraints,
   UUID format, UTC timestamps, and integer bounds of 1-24 for door numbers.
-- [ ] Define the confirmed POST/GET routes, request binding, success/error codes,
+- [x] Define the confirmed POST/GET routes, request binding, success/error codes,
   and creation response headers. Reflect title trimming/validation and required,
   non-null door text in both schemas and runtime validation. Apply the title length
   limit to the trimmed value so boundary whitespace is normalized consistently.
@@ -152,77 +171,77 @@ None.
   surrounding whitespace takes its raw input length above 100 characters.
   Document code point counting explicitly; generated/runtime length checks must
   not substitute UTF-16 code unit or visible-grapheme counting.
-- [ ] Generate abstract ASP.NET controller contracts and DTOs with System.Text.Json
+- [x] Generate abstract ASP.NET controller contracts and DTOs with System.Text.Json
   settings before builds, including clean-checkout and development builds.
   Validate the contract using Redocly without needing a running API.
 
 ### 3. Implement the model and three layers
 
-- [ ] Keep persistence/domain models distinct from generated HTTP DTOs.
+- [x] Keep persistence/domain models distinct from generated HTTP DTOs.
   Register controller/service/repository dependencies using ASP.NET Core DI.
   Use one application project with separate layer folders and interfaces for
   the service and repository, plus the separate test project.
-- [ ] Implement a calendar service that trims/validates the title, generates a
+- [x] Implement a calendar service that trims/validates the title, generates a
   UUID v4, initializes all 24 doors with empty text, and assigns one UTC instant
   to both creation and last-modified timestamps. GET must preserve these values.
-- [ ] Count the trimmed title's Unicode code points using .NET rune enumeration,
+- [x] Count the trimmed title's Unicode code points using .NET rune enumeration,
   rather than `string.Length`. Keep this consistent with PostgreSQL `char_length`
   in a UTF-8 database. See the [.NET Unicode documentation][dotnet-unicode] and
   [PostgreSQL string functions][postgres-strings] for the respective representations.
-- [ ] Inject `TimeProvider`, use its UTC clock once per calendar initialization,
+- [x] Inject `TimeProvider`, use its UTC clock once per calendar initialization,
   and register `TimeProvider.System` for normal execution. Use a controlled
   provider in service tests. See [TimeProvider documentation][dotnet-timeprovider].
-- [ ] Implement service retrieval of the stored calendar. Return all doors in
+- [x] Implement service retrieval of the stored calendar. Return all doors in
   day-number order. Translate a missing calendar to the agreed HTTP error in
   the controller without introducing HTTP concerns into the repository.
-- [ ] Implement handwritten controllers derived from generated contracts.
+- [x] Implement handwritten controllers derived from generated contracts.
   Validate requests, delegate to the service, map results to generated DTOs,
   and produce the agreed success responses and ProblemDetails errors.
-- [ ] Pass request cancellation through the service and repository to database
+- [x] Pass request cancellation through the service and repository to database
   operations. Use structured JSON console logs with service/request context and
   request-scoped trace IDs according to the existing architecture rules.
 
 ### 4. Implement PostgreSQL persistence and startup migrations
 
-- [ ] Create separate calendar and door tables with a calendar foreign key.
+- [x] Create separate calendar and door tables with a calendar foreign key.
   Enforce title limits, non-null door text, valid door numbers, and uniqueness
   of door numbers within a calendar in the database. Keep relationships free
   of user/administrator dependencies.
   Enforce the title's 1-100 code point limit with `char_length` in UTF-8 and verify
   that valid supplementary-plane emoji do not fail a different API length check.
-- [ ] Persist calendar UUIDs as `uuid` and UTC timestamps as
+- [x] Persist calendar UUIDs as `uuid` and UTC timestamps as
   `timestamp with time zone`. Map explicitly to C# `Guid` and UTC
   `DateTimeOffset` values using Npgsql/Dapper.
-- [ ] Use a transaction to insert the calendar and all 24 doors. Roll back the
+- [x] Use a transaction to insert the calendar and all 24 doors. Roll back the
   entire aggregate on failure. Read stored text and timestamps and ensure
   deterministic door ordering when mapping a calendar.
-- [ ] Add numbered embedded SQL migrations with stable names, the standard DbUp
+- [x] Add numbered embedded SQL migrations with stable names, the standard DbUp
   PostgreSQL journal, and explicit `WithTransactionPerScript()` configuration.
   Retry database connection only within bounded startup limits; abort before
   accepting API requests on exhausted retries or migration failure.
-- [ ] Verify migration embedding, deterministic execution order, journal restart,
+- [x] Verify migration embedding, deterministic execution order, journal restart,
   and failure behavior. Preserve published migration identities/content. The
   prior-release baseline and deployment integration remain in build/release work.
 
 ### 5. Support local execution and seed data
 
-- [ ] Provide PostgreSQL-only Compose for host `dotnet watch`, plus backend and
+- [x] Provide PostgreSQL-only Compose for host `dotnet watch`, plus backend and
   PostgreSQL Compose execution. Use a named development volume, health checks,
   readiness dependencies, and mode-appropriate connection addresses.
   Add the backend SDK/runtime multistage Dockerfile and embedded migrations.
   No frontend/BFF service is created by this task.
-- [ ] Add `tools/development/run-local.ps1` and `run-local.sh` launchers with
+- [x] Add `tools/development/run-local.ps1` and `run-local.sh` launchers with
   shared orchestration in `run-local.mjs`, following the existing PowerShell/Bash
   entry-point pattern and readable-tooling rules. Resolve paths relative to the
   repository so invocation works from another directory and with spaces in paths.
   Reuse setup's saved runtime selection and explicit override behavior.
-- [ ] Check the selected container engine and Compose provider, build the backend
+- [x] Check the selected container engine and Compose provider, build the backend
   from current source with contract generation inside the image build, and start
   the two local services using the shared Compose configuration. Keep containers
   running after the launcher returns. Bind the API's configurable published port
   to localhost, use service DNS for PostgreSQL, and enable `Development` plus the
   explicit local seed setting in this local workflow.
-- [ ] Wait for PostgreSQL health and API readiness within a bounded timeout.
+- [x] Wait for PostgreSQL health and API readiness within a bounded timeout.
   Print the API URL only after successful startup; return nonzero with useful
   diagnostics on missing prerequisites, port conflicts, build/start failure, or
   readiness timeout. Reuse the named database volume and existing Compose project
@@ -232,37 +251,37 @@ None.
   Verify actual provider compatibility; [Podman Compose][podman-compose] delegates
   to an external provider, and [Docker Compose startup][docker-compose-up] documents
   build, background execution, and readiness options.
-- [ ] Configure ASP.NET Core health checks at `/health/live` and `/health/ready`.
+- [x] Configure ASP.NET Core health checks at `/health/live` and `/health/ready`.
   Keep database checks out of liveness; readiness requires successful migrations
   and a bounded current database connection/query check. Point the backend Compose
   health check at readiness. Preserve startup's nonzero exit on migration failure.
   See [ASP.NET Core health checks][dotnet-health].
-- [ ] Implement an idempotent local seeding path after successful migrations.
+- [x] Implement an idempotent local seeding path after successful migrations.
   Require both `Development` and the explicit local seed setting; ship nonlocal
   configuration with seeding disabled. Seed one usable example calendar with
   all 24 doors through shared service initialization/business rules. Keep local
   sample data out of unconditional schema migrations.
-- [ ] Ensure repeat startup preserves user-created calendars and existing sample
+- [x] Ensure repeat startup preserves user-created calendars and existing sample
   content without duplicating the seed. Document seed activation,
   discovering the sample UUID, local run commands, and POST/GET examples.
-- [ ] Add a backend `.http` file with valid POST, GET by UUID, invalid-title POST,
+- [x] Add a backend `.http` file with valid POST, GET by UUID, invalid-title POST,
   and unknown-ID GET examples. Provide editable base URL/calendar ID variables,
   expected status codes, and instructions for copying a returned or seed UUID.
   Keep these manual examples separate from automated integration-test evidence.
-- [ ] Describe runnable project behavior in project documentation and keep agent
+- [x] Describe runnable project behavior in project documentation and keep agent
   workflow material under `.agents/`. Update architecture documentation to
   distinguish implemented backend setup from still-future frontend/BFF setup.
 
 ### 6. Verify and record implementation evidence
 
-- [ ] Add focused service behavior checks and API integration tests with isolated
+- [x] Add focused service behavior checks and API integration tests with isolated
   PostgreSQL Testcontainers and the real migrations. Verify observable behavior
   instead of mirroring controller/service/repository implementation.
-- [ ] Add the backend contract/build/test workflow to GitHub Actions using the
+- [x] Add the backend contract/build/test workflow to GitHub Actions using the
   same commands as local execution and immutable action/image pins.
-- [ ] Verify host and backend-container local workflows, persistent data, seed
+- [x] Verify host and backend-container local workflows, persistent data, seed
   isolation, migration restart/failure, and clean-checkout generation/build.
-- [ ] Record quality baseline/comparison limitations, relevant test results, and
+- [x] Record quality baseline/comparison limitations, relevant test results, and
   local runtime evidence. Update this plan and the plan index to the dated
   implemented status only after implementation and verification are complete.
 

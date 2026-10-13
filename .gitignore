@@ -3,3 +3,8 @@ quality-reports/
 megalinter-reports/
 .quality-cache/
 node_modules/
+**/bin/
+**/obj/
+**/generated/
+src/backend/publish/
+TestResults/

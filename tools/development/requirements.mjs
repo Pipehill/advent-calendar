@@ -9,6 +9,7 @@ export const baseline = {
   python: '3.14',
   uv: '0.13.0',
   jscpd: jscpdVersion,
+  dotnet: '10.0.401',
 };
 
 // Python package names treat hyphens, underscores and dots as equivalent.
@@ -24,18 +25,21 @@ export const packages = {
     python: 'Python.Python.3.14',
     podman: 'RedHat.Podman',
     docker: 'Docker.DockerDesktop',
+    compose: 'Docker.DockerCompose',
   },
   darwin: {
     git: 'git',
     python: 'python@3.14',
     podman: 'podman',
     docker: 'docker',
+    compose: 'docker-compose',
   },
   linux: {
     git: 'git',
     python: 'python3.14',
     podman: 'podman',
     docker: 'docker.io',
+    compose: 'docker-compose-v2',
   },
 };
 
@@ -47,6 +51,9 @@ export function compatible(tool, versionOutput) {
   }
   if (tool === 'python') {
     return /^Python 3\.14\./.test(version);
+  }
+  if (tool === 'dotnet') {
+    return version === baseline.dotnet;
   }
 
   return Boolean(version);

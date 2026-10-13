@@ -80,6 +80,10 @@ function runContentLinters() {
   }
   const workflows = yaml.filter(name => name.startsWith('.github/workflows/'));
   if (workflows.length) runTool('actionlint', 'actionlint', ['-shellcheck=', '-pyflakes=', ...workflows]);
+  const sql = selectedFilesMatching(/\.sql$/i);
+  if (sql.length) runTool('sqlfluff', '/venvs/sqlfluff/bin/sqlfluff', ['lint', '--config', '.sqlfluff', ...sql]);
+  const csharp = selectedFilesMatching(/\.(cs|csproj|props|targets)$/i);
+  if (csharp.length) runTool('csharpier', 'csharpier', ['check', ...csharp]);
 }
 
 function runOfficialHooks() {
@@ -154,34 +158,131 @@ function saveReports() {
 
 // Focused regressions run inside Linux, which can represent Windows-illegal filenames.
 function runCheckerRegressions(scratch) {
-  verifyTextAndMarkdownChecks();
-  verifyEncodedLinkTargets(scratch);
-  verifyFilenameChecks(scratch);
+  runRegression('Given invalid Markdown text, When text rules run, Then line endings and trailing whitespace are reported', verifyInvalidMarkdownText);
+  runRegression('Given allowed command and binary bytes, When text rules run, Then their contents are accepted', verifyAllowedTextInputs);
+  runRegression('Given a Mermaid fence, When diagrams are extracted, Then its source line is preserved', verifyMermaidSourceLocation);
+  runRegression('Given existing and missing link targets, When Markdown links are checked, Then only missing targets are reported', verifyReadmeLinkTargets);
+  runRegression('Given encoded filenames with query and fragment parts, When links are checked, Then target and anchor validity are respected', () => verifyEncodedLinkTargets(scratch));
+  runRegression('Given invalid filenames, When checks run before and after correction, Then invalid names fail and corrected names pass', () => verifyFilenameChecks(scratch));
+  runRegression('Given unformatted C# source, When the formatter checks and corrects it, Then invalid source fails and corrected source passes', () => verifyCsharpLinter(scratch));
+  runRegression('Given unformatted SQL source, When the linter checks both variants, Then invalid source fails and corrected source passes', () => verifySqlLinter(scratch));
+  fs.writeFileSync(path.join(reportsDirectory, 'backend-linter-fixtures.log'),
+    'CSharpier and SQLFluff rejected invalid fixtures and accepted corrected fixtures.\n');
   console.log('Focused checker regressions passed.');
+}
+
+function runRegression(description, verify) {
+  console.log(description);
+  verify();
+}
+
+function verifyCsharpLinter(scratch) {
+  // Given a C# fixture that violates the pinned formatter's rules.
+  const csharp = path.join(scratch, 'Fixture.cs');
+  fs.writeFileSync(csharp, 'public class Fixture{public int Value{get;set;}}\n');
+  const checkCsharp = () => spawnSync('csharpier', ['check', csharp], { encoding: 'utf8' });
+
+  // When invalid source is checked, formatted and checked again.
+  const invalidCsharp = checkCsharp();
+  const format = spawnSync('csharpier', ['format', '--no-cache', csharp], { encoding: 'utf8' });
+  const correctedCsharp = checkCsharp();
+
+  // Then the invalid fixture fails, formatting succeeds and corrected source passes.
+  assert.equal(invalidCsharp.status, 1, invalidCsharp.stdout + invalidCsharp.stderr);
+  assert.equal(format.status, 0, format.stderr);
+  assert.equal(correctedCsharp.status, 0, correctedCsharp.stdout + correctedCsharp.stderr);
+}
+
+function verifySqlLinter(scratch) {
+  // Given a SQL fixture that violates the PostgreSQL lint configuration.
+  const sql = path.join(scratch, 'fixture.sql');
+  const checkSql = () => spawnSync('sqlfluff', [
+    'lint', '--config', path.join(workspace, '.sqlfluff'), sql,
+  ], { encoding: 'utf8' });
+  fs.writeFileSync(sql, 'select 1;\n');
+
+  // When the linter checks the invalid source and its corrected variant.
+  const invalidSql = checkSql();
+  fs.writeFileSync(sql, 'SELECT 1;\n');
+  const correctedSql = checkSql();
+
+  // Then the invalid fixture fails and corrected SQL passes.
+  assert.equal(invalidSql.status, 1, invalidSql.stdout + invalidSql.stderr);
+  assert.equal(correctedSql.status, 0);
 }
 
 function verifyEncodedLinkTargets(scratch) {
   const names = ['target#part.md', 'target?query.md'];
   for (const name of names) {
+    // Given an existing filename whose punctuation must be URL encoded.
     fs.writeFileSync(path.join(scratch, name), '# Heading\n');
     const href = `${encodeURIComponent(name)}?view=source#heading`;
-    assert.equal(linkFindings(scratch, 'source.md', `[Target](${href})\n`, names).length, 0);
-    assert.equal(linkFindings(scratch, 'source.md', `[Target](${href}-missing)\n`, names).length, 1);
+
+    // When the valid target/anchor and a missing-anchor variant are checked.
+    const valid = linkFindings(scratch, 'source.md', `[Target](${href})\n`, names);
+    const missing = linkFindings(scratch, 'source.md', `[Target](${href}-missing)\n`, names);
+
+    // Then encoded punctuation and query parts are accepted while the missing anchor fails.
+    assert.equal(valid.length, 0);
+    assert.equal(missing.length, 1);
   }
 }
 
-function verifyTextAndMarkdownChecks() {
-  const bad = textFindings('bad.md', Buffer.from('bad \r\n'));
+function verifyInvalidMarkdownText() {
+  // Given Markdown bytes with trailing whitespace and CRLF endings.
+  const bytes = Buffer.from('bad \r\n');
+
+  // When repository text rules inspect those bytes.
+  const bad = textFindings('bad.md', bytes);
+
+  // Then both independent text violations are reported for the same input.
   assert(bad.some(item => item.rule === 'line-ending'));
   assert(bad.some(item => item.rule === 'trailing-whitespace'));
-  assert.equal(textFindings('ok.cmd', Buffer.from('echo ok\r\n')).length, 0);
-  assert.equal(textFindings('binary.png', Buffer.from([0, 13, 10])).length, 0);
-  assert.equal(diagrams('test.md', '```mermaid\ngraph TD; A-->B\n```\n')[0].line, 1);
-  assert(linkFindings(workspace, 'README.md', '[missing](absent.md)\n', input.files).length);
-  assert.equal(linkFindings(workspace, 'README.md', '[ok](docs/architecture.md)\n', input.files).length, 0);
+}
+
+function verifyAllowedTextInputs() {
+  for (const [name, bytes] of [
+    ['ok.cmd', Buffer.from('echo ok\r\n')], ['binary.png', Buffer.from([0, 13, 10])],
+  ]) {
+    // Given file bytes that are exempt from the authored-text LF requirement.
+    const contents = bytes;
+
+    // When repository text rules inspect this file.
+    const found = textFindings(name, contents);
+
+    // Then supported command endings and binary content do not produce text findings.
+    assert.equal(found.length, 0);
+  }
+}
+
+function verifyMermaidSourceLocation() {
+  // Given a Mermaid diagram fence at the first source line.
+  const source = '```mermaid\ngraph TD; A-->B\n```\n';
+
+  // When the diagram is extracted.
+  const extracted = diagrams('test.md', source);
+
+  // Then its source location remains available for diagnostics.
+  assert.equal(extracted[0].line, 1);
+}
+
+function verifyReadmeLinkTargets() {
+  for (const [source, expected] of [
+    ['[missing](absent.md)\n', 1], ['[ok](docs/architecture.md)\n', 0],
+  ]) {
+    // Given a Markdown link to an existing or missing repository target.
+    const markdown = source;
+
+    // When the link is checked against snapshot files.
+    const found = linkFindings(workspace, 'README.md', markdown, input.files);
+
+    // Then only the missing target is reported.
+    assert.equal(found.length, expected);
+  }
 }
 
 function verifyFilenameChecks(scratch) {
+  // Given tracked case collisions and Windows-illegal filenames in a Linux fixture.
   const fixture = path.join(scratch, 'filenames');
   fs.mkdirSync(fixture);
   for (const name of ['Case.md', 'case.md', 'CON.txt', 'trailing.']) {
@@ -189,16 +290,27 @@ function verifyFilenameChecks(scratch) {
   }
   spawnSync('git', ['init', '-q'], { cwd: fixture });
   spawnSync('git', ['add', '.'], { cwd: fixture });
+
+  // When official and repository filename rules inspect those paths.
   const collision = runCaseConflictFixture(fixture);
+  const illegalNames = filenameFindings(['CON.txt', 'trailing.']);
+  const directoryCollision = filenameFindings(['Upper/a.md', 'upper/b.md']);
+
+  // Then both file and directory portability violations are detected.
   assert.equal(collision.status, 1, collision.stderr);
   assert(collision.stdout.includes('case.md'));
-  assert.equal(filenameFindings(['CON.txt', 'trailing.']).length, 2);
-  assert(filenameFindings(['Upper/a.md', 'upper/b.md']).length);
+  assert.equal(illegalNames.length, 2);
+  assert(directoryCollision.length);
+
+  // When the conflicting and illegal files are removed and the index updated.
   for (const name of ['case.md', 'CON.txt', 'trailing.']) fs.unlinkSync(path.join(fixture, name));
   spawnSync('git', ['add', '--all'], { cwd: fixture });
   const corrected = runCaseConflictFixture(fixture);
+  const correctedNames = filenameFindings(['Case.md']);
+
+  // Then the remaining valid filename passes both checks.
   assert.equal(corrected.status, 0, corrected.stderr);
-  assert.equal(filenameFindings(['Case.md']).length, 0);
+  assert.equal(correctedNames.length, 0);
   fs.writeFileSync(path.join(reportsDirectory, 'regressions.log'), [
     collision.stdout,
     'Windows names and directory case checks failed as expected; corrected inputs passed.',

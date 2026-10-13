@@ -167,3 +167,26 @@ function installLocalUv(run, uvDirectory, environment) {
   run('curl', ['--fail', '--location', '--output', installerPath, installerUrl], true);
   run('sh', [installerPath], true, environment);
 }
+
+export function installBackendSdk({ root, platform, run }) {
+  const directory = path.join(root, '.quality-cache/dotnet');
+  const windows = platform === 'win32';
+  const extension = windows ? 'ps1' : 'sh';
+  const installer = path.join(directory, `install.${extension}`);
+  fs.mkdirSync(directory, { recursive: true });
+  run('curl', [
+    '--fail', '--location', '--output', installer,
+    `https://dot.net/v1/dotnet-install.${extension}`,
+  ], true);
+  let executable = 'bash';
+  let args = [installer, '--version', baseline.dotnet, '--install-dir', directory, '--no-path'];
+  if (windows) {
+    executable = 'powershell.exe';
+    args = [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installer,
+      '-Version', baseline.dotnet, '-InstallDir', directory, '-NoPath',
+    ];
+  }
+  run(executable, args, true);
+  return path.join(directory, windows ? 'dotnet.exe' : 'dotnet');
+}
