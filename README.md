@@ -52,18 +52,27 @@ hooks, full checks, reports, troubleshooting and the owner's merge-check setup.
 
 ## Run the application locally
 
-After developer setup, build and start the frontend/BFF, API and persistent PostgreSQL database:
+After developer setup, build and test the backend, start the API and persistent
+PostgreSQL database in containers, and run the frontend with Vite hot reload:
 
 ```powershell
-./tools/development/run-local.ps1
+./run-local.ps1
 ```
 
 ```bash
-bash tools/development/run-local.sh
+bash run-local.sh
 ```
 
+Use `--frontend=container` to build and run the frontend in a container instead.
+`--skip-build` reuses existing application images; `--skip-test` skips backend
+integration and frontend unit tests. Combine both for quick repeat runs.
+Tests and dev contract generation can still compile source with `--skip-build`.
+Run `./run-local.ps1 --help` or `bash run-local.sh --help` for usage.
+
 The launcher prints `http://localhost:3000` for the calendar page and
-`http://localhost:8080` for the API after readiness succeeds. The frontend root
+`http://localhost:8080` for the API after readiness succeeds. Ctrl+C stops Vite;
+backend/database stay running and preserve calendars. Stop all containers with
+`podman compose stop` or `docker compose stop`. The frontend root
 redirects to the local example; use `/calendars/<id>` to display another calendar.
 Create with
 `POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID

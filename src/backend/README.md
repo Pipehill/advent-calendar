@@ -7,10 +7,15 @@ editing, scheduled opening, frontend and BFF are future features.
 
 ## Local containers
 
-Run developer setup, then `./tools/development/run-local.ps1` on Windows or
-`bash tools/development/run-local.sh` on macOS/Linux. The launcher uses the saved
+Run developer setup, then `./run-local.ps1` on Windows or
+`bash run-local.sh` on macOS/Linux from the repository root. The launcher uses the saved
 Docker/Podman selection, builds current source including contract validation and
-generation, starts PostgreSQL and the API, and prints the URL after readiness.
+generation, runs backend integration and frontend unit tests, starts PostgreSQL
+and the API, and prints the URL after readiness. The frontend runs with Vite hot
+reload by default; `--frontend=container` builds and starts it in a container.
+`--skip-build` reuses existing application images; tests and dev contract generation
+can still compile source. `--skip-test` skips both test suites. Use both for a
+quick repeat launch. Ctrl+C stops Vite and leaves database/API containers running.
 Use `QUALITY_CONTAINER_RUNTIME` for an explicit engine override, `API_PORT` for
 the API port and `DATABASE_PORT` for the host database port. Ports bind to localhost.
 
@@ -129,6 +134,10 @@ xUnit uses PostgreSQL Testcontainers with the actual embedded migrations. Test
 databases are disposable and isolated from the persistent development volume.
 For rootless Podman, set `TESTCONTAINERS_RYUK_DISABLED=true`; fixture disposal still
 removes test containers, but an abruptly terminated run may require manual cleanup.
+The local launcher derives the local Podman endpoint and rootless reaper setting
+for its test subprocesses without changing the shell. Explicit `DOCKER_HOST` and
+`TESTCONTAINERS_RYUK_DISABLED` settings take precedence. Remote Podman connections
+require an explicit test endpoint. Direct test commands still use the shell settings.
 On this Windows Podman machine, tests use
 `DOCKER_HOST=npipe://localhost/pipe/podman-machine-one`. Replace the machine name
 with your selected machine's pipe. Docker Desktop normally requires no override.

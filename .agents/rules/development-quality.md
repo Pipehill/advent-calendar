@@ -66,6 +66,22 @@ findings or change exclusions/scoring solely to report improvement. Health score
 and colored indicators are advisory: no minimum score, merge gate or new approval
 requirement applies. Existing lint failures continue to block as configured.
 
+## Container artifact cleanup
+
+- Clean up container artifacts created by agent builds and verification before
+  reporting completion. Record the initial inventory when starting container work
+  so newly created artifacts can be identified.
+- Use disposable containers with automatic removal where supported. After builds,
+  inspect for abandoned build containers, untagged intermediate images and obsolete
+  project test/quality images; successful commands can still leave build artifacts.
+- Remove only artifacts whose project ownership and lack of active use have been
+  verified. Check running, stopped and external build containers. Preserve current
+  application images and required pinned base/tool images. Remove intermediate
+  build cache when it is no longer needed or the user requests artifact cleanup.
+- Never delete database volumes, unrelated images or active build state as cleanup.
+  Avoid global system/image pruning and forced image removal. Prefer explicit IDs
+  or project labels; report artifacts that cannot safely be attributed or removed.
+
 ## Language and tool maintenance
 
 When adopting a programming language, add/configure its applicable MegaLinter
