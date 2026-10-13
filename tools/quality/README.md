@@ -4,6 +4,12 @@ This tool checks repository formatting, filenames, local Markdown links and Merm
 diagrams. It runs pinned linters in an isolated Linux container and preserves source
 files and the original Git index. Reports are saved in `quality-reports/<mode>/`.
 
+Authored TypeScript, TSX and CSS use Biome 2.5.15 and root `biome.json` in both
+MegaLinter and staged checks. `run.mjs test` verifies invalid/corrected fixtures
+for all three languages with the same rules. Generated clients, translations and
+route trees are excluded. pnpm owns its lockfile formatting; frozen installs
+validate that lockfile rather than applying authored-YAML style rules to it.
+
 Authored C# and project files use CSharpier 1.3.0; SQL uses SQLFluff 4.3.0 with
 the PostgreSQL dialect in `.sqlfluff`. Both run through MegaLinter and the staged
 runner with the same pins/configuration. The pinned SDK is copied into the quality

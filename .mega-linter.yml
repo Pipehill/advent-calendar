@@ -5,6 +5,9 @@ ENABLE_LINTERS:
   - ACTION_ACTIONLINT
   - SQL_SQLFLUFF
   - CSHARP_CSHARPIER
+  - TYPESCRIPT_BIOME
+  - TSX_BIOME
+  - CSS_BIOME
 VALIDATE_ALL_CODEBASE: true
 FLAVOR_SUGGESTIONS: false
 APPLY_FIXES: none
@@ -16,9 +19,15 @@ ACTION_ACTIONLINT_DISABLE_ERRORS: false
 SQL_SQLFLUFF_DISABLE_ERRORS: false
 SQL_SQLFLUFF_CONFIG_FILE: .sqlfluff
 CSHARP_CSHARPIER_DISABLE_ERRORS: false
+TYPESCRIPT_BIOME_DISABLE_ERRORS: false
+TSX_BIOME_DISABLE_ERRORS: false
+CSS_BIOME_DISABLE_ERRORS: false
+TYPESCRIPT_BIOME_CONFIG_FILE: biome.json
+TSX_BIOME_CONFIG_FILE: biome.json
+CSS_BIOME_CONFIG_FILE: biome.json
 IGNORE_GITIGNORED_FILES: true
 FILTER_REGEX_EXCLUDE: >-
-  (^|/)(node_modules|megalinter-reports|quality-reports|\.quality-cache|generated|bin|obj|publish)/|^\.quality-input\.json$
+  (^|/)(node_modules|megalinter-reports|quality-reports|\.quality-cache|generated|bin|obj|publish|dist|\.output|\.nitro|cache)/|routeTree\.gen\.ts$|^\.quality-input\.json$
 LINTER_RULES_PATH: .
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml

@@ -84,6 +84,9 @@ function runContentLinters() {
   if (sql.length) runTool('sqlfluff', '/venvs/sqlfluff/bin/sqlfluff', ['lint', '--config', '.sqlfluff', ...sql]);
   const csharp = selectedFilesMatching(/\.(cs|csproj|props|targets)$/i);
   if (csharp.length) runTool('csharpier', 'csharpier', ['check', ...csharp]);
+  const frontend = selectedFilesMatching(/\.(ts|tsx|css)$/i)
+    .filter(name => !name.includes('/generated/') && !name.endsWith('routeTree.gen.ts'));
+  if (frontend.length) runTool('biome', '/quality/node_modules/.bin/biome', ['check', ...frontend]);
 }
 
 function runOfficialHooks() {
@@ -166,6 +169,7 @@ function runCheckerRegressions(scratch) {
   runRegression('Given invalid filenames, When checks run before and after correction, Then invalid names fail and corrected names pass', () => verifyFilenameChecks(scratch));
   runRegression('Given unformatted C# source, When the formatter checks and corrects it, Then invalid source fails and corrected source passes', () => verifyCsharpLinter(scratch));
   runRegression('Given unformatted SQL source, When the linter checks both variants, Then invalid source fails and corrected source passes', () => verifySqlLinter(scratch));
+  runRegression('Given invalid TypeScript, TSX and CSS, When shared Biome checks both variants, Then invalid source fails and corrected source passes', () => verifyFrontendLinters(scratch));
   fs.writeFileSync(path.join(reportsDirectory, 'backend-linter-fixtures.log'),
     'CSharpier and SQLFluff rejected invalid fixtures and accepted corrected fixtures.\n');
   console.log('Focused checker regressions passed.');
@@ -209,6 +213,35 @@ function verifySqlLinter(scratch) {
   // Then the invalid fixture fails and corrected SQL passes.
   assert.equal(invalidSql.status, 1, invalidSql.stdout + invalidSql.stderr);
   assert.equal(correctedSql.status, 0);
+}
+
+function verifyFrontendLinters(scratch) {
+  // Given the same Biome configuration with fixture-only VCS discovery disabled.
+  const config = JSON.parse(fs.readFileSync(path.join(workspace, 'biome.json')));
+  config.vcs.enabled = false;
+  fs.writeFileSync(path.join(scratch, 'biome.json'), JSON.stringify(config));
+  const fixtures = [
+    ['fixture.ts', 'export const value: = 1;\n', 'export const value = 1;\n'],
+    ['fixture.tsx', 'export const tile = <div tabIndex={2} />;\n', 'export const tile = <div />;\n'],
+    ['fixture.css', 'body { color: ; }\n', 'body {\n  color: red;\n}\n'],
+  ];
+  for (const [name, invalid, corrected] of fixtures) {
+    const source = path.join(scratch, name);
+    const check = () => spawnSync('/quality/node_modules/.bin/biome',
+      ['check', '--config-path', scratch, source], { encoding: 'utf8' });
+    fs.writeFileSync(source, invalid);
+
+    // When the shared linter checks the invalid and corrected source.
+    const before = check();
+    fs.writeFileSync(source, corrected);
+    const after = check();
+
+    // Then the relevant language check rejects invalid input and accepts its correction.
+    assert.equal(before.status, 1, before.stdout + before.stderr);
+    assert.equal(after.status, 0, after.stdout + after.stderr);
+  }
+  fs.writeFileSync(path.join(reportsDirectory, 'frontend-linter-fixtures.log'),
+    'Pinned Biome rejected invalid TypeScript/TSX/CSS and accepted corrected fixtures.\n');
 }
 
 function verifyEncodedLinkTargets(scratch) {

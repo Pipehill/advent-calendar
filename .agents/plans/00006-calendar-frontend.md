@@ -1,6 +1,6 @@
 # 00006: Display a persisted calendar in the frontend
 
-Status: Not implemented
+Status: Implemented (2026-10-13)
 
 Last updated: 2026-10-13
 
@@ -80,6 +80,22 @@ None.
 
 ### Confirmed decisions and repository context
 
+- Implementation uses `feature/calendar-frontend` from synchronized `main` at
+  `f38bd4e`. The original quality baseline was archived before recording this
+  task's unchanged source baseline. Completion evidence and platform/dependency
+  limitations are in [frontend verification](../../src/frontend/verification.md).
+- Norwegian is implemented as Bokmål (`nb`) and English as `en`. Paraglide uses
+  the selected-language cookie followed by the Norwegian base locale. Switching
+  languages reloads the same URL so SSR/hydration and the HTML language attribute
+  agree. No browser-language autodetection overrides the requested default.
+- Stable Nitro 2.13.4 packages the Start fetch entry and client assets using its
+  build API, preserving the selected Node production command without adopting
+  the Nitro 3 beta Vite plugin. The Node adapter propagates client disconnects.
+- Shared frontend commands are `node tools/frontend/check.mjs`
+  `install|generate|dev|typecheck|test|build|lint|check`; browser verification uses
+  `node tools/frontend/smoke.mjs` against a started environment. CI uses the same
+  generated contracts, explicit type checking, tests, builds and Biome rules.
+
 - The owner requested a new feature plan for a simple title and 24 numbered,
   non-opening doors, with end-to-end communication to the database and back.
 - On 2026-10-13 the owner confirmed calendar selection by ID in the URL, a root
@@ -98,12 +114,13 @@ None.
   malformed UUIDs return 400, using authored ProblemDetails.
 - The existing `LocalSeed` creates `Local advent calendar` with the fixed ID
   above only in Development with `LocalSeed:Enabled`. It preserves existing data.
-- `src/frontend` does not exist yet. `src/contract/nswag.json` currently generates
-  only C#; `tools/backend/check.mjs` shares backend validation/generation/build
-  commands. Extend these conventions without replacing the existing backend.
-- `compose.yaml` currently runs database and backend, with readiness checks and
+- At planning time `src/frontend` did not exist and `src/contract/nswag.json`
+  generated only C#. Implementation adds both frontend/BFF and TypeScript
+  generation while preserving shared backend commands and C# generation.
+- At planning time `compose.yaml` ran database and backend, with readiness checks and
   a named persistent database volume. `tools/development/run-local.mjs` and its
   PowerShell/Bash wrappers already select Docker or Podman and wait for the API.
+  Implementation extends this workflow to the healthy frontend and prints both URLs.
 - Follow [architecture rules](../rules/architecture.md),
   [API contract rules](../rules/api-contracts.md), and
   [development quality rules](../rules/development-quality.md). Authentication,
@@ -116,56 +133,56 @@ None.
 
 ### 1. Establish the frontend and shared generation
 
-- [ ] Capture the required quality baseline before implementation; preserve
+- [x] Capture the required quality baseline before implementation; preserve
   existing reports and document unavailable evidence.
-- [ ] Create `src/frontend` with pinned pnpm tooling, React, TanStack Start,
+- [x] Create `src/frontend` with pinned pnpm tooling, React, TanStack Start,
   Router/Query, Vite, tRPC, Zod, Tailwind, and the shadcn/ui components needed for
   this page. Add package scripts, TypeScript configuration, and ignore rules.
-- [ ] Configure NSwag TypeScript generation in `src/contract`, preserving UUIDs
+- [x] Configure NSwag TypeScript generation in `src/contract`, preserving UUIDs
   and UTC date-times as strings and the authored wire names. Exclude generated
   output from Git and authored-code quality analysis.
-- [ ] Share contract lint/generation commands between backend and frontend
+- [x] Share contract lint/generation commands between backend and frontend
   consumers and CI. Generate before compilation without relying on a running
   API; preserve existing C# generator behavior.
-- [ ] Provide explicit type checking, Vite build, and the Nitro production output.
+- [x] Provide explicit type checking, Vite build, and the Nitro production output.
   Verify `.output/server/index.mjs` and its Node.js LTS start command against the
   actual pinned stack. Update setup/doctor, shared prerequisites, and documentation.
-- [ ] Add pinned Paraglide JS tooling and maintained Norwegian/English message
+- [x] Add pinned Paraglide JS tooling and maintained Norwegian/English message
   catalogs. Generate translation functions before development/type checks/build
   using the shared local/CI workflow; exclude generated output from Git and
   authored-code analysis. Verify integration with the selected Start/Vite versions.
 
 ### 2. Implement the BFF calendar query
 
-- [ ] Add a tRPC retrieval procedure accepting a calendar UUID validated with
+- [x] Add a tRPC retrieval procedure accepting a calendar UUID validated with
   Zod, calling the generated backend client in server-only code.
-- [ ] Keep API base URL configuration and call state request-scoped where
+- [x] Keep API base URL configuration and call state request-scoped where
   mutable. Configure service DNS inside Compose and localhost URLs for host work;
   prevent backend configuration/client code from entering browser bundles.
-- [ ] Apply the repository's configurable 10-second total deadline, caller
+- [x] Apply the repository's configurable 10-second total deadline, caller
   cancellation, and at most one GET retry for network failures or 502/503/504,
   with a 250-500 ms delay inside the remaining deadline. Disable corresponding
   TanStack Query retries for browser and SSR requests.
-- [ ] Translate ProblemDetails and transport errors using the agreed tRPC codes,
+- [x] Translate ProblemDetails and transport errors using the agreed tRPC codes,
   retaining structured field errors. Distinguish invalid input, missing calendar,
   unavailable backend, timeout, and unexpected failure.
-- [ ] Emit structured BFF JSON logs and propagate valid W3C trace context to the
+- [x] Emit structured BFF JSON logs and propagate valid W3C trace context to the
   API, with request-scoped trace IDs also for SSR and concurrent calls.
 
 ### 3. Build the calendar page and hydration
 
-- [ ] Add `/calendars/<id>` through TanStack Router and the root redirect to the
+- [x] Add `/calendars/<id>` through TanStack Router and the root redirect to the
   fixed local example ID. Keep the example shortcut explicit in documentation;
   show a missing-calendar state if the seed is unavailable.
-- [ ] Prefetch calendar data through the BFF in the initial route load, using
+- [x] Prefetch calendar data through the BFF in the initial route load, using
   request-local QueryClient/context and Start's Query hydration integration.
   Reuse the same typed query for browser retrieval without duplicating fetch logic.
-- [ ] Render the response title as the main heading and the retrieved door numbers
+- [x] Render the response title as the main heading and the retrieved door numbers
   as a simple responsive grid of static tiles. Use stable keys and semantic markup;
   do not make tiles interactive or render door text.
-- [ ] Provide loading and error states for invalid IDs, unknown IDs, and unavailable
+- [x] Provide loading and error states for invalid IDs, unknown IDs, and unavailable
   data. Avoid a successful-looking fallback calendar when retrieval fails.
-- [ ] Add a Norwegian/English language selector and translate application-owned
+- [x] Add a Norwegian/English language selector and translate application-owned
   page text and error states through Paraglide. Default to Norwegian and keep
   the selected language consistent across SSR and hydration, isolated per request.
   Set the HTML language attribute and preserve the retrieved title as written.
@@ -174,31 +191,31 @@ None.
 
 ### 4. Integrate local startup and CI
 
-- [ ] Add a frontend/BFF Dockerfile and Compose service with a readiness check
+- [x] Add a frontend/BFF Dockerfile and Compose service with a readiness check
   and a dependency on the healthy API. Preserve database/API health checks,
   bounded startup, and persistent storage.
-- [ ] Extend `run-local.mjs` and its existing tests to wait for frontend readiness,
+- [x] Extend `run-local.mjs` and its existing tests to wait for frontend readiness,
   print the frontend calendar URL and API URL, and report startup failures.
   Reuse runtime selection and the existing PowerShell/Bash wrappers.
-- [ ] Document PostgreSQL-only Compose plus host backend/frontend development,
+- [x] Document PostgreSQL-only Compose plus host backend/frontend development,
   including contract generation and avoiding duplicate application services.
-- [ ] Add focused Vitest checks for BFF validation, error mapping, retry/deadline
+- [x] Add focused Vitest checks for BFF validation, error mapping, retry/deadline
   behavior, and request isolation. Use the repository's Given/When/Then conventions.
-- [ ] Verify translated error states and language switching, including unchanged
+- [x] Verify translated error states and language switching, including unchanged
   calendar titles and isolated language state in concurrent SSR requests.
-- [ ] Share frontend generation/type-check/test/build commands with GitHub Actions.
+- [x] Share frontend generation/type-check/test/build commands with GitHub Actions.
   Use immutable action/image pins. Extend saved-source/staged and CI lint coverage
   for TypeScript/TSX/CSS and disclose unsupported analyzer dimensions.
-- [ ] Update root project documentation, architecture implementation status,
+- [x] Update root project documentation, architecture implementation status,
   frontend workflow documentation, and verification evidence. Keep agent workflow
   instructions under `.agents/`.
 
 ### 5. Verify and record the result
 
-- [ ] Perform the checks below against the actual running stack and final source.
+- [x] Perform the checks below against the actual running stack and final source.
   Record actual platform/runtime evidence separately from simulated tests and
   carry forward earlier explicit platform deferrals without claiming coverage.
-- [ ] Update this plan and its index to the dated implemented status only after
+- [x] Update this plan and its index to the dated implemented status only after
   the feature has been implemented and verified.
 
 ## Verification

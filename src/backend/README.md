@@ -106,7 +106,7 @@ files and package lockfiles. Generated code under `Calendar.Api/generated` is
 ignored; clean builds require no generated output or running API. The authored
 OpenAPI 3.0.3 document and NSwag System.Text.Json settings are under the sibling
 `src/contract/` directory. Backend application and tests live in `src/backend/`;
-future frontend source belongs in `src/frontend/`.
+frontend source belongs in `src/frontend/` and shares the same authored contract.
 
 After setup, use the same commands as GitHub Actions:
 

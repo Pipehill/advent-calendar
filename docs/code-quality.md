@@ -262,11 +262,18 @@ Repository tooling does not configure these settings. Inspection on 2026-10-10 f
 required status checks. Owner configuration and merge-blocking verification remain
 pending; the ruleset name alone does not demonstrate enforcement.
 
-## Deferred application checks
+## Application checks
 
-TypeScript checking, builds, Vitest, .NET compilation/xUnit, OpenAPI/Redocly generation,
-SQL and application Dockerfile checks will be added when their inputs exist.
-The existing architecture and API contract choices remain in force. No placeholder
+The frontend workflow runs frozen pnpm installation, shared OpenAPI/NSwag and
+Paraglide generation, Vitest, explicit TypeScript checking, Vite/Nitro builds and
+Biome lint. TypeScript, TSX and CSS use Biome 2.5.15 in both MegaLinter and staged
+checks; generated clients/translations and route trees are excluded. pnpm owns
+lockfile formatting, and frozen installation verifies its integrity.
+
+The backend workflow runs contract validation/generation, locked restore,
+.NET compilation/xUnit with PostgreSQL Testcontainers, publish and SDK analyzer
+checks. Authored SQL and C# retain their shared local/CI lint rules. Browser smoke
+verification runs separately against a started environment. No placeholder
 application jobs, secret detection or large-file checks are included here.
 
 ## Advisory measurements during development

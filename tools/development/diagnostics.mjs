@@ -4,6 +4,7 @@ import path from 'node:path';
 import { baseline, compatible, imageName, pinnedDependencies, normalizePin } from './requirements.mjs';
 import { readLocalSettings, preCommitPath } from '../quality/local-settings.mjs';
 import { command, discover, repositoryRoot } from './commands.mjs';
+import { checkFrontendTools } from './frontend-tools.mjs';
 
 // Doctor collects failures instead of stopping at the first missing prerequisite.
 export function diagnose(root = repositoryRoot, platform = process.platform, run = command) {
@@ -33,6 +34,7 @@ export function diagnose(root = repositoryRoot, platform = process.platform, run
     remedy: 'Run setup to install the pinned SDK alongside existing installations.',
   });
   checkAdvisoryAnalyzer(context, node);
+  checkFrontendTools(context, node);
   const python = checkExecutable(context, {
     name: 'python',
     candidates: pythonCandidates(root, settings, platform, run),

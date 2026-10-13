@@ -1,0 +1,33 @@
+@import "tailwindcss" source(none);
+
+/* Explicit sources keep SSR/client CSS identical even without a checkout's .gitignore. */
+@source "./components";
+@source "./routes";
+
+@theme {
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+body {
+  margin: 0;
+  background: #faf8f3;
+  color: #292524;
+  font-family: var(--font-sans);
+}
+
+.door-tile {
+  background: #fffdf8;
+  border-color: #deddd0;
+  box-shadow: 0 3px 0 #e9e5db;
+}
+
+li:nth-child(4n) .door-tile {
+  background: #edf1e9;
+  border-color: #d4decf;
+}
+
+li:nth-child(7n) .door-tile {
+  background: #f7ece6;
+  border-color: #e8d9ce;
+}

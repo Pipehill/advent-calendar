@@ -1,0 +1,17 @@
+{
+  "app_name": "Adventskalender",
+  "language_label": "Språk",
+  "loading": "Henter kalenderen …",
+  "doors_label": "Kalenderens luker",
+  "door_label": "Luke {number}",
+  "calendar_subtitle": "24 små gleder å se frem til.",
+  "error_heading": "Kalenderen kunne ikke vises",
+  "error_invalid": "Kalenderadressen er ugyldig.",
+  "error_missing": "Vi fant ikke denne kalenderen.",
+  "error_unavailable": "Kalendertjenesten er utilgjengelig. Prøv igjen senere.",
+  "error_timeout": "Det tok for lang tid å hente kalenderen. Prøv igjen senere.",
+  "error_unauthorized": "Du må logge inn for å se denne kalenderen.",
+  "error_forbidden": "Du har ikke tilgang til denne kalenderen.",
+  "error_conflict": "Forespørselen kunne ikke fullføres. Prøv igjen senere.",
+  "error_unknown": "Noe gikk galt. Prøv igjen senere."
+}

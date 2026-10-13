@@ -4,7 +4,7 @@ RUN dotnet tool install --tool-path /formatters csharpier --version 1.3.0
 
 # MegaLinter documentation v10.1.0, extended for authored C# and SQL.
 FROM ghcr.io/oxsecurity/megalinter-documentation:v10.1.0@sha256:51e0142d7359a44cb705bcca904edc7a3080c52fc97d5e1174a79fda28870bba
-ENV PATH="/node-deps/node_modules/.bin:${PATH}" \
+ENV PATH="/quality/node_modules/.bin:/node-deps/node_modules/.bin:${PATH}" \
     PUPPETEER_SKIP_DOWNLOAD=true \
     DOTNET_ROOT=/usr/share/dotnet \
     MEGALINTER_FLAVOR=all \

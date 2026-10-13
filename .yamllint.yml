@@ -1,4 +1,7 @@
 extends: default
+# pnpm owns lockfile formatting; frozen installs validate its integrity in local/CI builds.
+ignore: |
+  src/frontend/pnpm-lock.yaml
 rules:
   document-start: disable
   line-length:

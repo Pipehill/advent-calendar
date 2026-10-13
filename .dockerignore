@@ -7,3 +7,8 @@ megalinter-reports
 **/obj
 **/generated
 src/backend/publish
+**/dist
+**/.output
+**/.nitro
+**/.tanstack
+**/routeTree.gen.ts

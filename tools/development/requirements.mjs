@@ -10,6 +10,7 @@ export const baseline = {
   uv: '0.13.0',
   jscpd: jscpdVersion,
   dotnet: '10.0.401',
+  pnpm: '12.11.2',
 };
 
 // Python package names treat hyphens, underscores and dots as equivalent.
