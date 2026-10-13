@@ -23,9 +23,12 @@ Avoid duplicating instructions across files. Update the file that owns the rule.
 ## 3. Use English for project content
 
 Write project content in English, including documentation, agent instructions,
-plans, code comments, user interface text, commit messages, and pull requests.
+plans, code comments, commit messages, and pull requests.
 Use consistent English terminology unless another language is required by the
 content or explicitly requested by the user.
+
+Application interface text follows the
+[interface localization rules](architecture.md#interface-localization).
 
 The user may communicate in Norwegian. Respond in Norwegian when appropriate;
 this does not change the project's working language.
