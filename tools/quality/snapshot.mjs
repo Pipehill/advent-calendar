@@ -8,6 +8,7 @@ const sharedSettingsPrefixes = [
   '.markdownlint', '.yamllint', '.mega-linter', '.pre-commit',
   '.gitattributes', '.editorconfig', 'tools/quality/', 'tools/development/',
   '.sqlfluff', '.csharpier',
+  'biome.json',
 ];
 const binaryExtensionPattern = /\.(png|jpe?g|gif|ico|pdf|woff2?|zip)$/i;
 

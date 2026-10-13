@@ -37,5 +37,27 @@ services:
       interval: 3s
       timeout: 5s
       retries: 30
+  frontend:
+    build:
+      context: .
+      dockerfile: src/frontend/Dockerfile
+    environment:
+      BACKEND_API_URL: http://backend:8080
+      HOST: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 3s
+      timeout: 5s
+      retries: 30
 volumes:
   development-database:

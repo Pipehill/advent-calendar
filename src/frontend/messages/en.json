@@ -1,0 +1,17 @@
+{
+  "app_name": "Advent calendar",
+  "language_label": "Language",
+  "loading": "Loading the calendar …",
+  "doors_label": "Calendar doors",
+  "door_label": "Door {number}",
+  "calendar_subtitle": "24 little joys to look forward to.",
+  "error_heading": "The calendar could not be displayed",
+  "error_invalid": "The calendar address is invalid.",
+  "error_missing": "We could not find this calendar.",
+  "error_unavailable": "The calendar service is unavailable. Please try again later.",
+  "error_timeout": "Loading the calendar took too long. Please try again later.",
+  "error_unauthorized": "Please sign in to view this calendar.",
+  "error_forbidden": "You do not have access to this calendar.",
+  "error_conflict": "The request could not be completed. Please try again later.",
+  "error_unknown": "Something went wrong. Please try again later."
+}

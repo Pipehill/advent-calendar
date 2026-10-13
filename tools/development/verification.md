@@ -1,5 +1,20 @@
 # Developer tooling verification
 
+## Frontend toolchain verification (2026-10-13)
+
+The frontend task adds repository-local pnpm 12.11.2, frozen package installation,
+dual-language contract/translation generation and frontend readiness checks.
+Windows setup and doctor both passed with the explicitly selected Node 24.14.0
+runtime, retaining system installations and selected Podman runtime settings.
+Developer-tooling tests passed (57 passing, one existing skip). The extended
+launcher started all three services, waited for API/frontend readiness, printed
+both URLs and preserved calendars on repeated startup. Host `dotnet watch` and
+Vite with PostgreSQL-only Compose passed browser verification. See
+[frontend verification](../../src/frontend/verification.md) for complete evidence
+and the inherited Docker/native-platform coverage limitations.
+
+## Previous verification (2026-10-11)
+
 Verification date: 2026-10-11.
 
 ## Reference Windows inventory

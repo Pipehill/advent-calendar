@@ -5,13 +5,15 @@ Last reviewed: 2026-10-13
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
 PostgreSQL migrations, API integration tests and local/CI build commands. The
-initial Compose stack runs backend and database; frontend/BFF, identity, calendar
-access rules and deployment remain future work. The implemented POST/GET API
+Compose stack runs frontend/BFF, backend and database; identity, calendar
+access rules and deployment remain future work. The calendar page displays a
+stored title and 24 static doors through tRPC and the generated backend client,
+with Norwegian/English interface translations. The implemented POST/GET API
 requires no user context. See [backend workflows](../src/backend/README.md).
 
 Application source belongs under root `src/`: the backend is in `src/backend`,
 the authored OpenAPI contract and generator settings in the sibling `src/contract`,
-and future frontend/BFF source will use `src/frontend`. Developer tooling remains
+and frontend/BFF source uses `src/frontend`. Developer tooling remains
 under `tools/`.
 
 ## System responsibilities

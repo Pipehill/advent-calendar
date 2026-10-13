@@ -8,3 +8,10 @@ node_modules/
 **/generated/
 src/backend/publish/
 TestResults/
+**/dist/
+**/.output/
+**/.nitro/
+src/frontend/src/routeTree.gen.ts
+src/frontend/project.inlang/cache/
+src/frontend/project.inlang/.gitignore
+src/frontend/.tanstack/

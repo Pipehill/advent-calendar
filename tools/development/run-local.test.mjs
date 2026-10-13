@@ -30,6 +30,31 @@ for (const port of ['0', '65536', 'invalid']) {
   });
 }
 
+for (const port of ['0', '65536', 'invalid', '8080']) {
+  test(`Given invalid or conflicting frontend port ${port}, When the launcher is configured, Then it rejects the port`, () => {
+    // Given an invalid frontend port or the same port as the API.
+    const env = { FRONTEND_PORT: port };
+
+    // When configuration is attempted.
+    const configure = () => localConfiguration(env);
+
+    // Then the error identifies FRONTEND_PORT.
+    assert.throws(configure, /FRONTEND_PORT/);
+  });
+}
+
+test('Given separate custom ports, When the launcher is configured, Then each service URL uses its own port', () => {
+  // Given distinct API and frontend ports.
+  const env = { API_PORT: '9090', FRONTEND_PORT: '4000' };
+
+  // When configuration is resolved.
+  const config = localConfiguration(env);
+
+  // Then the API and frontend have independent host URLs.
+  assert.equal(config.url, 'http://localhost:9090');
+  assert.equal(config.frontendUrl, 'http://localhost:4000');
+});
+
 test('Given a zero timeout, When the launcher is configured, Then it rejects the timeout', () => {
   // Given a readiness timeout that cannot permit a probe.
   const env = { LOCAL_START_TIMEOUT_SECONDS: '0' };
@@ -87,8 +112,8 @@ test('Given an available engine, When the launcher starts the stack, Then it bui
   const url = await runLocal(env, run, request);
 
   // Then the current source is built and the configured readiness endpoint is probed.
-  assert.equal(url, 'http://localhost:9090');
-  assert.deepEqual(requests, ['http://localhost:9090/health/ready']);
+  assert.equal(url, 'http://localhost:3000');
+  assert.deepEqual(requests, ['http://localhost:9090/health/ready', 'http://localhost:3000/health/ready']);
   assert.deepEqual(calls.at(-1).slice(-3), ['up', '--build', '--detach']);
 });
 

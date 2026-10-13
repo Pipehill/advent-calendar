@@ -1,0 +1,6 @@
+{
+  "name": "calendar-frontend-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": { "pnpm": "12.11.2" }
+}

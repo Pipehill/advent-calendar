@@ -1,0 +1,33 @@
+name: Frontend
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pinned SDK for contract generation
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2  # v5.3.0
+        with:
+          global-json-file: global.json
+      - name: Set up Node LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: 24.14.0
+      - name: Install pinned tooling
+        run: |
+          npm ci --prefix tools/frontend
+          npm ci --prefix src/contract
+          node tools/frontend/check.mjs install
+      - name: Generate, test, type check, build and lint
+        run: node tools/frontend/check.mjs check
+      - name: Verify local launcher
+        run: node --test tools/development/run-local.test.mjs

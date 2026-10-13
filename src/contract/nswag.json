@@ -6,6 +6,15 @@
     }
   },
   "codeGenerators": {
+    "openApiToTypeScriptClient": {
+      "className": "CalendarClient",
+      "template": "Fetch",
+      "typeStyle": "Interface",
+      "dateTimeType": "String",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "useAbortSignal": true,
+      "output": "../frontend/src/generated/backend.ts"
+    },
     "openApiToCSharpController": {
       "className": "Calendars",
       "namespace": "Calendar.Api.Generated",
