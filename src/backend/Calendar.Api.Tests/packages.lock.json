@@ -137,6 +137,19 @@
           "Docker.DotNet.Enhanced.Handler.Abstractions": "4.3.3"
         }
       },
+      "Geralt": {
+        "type": "Transitive",
+        "resolved": "4.4.0",
+        "contentHash": "fQ0rNmRFrGkdQNW0IJwfA8VqDwPTDEVmxHme5Acet+70AeKcd9LDTXj8MXFPCHRPiNo3le+lFUW32+tEmITIOQ==",
+        "dependencies": {
+          "libsodium": "[1.0.22, 1.0.23)"
+        }
+      },
+      "libsodium": {
+        "type": "Transitive",
+        "resolved": "1.0.22",
+        "contentHash": "KPD9SloJFclrsjnhABu7dzWrcyYkwPbvx5l1gRSPAX/0n+OBtSiVCKtGFv4n+ecWUHU0tCG9LSSwoZZx673zBQ=="
+      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -526,9 +539,16 @@
       "calendar.api": {
         "type": "Project",
         "dependencies": {
+          "Calendar.Security": "[1.0.0, )",
           "Dapper": "[2.1.89, )",
           "Npgsql": "[10.0.3, )",
           "dbup-postgresql": "[7.0.1, )"
+        }
+      },
+      "calendar.security": {
+        "type": "Project",
+        "dependencies": {
+          "Geralt": "[4.4.0, )"
         }
       }
     }

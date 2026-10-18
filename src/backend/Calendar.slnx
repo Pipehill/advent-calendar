@@ -1,4 +1,6 @@
 <Solution>
+    <Project Path="Calendar.Security/Calendar.Security.csproj" />
+    <Project Path="Calendar.PasswordTool/Calendar.PasswordTool.csproj" />
     <Project Path="Calendar.Api/Calendar.Api.csproj" />
     <Project Path="Calendar.Api.Tests/Calendar.Api.Tests.csproj" />
 </Solution>

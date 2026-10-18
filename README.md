@@ -7,13 +7,14 @@ A planned online advent calendar for invited users, including children. This
 repository includes a runnable backend and a frontend showing stored calendar
 titles and 24 numbered doors, with PostgreSQL persistence. The interface supports
 Norwegian by default and English selection; user-authored content stays as written.
-User access, opening doors and deployment are planned.
+Backend accounts and authentication are implemented. Website login, calendar
+access control, opening doors and deployment are planned.
 
-Accounts will use a username and password, with no public registration. A
-superadmin will create calendar administrators and ordinary users; calendar
-administrators will create ordinary users. Superadmins will be provisioned
-manually in the database, and the application will never seed user accounts.
-Administrator-issued initial and reset passwords will be temporary and require
+Accounts use a username and password, with no public registration. Through the
+backend API, superadmins create calendar administrators and ordinary users;
+calendar administrators create ordinary users. Superadmins are provisioned
+manually in the database, and the application never seeds user accounts.
+Administrator-issued initial, reset and promotion passwords are temporary and require
 the recipient to choose a different password before normal access.
 
 Calendar use will require login. Each calendar will have one recipient account,
@@ -80,9 +81,11 @@ backend/database stay running and preserve calendars. Stop all containers with
 `podman compose stop` or `docker compose stop`. The frontend root welcomes
 visitors with a Norwegian Christmas illustration and a disabled login button.
 Use `/calendars/<id>` to display a calendar directly.
-The current calendar API is anonymous. Authentication, calendar authorization,
+The current calendar API is anonymous. Calendar authorization,
 frontend/BFF security integration and production database hardening must be
 completed and verified before production use.
+See [backend authentication](src/backend/authentication.md) for the direct API
+exchange and intentional manual superadmin provisioning.
 Create with
 `POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
 with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.

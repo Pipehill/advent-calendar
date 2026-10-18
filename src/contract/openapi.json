@@ -2,31 +2,77 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Advent calendar API",
-    "version": "1.0.0",
-    "description": "Create and retrieve persisted calendars. Initial endpoints require no user context.",
-    "license": { "name": "Private" }
+    "version": "1.1.0",
+    "description": "Backend username/password accounts and user management. Calendar endpoints remain anonymous pending separate authorization work. All authentication/user responses are no-store. Unsafe operations require the ASP.NET antiforgery cookie and X-CSRF-TOKEN header; refresh the token after a principal change. Production requires HTTPS.",
+    "license": {
+      "name": "Private"
+    }
   },
-  "servers": [{ "url": "http://localhost:8080" }],
-  "tags": [{ "name": "calendars", "description": "Calendar creation and retrieval" }],
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
+  "tags": [
+    {
+      "name": "calendars",
+      "description": "Calendar creation and retrieval"
+    },
+    {
+      "name": "auth",
+      "description": "Fixed-expiry cookie sessions and CSRF exchange"
+    },
+    {
+      "name": "users",
+      "description": "Authorized account administration; no API superadmin provisioning"
+    }
+  ],
   "paths": {
     "/calendars": {
       "post": {
         "operationId": "Create",
         "summary": "Create a calendar",
-        "tags": ["calendars"],
+        "tags": [
+          "calendars"
+        ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCalendarRequest" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarRequest"
+              }
+            }
+          }
         },
         "responses": {
           "201": {
             "description": "Persisted calendar with 24 doors",
-            "headers": { "Location": { "description": "Retrieval path", "schema": { "type": "string" } } },
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarDto" } } }
+            "headers": {
+              "Location": {
+                "description": "Retrieval path",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
-          "500": { "$ref": "#/components/responses/ServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
         }
       }
     },
@@ -34,16 +80,40 @@
       "get": {
         "operationId": "Get",
         "summary": "Retrieve a calendar",
-        "tags": ["calendars"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "calendars"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Persisted calendar",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarDto" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/ServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
         }
       }
     },
@@ -51,19 +121,776 @@
       "get": {
         "operationId": "Live",
         "summary": "Check process liveness",
-        "tags": ["calendars"],
-        "responses": { "200": { "description": "Process is live", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+        "tags": [
+          "calendars"
+        ],
+        "responses": {
+          "200": {
+            "description": "Process is live",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/health/ready": {
       "get": {
         "operationId": "Ready",
         "summary": "Check migration completion and current database availability",
-        "tags": ["calendars"],
+        "tags": [
+          "calendars"
+        ],
         "responses": {
-          "200": { "description": "Ready", "content": { "text/plain": { "schema": { "type": "string" } } } },
-          "503": { "description": "Database unavailable", "content": { "text/plain": { "schema": { "type": "string" } } } }
+          "200": {
+            "description": "Ready",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
+      }
+    },
+    "/auth/csrf": {
+      "get": {
+        "operationId": "Csrf",
+        "summary": "Obtain a fresh principal-bound CSRF token",
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsrfDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "Login",
+        "summary": "Log in; temporary credentials grant only password setup",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reauthenticate": {
+      "post": {
+        "operationId": "Reauthenticate",
+        "summary": "Refresh current administrator verification for five minutes",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReauthenticateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "Session",
+        "summary": "Inspect the current session",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "Logout",
+        "summary": "Revoke only this session and clear its cookie",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "operationId": "ChangePassword",
+        "summary": "Verify current password, replace it and revoke every session",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "CreateUser",
+        "summary": "Create an account with a 30-minute temporary password; recent administrator verification required",
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "ListUsers",
+        "summary": "List public account metadata with SQL-enforced scope",
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/users/{id}/reset-password": {
+      "post": {
+        "operationId": "ResetPassword",
+        "summary": "Issue a different temporary password for an authorized nonsuperadmin target",
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/users/{id}/status": {
+      "patch": {
+        "operationId": "ChangeStatus",
+        "summary": "Superadmin enable/disable of another nonsuperadmin",
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStatusRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/users/{id}/role": {
+      "patch": {
+        "operationId": "ChangeRole",
+        "summary": "Superadmin role transition; promotion replaces the credential atomically",
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
       }
     }
   },
@@ -71,26 +898,102 @@
     "responses": {
       "BadRequest": {
         "description": "Invalid body, UUID, or normalized title",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ApiProblemDetails" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
       },
       "NotFound": {
         "description": "Calendar does not exist",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ApiProblemDetails" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
       },
       "UnsupportedMediaType": {
         "description": "A JSON request body is required",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ApiProblemDetails" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
       },
       "ServerError": {
         "description": "Unexpected server or database failure",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ApiProblemDetails" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Invalid credentials, session or expired temporary password; login does not disclose account existence.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Insufficient authority, restricted session, invalid CSRF exchange or missing recent verification.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Reserved username, stale verified state, unchanged replacement password or role/responsibility conflict.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "Throttled": {
+        "description": "Account/IP/global resource budget reached.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Session validity persistence unavailable; access fails closed.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
       }
     },
     "schemas": {
       "CreateCalendarRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["title"],
+        "required": [
+          "title"
+        ],
         "properties": {
           "title": {
             "type": "string",
@@ -103,33 +1006,371 @@
       },
       "CalendarDto": {
         "type": "object",
-        "required": ["id", "title", "doors", "createdAt", "lastModifiedAt"],
+        "required": [
+          "id",
+          "title",
+          "doors",
+          "createdAt",
+          "lastModifiedAt"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid", "description": "UUID v4 generated by the service" },
-          "title": { "type": "string", "minLength": 1, "maxLength": 100 },
-          "doors": { "type": "array", "minItems": 24, "maxItems": 24, "items": { "$ref": "#/components/schemas/DoorDto" } },
-          "createdAt": { "type": "string", "format": "date-time", "description": "RFC 3339 UTC instant" },
-          "lastModifiedAt": { "type": "string", "format": "date-time", "description": "RFC 3339 UTC instant" }
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 generated by the service"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "doors": {
+            "type": "array",
+            "minItems": 24,
+            "maxItems": 24,
+            "items": {
+              "$ref": "#/components/schemas/DoorDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 UTC instant"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 UTC instant"
+          }
         }
       },
       "DoorDto": {
         "type": "object",
-        "required": ["number", "text"],
+        "required": [
+          "number",
+          "text"
+        ],
         "properties": {
-          "number": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 24 },
-          "text": { "type": "string", "nullable": false, "description": "Persisted contents; initially empty" }
+          "number": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "text": {
+            "type": "string",
+            "nullable": false,
+            "description": "Persisted contents; initially empty"
+          }
         }
       },
       "ApiProblemDetails": {
         "type": "object",
-        "required": ["type", "title", "status", "traceId", "errors"],
+        "required": [
+          "type",
+          "title",
+          "status",
+          "traceId",
+          "errors"
+        ],
         "properties": {
-          "type": { "type": "string" },
-          "title": { "type": "string" },
-          "status": { "type": "integer", "format": "int32", "minimum": 400, "maximum": 599 },
-          "traceId": { "type": "string" },
-          "errors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
+      },
+      "CsrfDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requestToken",
+          "headerName"
+        ],
+        "properties": {
+          "requestToken": {
+            "type": "string",
+            "description": "Framework request token; use only in the designated protected exchange."
+          },
+          "headerName": {
+            "type": "string",
+            "description": "X-CSRF-TOKEN"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Case-insensitive global username",
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "password": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        }
+      },
+      "ReauthenticateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "3-64 Unicode letters/digits/dot/hyphen/underscore; unique even if disabled",
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "password": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "calendarAdmin",
+              "calendarUser"
+            ]
+          },
+          "responsibleAdministratorId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for superadmin-created ordinary users; forbidden for calendaradmin creators and administrator accounts."
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        }
+      },
+      "ChangeStatusRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Required; null and missing are rejected."
+          }
+        }
+      },
+      "ChangeRoleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "calendarAdmin",
+              "calendarUser"
+            ]
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "description": "Required on promotion; must differ from current credential and meet administrator policy.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "responsibleAdministratorId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required on first demotion; an existing association cannot be replaced."
+          }
+        }
+      },
+      "UserDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "username",
+          "role",
+          "enabled",
+          "responsibleAdministratorId",
+          "createdById",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "superadmin",
+              "calendarAdmin",
+              "calendarUser"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "responsibleAdministratorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SessionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "user",
+          "expiresAt",
+          "mustChangePassword"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "users"
+        ],
+        "properties": {
+          "users": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/UserDto"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "AuthCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "advent.auth",
+        "description": "Backend-owned HttpOnly host-only persistent cookie. Fixed expiry; Secure outside Development/Testing."
+      },
+      "Antiforgery": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-TOKEN",
+        "description": "ASP.NET token from GET /auth/csrf, paired with the distinct advent.csrf host-only cookie. Required even for login."
       }
     }
   }

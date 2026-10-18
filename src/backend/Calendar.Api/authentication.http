@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:8080
+@username = <runtime-supplied-username>
+@password = <runtime-supplied-password>
+@csrfToken = <token-from-csrf-response>
+@newPassword = <runtime-supplied-different-password>
+
+### Keep the framework cookie in the editor's private cookie jar.
+GET {{baseUrl}}/auth/csrf
+
+### Do not save real credentials here or in editor request history.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"username":"{{username}}","password":"{{password}}"}
+
+### Refresh CSRF after login; use the new token on subsequent writes.
+GET {{baseUrl}}/auth/csrf
+
+### Restricted sessions may inspect themselves.
+GET {{baseUrl}}/auth/session
+
+### Requires a different password; all sessions are revoked, then log in again.
+POST {{baseUrl}}/auth/change-password
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"currentPassword":"{{password}}","newPassword":"{{newPassword}}"}
+
+### Unrestricted administrators refresh session-bound recent verification.
+POST {{baseUrl}}/auth/reauthenticate
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"password":"{{password}}"}
+
+### Bounded SQL-scoped public metadata.
+GET {{baseUrl}}/users?offset=0&limit=50
+
+### Revoke the current session only.
+POST {{baseUrl}}/auth/logout
+X-CSRF-TOKEN: {{csrfToken}}

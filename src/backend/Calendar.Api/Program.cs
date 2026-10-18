@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
+using Calendar.Api.Authentication;
 using Calendar.Api.Controllers;
 using Calendar.Api.Infrastructure;
 using Calendar.Api.Repositories;
@@ -34,7 +35,7 @@ builder.Logging.AddJsonConsole(options =>
     options.TimestampFormat = "O";
 });
 builder
-    .Services.AddControllers(options =>
+    .Services.AddControllersWithViews(options =>
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true
     )
     .AddJsonOptions(options =>
@@ -62,6 +63,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressMapClientErrors = true;
 });
 builder.Services.AddSingleton(TimeProvider.System);
+builder.AddAccountAuthentication();
 builder.Services.AddSingleton(provider =>
     NpgsqlDataSource.Create(
         provider.GetRequiredService<IConfiguration>().GetConnectionString("Calendar")
@@ -74,6 +76,7 @@ builder.Services.AddSingleton<MigrationState>();
 builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 var app = builder.Build();
+_ = app.Services.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>();
 var connectionString =
     app.Configuration.GetConnectionString("Calendar")
     ?? throw new InvalidOperationException("Calendar connection string is required.");
@@ -104,12 +107,41 @@ app.Use(
         {
             await next(context);
             ApiLog.RequestCompleted(app.Logger, context.Response.StatusCode);
+            if (
+                AuthHosting.IsAccountPath(context.Request.Path)
+                && context.Response.StatusCode >= 400
+            )
+                AuthHosting.LogDenied(context, app.Logger);
             if (context.Response.StatusCode >= 400 && !context.Response.HasStarted)
             {
                 await ApiErrors
                     .Create(context, context.Response.StatusCode, "Request failed")
                     .ExecuteResultAsync(new ActionContext { HttpContext = context });
             }
+        }
+        catch (AuthFailureException exception)
+        {
+            AuthHosting.LogDenied(context, app.Logger);
+            await ApiErrors
+                .Create(
+                    context,
+                    exception.Status,
+                    exception.Message,
+                    exception.Field is null
+                        ? null
+                        : new Dictionary<string, List<string>>
+                        {
+                            [exception.Field] = [exception.Message],
+                        }
+                )
+                .ExecuteResultAsync(new ActionContext { HttpContext = context });
+        }
+        catch (NpgsqlException exception) when (AuthHosting.IsAccountPath(context.Request.Path))
+        {
+            ApiLog.RequestFailed(app.Logger, exception);
+            await ApiErrors
+                .Create(context, 503, "Authentication persistence unavailable")
+                .ExecuteResultAsync(new ActionContext { HttpContext = context });
         }
         catch (Exception exception)
             when (!context.Response.HasStarted && !context.RequestAborted.IsCancellationRequested)
@@ -121,6 +153,13 @@ app.Use(
         }
     }
 );
+app.UseAccountResponseProtection();
+app.Use(
+    (context, next) =>
+        app.Services.GetRequiredService<AccountResourceBudget>().InvokeAsync(context, next)
+);
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 await app.RunAsync();
 return 0;

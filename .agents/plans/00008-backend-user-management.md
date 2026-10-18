@@ -1,10 +1,68 @@
 # 00008: Backend user management and authentication
 
-Status: Not implemented
+Status: Implemented (2026-10-18)
 
 Last updated: 2026-10-18
 
 Implementation type: feature
+
+## Implementation assumptions (2026-10-18)
+
+- The owner authorized unattended implementation with reasonable assumptions and
+  questions collected at the end. Plan 00008 is absent from synchronized `main`;
+  implementation therefore starts on `feature/backend-user-management` from
+  `origin/plan/backend-user-management`, without merging or publishing that branch.
+- Technical selections and actual verification evidence are recorded below as
+  implementation proceeds. No publication, deployment or changes to existing
+  development accounts/database data are authorized by this work.
+
+### Implementation choices and progress
+
+- Shared database-free `Calendar.Security` library and interactive
+  `Calendar.PasswordTool`; Identity user/password/role stores remain Npgsql/Dapper.
+- Geralt 4.4.0 / locked libsodium 1.0.22 supplies Argon2id, 64 MiB, three passes,
+  parallelism one, with bounded PHC parsing and conditional cost upgrades.
+  Observed interactive hashing: approximately 204 ms on Windows and 62 ms in
+  the published Linux runtime. No reduced production/test hashing policy.
+- Local weak-password fingerprints come from SecLists commit
+  `913b327317496d062bcc7cace524aaad8a693be2`, with MIT attribution. Candidate
+  passwords never leave the process for these checks.
+- Short advisory-locked PostgreSQL transactions serialize final security decisions
+  across instances; expensive hashes run before the final actor/target/version
+  checks. Lock ID `800008` also documents the manual operator boundary.
+- Resource budgets are per instance: writes 30/peer and 120 globally per minute;
+  reads 120/peer and 600 globally. Hashing operations have two concurrent slots
+  and zero queued requests. Persisted account failures/lockout/session/version
+  enforcement spans instances and restarts. Login failures share a 500 ms floor.
+- Local Compose adds only a durable backend-key volume/configuration. Production
+  requires an external absolute key directory and PFX protection certificate.
+  Real deployment values, certificate delivery/rotation and trusted proxy setup
+  remain explicitly deferred deployment choices.
+- Implementation is not published. Detailed commands, handover, operator recovery,
+  residual risks and the future BFF cookie/header allowlist are documented in
+  [backend authentication](../../src/backend/authentication.md). Verification is
+  recorded in the [backend evidence](../../src/backend/verification.md).
+
+### Completion evidence (2026-10-18)
+
+- Shared backend `check` passed validation, generation, locked restore, Release
+  build, all 146 tests against isolated PostgreSQL and publish. SDK lint passed.
+- Frontend compatibility passed all 21 tests, TypeScript checking, production
+  build and lint without maintained frontend/BFF changes. Authentication integration
+  remains deferred, as do calendar authorization and plan 00009.
+- Final full repository quality checks passed. Advisory health changed 56.4 to
+  64.7; raw duplication regressed from 0% to 0.21928% (three test clones, 27 lines).
+  Dead-code findings remained eight and coverage declined from 81.6% to 52.6% as
+  unsupported C#/SQL source grew. Limitations and exact identities are retained in
+  the verification document and ignored raw reports.
+- Windows/Linux offline-tool verification, actual Linux nonroot backend startup,
+  zero-account migration, manual isolated provisioning, protected account API and
+  cookie persistence through container replacement passed. NuGet audit found no
+  known vulnerable packages. Test artifacts were cleaned up; existing development
+  services/data were preserved. No accounts were provisioned outside disposable tests.
+- No required owner questions remain. The implementation-base and technical
+  assumptions are collected above and in the verification document for review.
+  Work remains uncommitted/unpublished on `feature/backend-user-management`.
 
 ## Overview
 
@@ -580,19 +638,19 @@ verification in that task.
 - [x] At the owner's request on 2026-10-18, align the owning documentation now;
   this plan supersedes conflicting earlier account/access decisions. Preserve
   unaffected architecture/calendar requirements and historical verification.
-- [ ] Define a permission matrix for anonymous callers and each role, including
+- [x] Define a permission matrix for anonymous callers and each role, including
   direct API calls, role injection, disabled accounts, and expired sessions.
-- [ ] Specify required authentication/user-creation endpoints and their maintained
+- [x] Specify required authentication/user-creation endpoints and their maintained
   OpenAPI request/response models, error codes, cookie/security requirements,
   and validation. Login must not become an account-enumeration or unthrottled
   password-checking oracle. Do not return password hashes or accept arbitrary
   privilege changes through ordinary account fields.
-- [ ] Document the backend-only boundary: new account operations are protected;
+- [x] Document the backend-only boundary: new account operations are protected;
   existing calendar access remains the separately acknowledged follow-up.
 
 ### 2. Add account persistence and manual provisioning support
 
-- [ ] Add account models, validated role representation, custom Identity stores,
+- [x] Add account models, validated role representation, custom Identity stores,
   and repositories under `src/backend/Calendar.Api`. Use UUIDs and enforce the
   approved normalized-username uniqueness at the database boundary as well as
   in application validation, including concurrent requests. Persist the ordinary
@@ -600,56 +658,56 @@ verification in that task.
   retain the authenticated creator separately for audit when those differ.
   Enforce the fixed association and role-transition dependency rules; do not add
   an account-transfer API.
-- [ ] Add ordered DbUp migrations for account and session validity data, plus
+- [x] Add ordered DbUp migrations for account and session validity data, plus
   rolling-window failures, lockout deadlines, credential/security versions,
   temporary-password deadlines and session-bound recent-verification state.
   Do not modify migration 0001 or seed users.
-- [ ] Implement the approved hash generation/provisioning support and a manual
+- [x] Implement the approved hash generation/provisioning support and a manual
   operator procedure with placeholders only. Apply the same validation and hash
   format to manually provisioned accounts and API-created accounts. Never place
   a reusable password or precomputed working account into a checked-in example.
-- [ ] Keep automatic user provisioning absent even on an empty database and when
+- [x] Keep automatic user provisioning absent even on an empty database and when
   all development/startup flags are enabled. Test accounts must be created by
   individual tests in disposable, isolated test databases, never by app startup
   or by shared development/production seed paths.
 
 ### 3. Implement backend authentication and authorized user creation
 
-- [ ] Integrate the agreed maintained hashing implementation with Identity stores
+- [x] Integrate the agreed maintained hashing implementation with Identity stores
   and managers; pin compatible dependencies and retain lockfiles. Use safe password
   comparison through that library and retain an upgrade path for stored hash costs.
-- [ ] Implement login, current-authentication inspection and logout through the
+- [x] Implement login, current-authentication inspection and logout through the
   backend's cookie/session infrastructure. Return structured API errors instead
   of HTML redirects; never trust caller-supplied roles or user IDs as identity.
-- [ ] Apply CSRF, guessing/resource limits, session expiry, persisted invalidation,
+- [x] Apply CSRF, guessing/resource limits, session expiry, persisted invalidation,
   and safe request/log handling using the finalized policies. Verification of
   authorization must not depend on a frontend hiding a button.
-- [ ] Enforce `Cache-Control: no-store` for all new authentication/user-management
+- [x] Enforce `Cache-Control: no-store` for all new authentication/user-management
   responses and exclude the routes from shared response/output caches, including
   middleware-generated errors and framework-generated CSRF/cookie responses.
-- [ ] Implement session-bound recent administrator verification and the atomic
+- [x] Implement session-bound recent administrator verification and the atomic
   creation/reset/promotion handover state. Enforce 15-character passwords for both admin
   roles, 30-minute temporary credentials and ten-minute restricted sessions capped
   by the temporary deadline. Add the approved operator handover procedure.
-- [ ] Make login, current-password changes, hash upgrades and administrative
+- [x] Make login, current-password changes, hash upgrades and administrative
   mutations reject stale security versions. Verify concurrency across independent
   requests/connections, including actor revocation during an in-flight mutation.
-- [ ] Implement account creation according to the approved matrix. Reserve the
+- [x] Implement account creation according to the approved matrix. Reserve the
   superadmin privilege for manual provisioning even when the caller is superadmin.
   Check permissions before mutations and prevent races from replacing accounts.
   Create the mandatory-change flag and 30-minute credential deadline in the same
   transaction; first login must use the restricted password-change flow. Document
   fresh authorized reset when the initial credential expires before handover.
-- [ ] Implement the approved self-service, superadmin and scoped calendaradmin
+- [x] Implement the approved self-service, superadmin and scoped calendaradmin
   maintenance operations, list queries, reset restriction, security-event logging
   and immediate session revocation. Calendaradmin reset requires both the ordinary
   target role and the approved administrator/account association, never role alone.
-- [ ] Keep the existing calendar routes and frontend/BFF implementation unchanged.
+- [x] Keep the existing calendar routes and frontend/BFF implementation unchanged.
   Do not imply that a backend login automatically enables the future website flow.
 
 ### 4. Update contracts, documentation, and verification evidence
 
-- [ ] Extend `src/contract/openapi.json` and relevant generation settings, regenerate
+- [x] Extend `src/contract/openapi.json` and relevant generation settings, regenerate
   C# and TypeScript contract output through the existing shared workflow, and
   confirm generated output remains ignored. Do not edit frontend consumers.
 - [x] Align authentication rules, architecture descriptions, forms terminology,
@@ -658,13 +716,13 @@ verification in that task.
   while preserving the implemented architecture plan unchanged. Preserve the
   production gate for calendar/API authorization, frontend/BFF
   integration and plan 00009. This documentation alignment does not implement the feature.
-- [ ] After implementation, update documentation with actual backend commands,
+- [x] After implementation, update documentation with actual backend commands,
   configuration, operator procedures and verified behavior without claiming that
   deferred calendar/API or frontend/BFF security work has been delivered.
-- [ ] Add backend API examples using placeholders or runtime-supplied credentials,
+- [x] Add backend API examples using placeholders or runtime-supplied credentials,
   never committed usable accounts. Document manual initial provisioning and the
   requirement that the application starts with zero accounts after migrations.
-- [ ] Record actual test/security verification and the quality comparison. Mark
+- [x] Record actual test/security verification and the quality comparison. Mark
   this plan and its index implemented only when the approved backend deliverables
   are complete and verified; no frontend completion is implied.
 
