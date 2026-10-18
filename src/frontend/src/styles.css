@@ -16,6 +16,119 @@ body {
   font-family: var(--font-sans);
 }
 
+.landing-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  background: #f7eddf;
+}
+
+.landing-shell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  background-image:
+    linear-gradient(#f7eddfd9, #f7eddfb3 20rem, #f7eddf00 36rem),
+    url("/images/norwegian-christmas.jpg");
+  background-position:
+    center,
+    center bottom;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.75rem 3rem;
+}
+
+.landing-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.landing-main {
+  padding: clamp(1rem, 4vh, 3rem) 1.5rem 65vh;
+}
+
+.landing-welcome {
+  max-width: 46rem;
+  margin-inline: auto;
+  text-align: center;
+  color: #173e32;
+}
+
+.landing-welcome h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(2.75rem, 5.5vw, 5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.landing-welcome p {
+  max-width: 36rem;
+  margin: 1.5rem auto 0;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+@media (max-width: 639px) {
+  .landing-shell::before {
+    background-image:
+      linear-gradient(#f7eddf 0%, #f7eddf00 28%), url("/images/norwegian-christmas.jpg");
+    background-position: center bottom;
+    background-size:
+      100% 29rem,
+      auto 29rem;
+  }
+
+  .landing-header {
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1.25rem;
+  }
+
+  .landing-header > span {
+    padding-top: 0.625rem;
+    font-size: 1rem;
+  }
+
+  .landing-controls {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 0.75rem;
+  }
+
+  .landing-controls label {
+    gap: 0.5rem;
+  }
+
+  .landing-controls label > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .landing-main {
+    padding: 1rem 1.5rem 28rem;
+  }
+
+  .landing-welcome p {
+    margin-top: 1.25rem;
+  }
+}
+
 .door-tile {
   background: #fffdf8;
   border-color: #deddd0;

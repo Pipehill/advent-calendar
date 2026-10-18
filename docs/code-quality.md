@@ -105,7 +105,7 @@ Scenario progress is printed while the suite runs.
 | actionlint 1.7.12 | Workflow validation; optional shellcheck/pyflakes disabled in both modes |
 | pre-commit 4.6.2 and pre-commit-hooks 6.0.0 | `.pre-commit-config.yaml`, `tools/quality/requirements.txt` |
 | Mermaid CLI 12.0.0 | `tools/quality/package.json` and npm lockfile |
-| Chromium 152.0.7977.82-r0 | `tools/quality/Dockerfile` |
+| Chromium 155.0.8059.39-r0 | `tools/quality/Dockerfile` |
 | Whitespace and LF/CRLF policy | `.editorconfig`, `.gitattributes`, `tools/quality/checks.mjs` |
 | Mermaid and repository links | `tools/quality/checks.mjs`, MarkdownIt parser |
 

@@ -14,7 +14,7 @@ COPY --from=dotnet /usr/share/dotnet /usr/share/dotnet
 COPY --from=dotnet /formatters /formatters
 RUN ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet \
     && ln -s /formatters/csharpier /usr/local/bin/csharpier
-RUN apk add --no-cache chromium=152.0.7977.82-r0
+RUN apk add --no-cache chromium=155.0.8059.39-r0
 COPY requirements.txt /quality/requirements.txt
 RUN python -m venv /quality/venv \
     && /quality/venv/bin/pip install --no-cache-dir -r /quality/requirements.txt

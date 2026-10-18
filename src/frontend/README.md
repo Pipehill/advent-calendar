@@ -1,7 +1,13 @@
 # Calendar frontend
 
-The React/TanStack Start page at `/calendars/<id>` shows a stored title and 24
-static numbered doors. `/` redirects to the existing local example calendar.
+The React/TanStack Start landing page at `/` welcomes visitors with a warm
+Norwegian Christmas illustration, Norwegian/English text, and a disabled login
+button at the top right. It renders without reading calendar data; login is
+reserved for a later feature. The illustration is served locally; see its
+[generation record](illustration.md).
+
+The page at `/calendars/<id>` shows a stored title and 24 static numbered doors.
+Open `/calendars/5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026` for the local example.
 The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
 server code. The initial calendar is server-rendered and its query cache hydrates
@@ -112,7 +118,7 @@ Paraglide JS generates translations from `messages/nb.json` (Norwegian Bokmål)
 and `messages/en.json`. Norwegian is the default, independent of browser language.
 The language selector writes `PARAGLIDE_LOCALE` and reloads the current page so
 SSR and browser hydration agree. The cookie allows the server to remember the
-selection; URLs remain `/calendars/<id>`. Request-local language state avoids
+selection; the current URL stays unchanged. Request-local language state avoids
 mixing concurrent readers' languages.
 
 Translate interface text, labels/prompts and user-facing errors. Calendar titles
@@ -127,12 +133,16 @@ With the complete stack running:
 node tools/frontend/smoke.mjs
 ```
 
-This Playwright smoke workflow is separate from Vitest/API integration tests and
-runs against an already started environment. It verifies stored calendars, SSR
+This Playwright smoke workflow uses Node's test runner separately from Vitest/API
+integration tests and runs against an already started environment. Eight named
+scenarios each get a fresh browser context, with page/hydration/asset checks and
+cleanup after every test. It verifies the landing page,
+disabled login, exact welcome text, mobile layout, stored calendars, SSR
 hydration, actual browser/tRPC communication, language selection, translated
 errors, unchanged user-authored titles, static doors and a narrow layout.
-It creates two test calendars through the existing API and records their IDs,
-results and screenshots under ignored `quality-reports/frontend/`.
+It creates two test calendars through the existing API and records their IDs in
+`calendars.json`, test results in `smoke.xml` (JUnit), and screenshots under ignored
+`quality-reports/frontend/`. A failed test or browser startup exits nonzero.
 
 Windows uses installed Edge by default. Elsewhere install Playwright Chromium
 with `pnpm exec playwright install chromium` from `src/frontend`; use
