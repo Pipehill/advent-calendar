@@ -9,19 +9,24 @@ titles and 24 numbered doors, with PostgreSQL persistence. The interface support
 Norwegian by default and English selection; user-authored content stays as written.
 User access, opening doors and deployment are planned.
 
-Visitors will enter an invitation code on the public landing page, then register
-with an email and password or sign in. Calendar use requires login. Each code
-invites a user to a particular calendar.
+Accounts will use a username and password, with no public registration. A
+superadmin will create calendar administrators and ordinary users; calendar
+administrators will create ordinary users. Superadmins will be provisioned
+manually in the database, and the application will never seed user accounts.
+Administrator-issued initial and reset passwords will be temporary and require
+the recipient to choose a different password before normal access.
 
-The project owner will create separate administrator accounts. Administrators
-will manage their own calendars and invitation codes, preview and edit every
-door before and during the calendar period, and move content between doors that
-have not yet reached their scheduled opening time.
+Calendar use will require login. Each calendar will have one recipient account,
+and a recipient may access multiple assigned calendars. Calendar administrators
+will manage their own calendars, preview and edit every door before and during
+the calendar period, and move content between doors that have not yet reached
+their scheduled opening time. Calendar assignment and any invitation flow remain
+future work.
 
 Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
 so children can open them in the morning. Earlier doors will remain available
-to members; future content stays hidden until opening. Ordinary users will stay
-signed in for up to 30 days and administrators for up to eight hours from login,
+to assigned recipients; future content stays hidden until opening. Ordinary users
+will stay signed in for up to 30 days and administrators for up to eight hours from login,
 unless they log out or their session is invalidated. Activity will not extend
 these periods.
 
@@ -75,6 +80,9 @@ backend/database stay running and preserve calendars. Stop all containers with
 `podman compose stop` or `docker compose stop`. The frontend root welcomes
 visitors with a Norwegian Christmas illustration and a disabled login button.
 Use `/calendars/<id>` to display a calendar directly.
+The current calendar API is anonymous. Authentication, calendar authorization,
+frontend/BFF security integration and production database hardening must be
+completed and verified before production use.
 Create with
 `POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
 with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.

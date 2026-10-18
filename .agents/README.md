@@ -26,7 +26,7 @@ these files own the actionable implementation instructions.
 | [Development quality](rules/development-quality.md) | Baseline, saved working-tree lint, MCP duplication feedback, advisory health comparisons, PR merge evidence, and language coverage maintenance |
 | [API contracts](rules/api-contracts.md) | Authored OpenAPI, tRPC inputs, generated DTOs/controllers/clients, wire formats, validation, errors, deadlines, and retries |
 | [Data and migrations](rules/data-and-migrations.md) | PostgreSQL/Npgsql/Dapper, DbUp SQL, startup, transactions, and published migration integrity |
-| [Authentication and calendar access](rules/authentication-and-calendar-access.md) | Identity, owner provisioning, cookies, session lifecycle, ownership/membership, opening times, editing, and protected caches |
+| [Authentication and calendar access](rules/authentication-and-calendar-access.md) | Username accounts, three-role authorization, manual superadmin provisioning, credentials, cookies, session lifecycle, calendar ownership/recipient access, opening times, editing, and protected caches |
 
 The [documentation rules](rules/documentation.md) still apply to every task;
 read [pull request rules](rules/pull-requests.md) when creating or updating a PR.
