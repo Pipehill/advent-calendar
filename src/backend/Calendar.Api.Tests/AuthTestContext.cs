@@ -97,6 +97,9 @@ internal sealed class AuthTestContext : IAsyncDisposable
         return (await connection.ExecuteScalarAsync<T>(sql, parameters))!;
     }
 
+    public Task<int> CountSessionsAsync() =>
+        ScalarAsync<int>("SELECT count(*)::int FROM account_sessions");
+
     public static string Password() => "Æa!" + Guid.NewGuid().ToString("N");
 
     public static async Task<HttpResponseMessage> SendAsync(
@@ -128,6 +131,21 @@ internal sealed class AuthTestContext : IAsyncDisposable
         );
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
         return (await response.Content.ReadFromJsonAsync<SessionDto>())!;
+    }
+
+    public async Task<HttpClient> CreateAuthenticatedClientAsync(TestAccount account)
+    {
+        var client = Application.CreateClient();
+        try
+        {
+            await LoginAsync(account, client);
+            return client;
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
     }
 
     public async ValueTask DisposeAsync()

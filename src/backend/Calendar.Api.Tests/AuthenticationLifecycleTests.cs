@@ -314,9 +314,6 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
         // Then spoofed addresses do not manufacture budgets and throttled output remains no-store.
         Assert.Equal(HttpStatusCode.TooManyRequests, last!.StatusCode);
         Assert.True(last.Headers.CacheControl?.NoStore);
-        Assert.Equal(
-            0,
-            await context.ScalarAsync<int>("SELECT count(*)::int FROM account_sessions")
-        );
+        Assert.Equal(0, await context.CountSessionsAsync());
     }
 }

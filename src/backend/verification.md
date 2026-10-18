@@ -95,6 +95,37 @@ reports. Source hashes: before
 `8e5c97b2cd169ab6bcc707d14651a10c32aa640b928516224f37b31e422cb60f`, after
 `4736b6a686c0b12dd54f73001c659ddcd6a76a2eadeb8a3c83bb5adcd47c9be8`.
 
+### PR #25 duplication review
+
+The PR report at head `263de962fd6bb083dbfd4acfbf1f63b6f0bc4ac5`, targeting
+`2a729c577e458bb6015b72aadd0f91181b74d0b2`, correctly reports three clones and
+27 duplicated lines versus zero on the target. A fresh saved-source baseline
+reproduced all three locations with the same jscpd version, configuration and
+authored-code scope above. These are test-code findings; the 11-line shared
+import/namespace/class header is incidental boilerplate.
+
+`AuthTestContext.CountSessionsAsync` now shares the persisted-session count across
+four assertions. `CreateAuthenticatedClientAsync` shares independent authenticated
+client setup across the session-isolation and concurrent-creation scenarios,
+disposing the client if login fails. Assertions, independent cookie containers
+and Given/When/Then phases remain in the individual tests.
+
+The final saved-source comparison reduces duplication from **3 clones / 27 lines /
+0.219280% to 1 clone / 11 lines / 0.089307%**: two fewer clones, 16 fewer duplicated
+lines (59.3%) and -0.129973 percentage points. The remaining header clone is retained;
+no exclusions, scoring changes or import rearrangements were used. Compared with
+the PR target, the remaining regression is +1 clone / +11 lines / +0.089307 pp.
+
+Overall health remains 64.7, maximum file complexity remains 94 and heuristic
+dead-code findings remain eight. Dead-code coverage changes from 52.6% to 52.5%;
+unsupported C#/SQL analysis remains a limitation. Scope remains 93 measured files,
+with 12,313 to 12,317 measured lines. Source hashes are
+`4736b6a686c0b12dd54f73001c659ddcd6a76a2eadeb8a3c83bb5adcd47c9be8` before and
+`21d7a5f64eb64e7bc40a4c45cded3e28dd138a303914ae9bd697daf12a4618e3` after.
+Raw MCP schema, file-clone inspection, proposed-snippet feedback, refreshed
+statistics and comparisons are retained in ignored `quality-reports/`. These are
+local saved-source measurements; the published PR still describes its committed head.
+
 ### Boundaries and assumptions for owner review
 
 The implementation base is the planning branch because plan 00008 is absent from

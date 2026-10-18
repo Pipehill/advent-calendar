@@ -32,10 +32,7 @@ public sealed class AuthenticationTests(ApiFixture fixture)
         // Then only the existing calendar seed exists, with zero accounts or sessions.
         Assert.Equal(HttpStatusCode.OK, health.StatusCode);
         Assert.Equal(0, await context.ScalarAsync<int>("SELECT count(*)::int FROM accounts"));
-        Assert.Equal(
-            0,
-            await context.ScalarAsync<int>("SELECT count(*)::int FROM account_sessions")
-        );
+        Assert.Equal(0, await context.CountSessionsAsync());
         Assert.Equal(1, await context.ScalarAsync<int>("SELECT count(*)::int FROM calendars"));
     }
 
@@ -90,10 +87,7 @@ public sealed class AuthenticationTests(ApiFixture fixture)
         // Then ASP.NET antiforgery rejects the operation and the error remains no-store.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoStore);
-        Assert.Equal(
-            0,
-            await context.ScalarAsync<int>("SELECT count(*)::int FROM account_sessions")
-        );
+        Assert.Equal(0, await context.CountSessionsAsync());
     }
 
     [Fact(

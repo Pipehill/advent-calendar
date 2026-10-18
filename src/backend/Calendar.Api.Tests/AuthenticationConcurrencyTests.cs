@@ -359,8 +359,7 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         await using var context = await CreateAsync(fixture);
         var actor = await context.ProvisionAsync();
         await context.LoginAsync(actor);
-        using var second = context.Application.CreateClient();
-        await context.LoginAsync(actor, second);
+        using var second = await context.CreateAuthenticatedClientAsync(actor);
 
         // When both requests attempt creation concurrently.
         var responses = await Task.WhenAll(

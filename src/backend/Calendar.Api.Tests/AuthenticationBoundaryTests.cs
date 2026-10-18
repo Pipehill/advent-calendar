@@ -41,10 +41,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
         // Then input errors never become server errors or persist a session.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoStore);
-        Assert.Equal(
-            0,
-            await context.ScalarAsync<int>("SELECT count(*)::int FROM account_sessions")
-        );
+        Assert.Equal(0, await context.CountSessionsAsync());
     }
 
     [Fact(
@@ -231,8 +228,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
         await using var context = await CreateAsync(fixture);
         var actor = await context.ProvisionAsync();
         await context.LoginAsync(actor);
-        using var second = context.Application.CreateClient();
-        await context.LoginAsync(actor, second);
+        using var second = await context.CreateAuthenticatedClientAsync(actor);
         context.Time.Advance(TimeSpan.FromMinutes(5));
         await SendAsync(
             context.Client,
