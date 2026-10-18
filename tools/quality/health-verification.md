@@ -1,5 +1,36 @@
 # Code health verification
 
+## 2026-10-18 PR 23 quality image recovery
+
+[CI run 39123387404](https://github.com/Pipehill/advent-calendar/actions/runs/39123387404)
+failed while building the quality image, before any lint ran. At
+`tools/quality/Dockerfile:17`, APK could not satisfy `chromium=152.0.7977.82-r0`;
+the official Alpine v3.24 community index only offered `155.0.8059.39-r0`.
+The resulting ICU conflict was a dependency-resolution symptom, not a separate
+requirement to remove packages manually. APK exited 9 and quality setup exited 1.
+
+Verified current repository indexes inside the exact digest-pinned MegaLinter
+base: Alpine 3.24.1 with stable v3.24 main/community sources, not edge. A simulated
+single-pin update to `155.0.8059.39-r0` succeeded and automatically selected
+`icu-data-full` in place of `icu-data-en`. The Dockerfile and documented Chromium
+version were updated together; the base digest and existing lint rules remain.
+
+On Windows with Podman, `node tools/quality/run.mjs setup` successfully rebuilt
+image `localhost/advent-quality:203f28c4bae8fe10ca43` from the corrected inputs.
+`node tools/quality/run.mjs full` and `node tools/quality/run.mjs test` passed,
+including actual Mermaid rendering and valid/invalid checker fixtures. The npm
+install in the new image reported zero vulnerabilities. This establishes Linux
+container behavior; it does not clear pending native Linux/macOS host evidence.
+The initial container inventory and exact CI excerpt, build logs and test logs
+are recorded under ignored `quality-reports/pr-23-setup-diagnosis/`.
+
+PR 23 also replaces its monolithic browser script with eight independently
+isolated Node tests and a thin CLI. All eight scenarios and deliberate browser
+startup failure propagation passed. The unchanged jscpd settings now report
+overall health 56.4, compared with main 53.8 and initial PR head 53.2; the detailed
+metrics and classification limitations are in
+[frontend verification](../../src/frontend/verification.md#pr-23-quality-follow-up-2026-10-18).
+
 ## 2026-10-11 implementation evidence
 
 The implementation branch is `qa/agent-code-quality`, based on main `e81e073`.

@@ -131,11 +131,15 @@ None.
   and a full-width header for contrast and login placement.
 - [Frontend verification](../../src/frontend/verification.md#landing-page-verification-2026-10-18)
   records actual commands, browser evidence, platform limitations and advisory
-  code health. Overall health regressed from 53.8 to 53.2; heuristic findings
-  remained eight, and duplication remained zero. The increased weight of the
-  executed smoke script's existing unused-file classification is documented.
+  code health. PR review isolated the eight browser scenarios under Node's test
+  runner, improving overall health from the initial PR's 53.2 to 56.4 (main: 53.8).
+  Heuristic findings remain eight and duplication remains zero. The review also
+  fixes the unavailable Chromium pin that prevented fresh CI quality-image builds.
+  See the [quality follow-up](../../src/frontend/verification.md#pr-23-quality-follow-up-2026-10-18)
+  for actual verification, measurement limits, and the preserved initial regression.
 - No dependencies, API contracts, backend behavior, authentication flow, or
-  production deployment were added. No commit, push or PR was requested.
+  production deployment were added. The owner subsequently requested PR 23 and
+  correction of its Code Quality report; the corrections update that same PR.
 
 ## Verification
 

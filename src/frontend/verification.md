@@ -155,7 +155,7 @@ the uncommitted planning files onto that branch.
 - The locally served illustration is 460,858 bytes. Its generation method,
   dimensions and final prompt are recorded in [the illustration record](illustration.md).
 
-### Landing page advisory code health
+### Initial landing page advisory code health
 
 **Overall health declined from 53.8 to 53.2 (-0.6).** Dead-code score declined
 from 21 to 20.1 (-0.9), and dead-code share increased from 21.3% to 21.8%
@@ -189,3 +189,61 @@ The saved Button snippet matched itself when queried after saving; that is not
 a cross-file clone. These are working-tree advisory measurements, not hook
 receipts, hosted CI results or PR merge evidence. Prior platform and dependency
 audit limitations above remain applicable; no new dependency was added.
+
+### PR 23 quality follow-up (2026-10-18)
+
+The [initial CI comment](https://github.com/Pipehill/advent-calendar/pull/23#issuecomment-6249384270)
+reported a setup failure before lint and a separate advisory health regression.
+The unavailable Chromium pin was corrected and verified with a fresh quality
+image build, full lint and checker regressions; details belong to
+[quality tool verification](../../tools/quality/health-verification.md#2026-10-18-pr-23-quality-image-recovery).
+
+The monolithic browser script is now a small CLI invoking eight named Node tests
+in `tools/frontend/browser/smoke.test.mjs`. Each scenario gets an isolated browser
+context, request/error collection, and guaranteed cleanup. Shared hooks check page,
+hydration and asset failures after every scenario, including the last mobile check.
+Language switching and screenshot coverage are retained, and independent tests no
+longer rely on cookies and navigation state left by earlier scenarios. The runner
+prints individual results, saves a JUnit report, and propagates nonzero exit codes.
+The private fixture stays in its only consuming suite rather than exporting an
+otherwise unused helper module.
+
+All eight browser tests passed on Windows/Edge against the unchanged production
+frontend at port 3010 and the existing backend/PostgreSQL services. An intentionally
+unavailable browser channel returned exit 1 and a failure report; the successful
+run then regenerated the normal report. The earlier 21 frontend unit tests and
+production build remain applicable because application source did not change.
+
+| Metric | Target main | Initial PR head | After review |
+| --- | --- | --- | --- |
+| Overall health | 53.8 | 53.2 | 56.4 |
+| Complexity score | 65.9 | 66.2 | 66.4 |
+| Complexity share | 32.5% | 32% | 31.7% |
+| Dead-code score | 21 | 20.1 | 24.6 |
+| Dead-code share | 21.3% | 21.8% | 18.9% |
+| Heuristic dead-code findings | 8 | 8 | 8 |
+| Duplication / clones / duplicated lines | 0% / 0 / 0 | 0% / 0 / 0 | 0% / 0 / 0 |
+| Maximum file complexity | 94 | 94 | 94 |
+| Measured files / lines | 68 / 7737 | 70 / 7856 | 71 / 7934 |
+| Dead-code coverage | 81.2% | 81.4% | 81.6% |
+
+Overall health improves by 2.6 points over main and 3.2 over the initial PR head.
+No scoring settings, exclusions or thresholds changed. jscpd still classifies
+the 20-line CLI as unused, but recognizes the executable Node test suite as tests.
+The reduced dead-code share reflects that classification and the thinner CLI,
+not deletion of proven dead application code. Measured complexity lines remain
+2514; lower complexity share partly reflects the larger test source denominator.
+The practical improvements are test isolation, localized failures, complete
+per-scenario error checks, and reliable cleanup/reporting, rather than a claim
+that the heuristic scores prove application correctness.
+
+The review baseline preserves head `88be4cc2535cb51dbea62f9aefef6de60c727da0`
+with source hash `1a57ba41d8d001f1140be382eefad07810de4e26aa590707981b718fdc68b71e`;
+the final source hash is
+`8e5c97b2cd169ab6bcc707d14651a10c32aa640b928516224f37b31e422cb60f`.
+Pinned jscpd/configuration are unchanged. The earlier baseline was archived as
+`baseline-before-pr23-quality-review-20261018`. MCP refreshed before statistics
+and reported zero clones. Raw source identities and comparisons remain under
+`quality-reports/health/`; execution logs are in
+`quality-reports/pr-23-setup-diagnosis/`. Platform and heuristic limitations above
+continue to apply.

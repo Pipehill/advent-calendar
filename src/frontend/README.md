@@ -133,13 +133,16 @@ With the complete stack running:
 node tools/frontend/smoke.mjs
 ```
 
-This Playwright smoke workflow is separate from Vitest/API integration tests and
-runs against an already started environment. It verifies the landing page,
+This Playwright smoke workflow uses Node's test runner separately from Vitest/API
+integration tests and runs against an already started environment. Eight named
+scenarios each get a fresh browser context, with page/hydration/asset checks and
+cleanup after every test. It verifies the landing page,
 disabled login, exact welcome text, mobile layout, stored calendars, SSR
 hydration, actual browser/tRPC communication, language selection, translated
 errors, unchanged user-authored titles, static doors and a narrow layout.
-It creates two test calendars through the existing API and records their IDs,
-results and screenshots under ignored `quality-reports/frontend/`.
+It creates two test calendars through the existing API and records their IDs in
+`calendars.json`, test results in `smoke.xml` (JUnit), and screenshots under ignored
+`quality-reports/frontend/`. A failed test or browser startup exits nonzero.
 
 Windows uses installed Edge by default. Elsewhere install Playwright Chromium
 with `pnpm exec playwright install chromium` from `src/frontend`; use
