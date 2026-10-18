@@ -28,6 +28,25 @@
         "type": "Transitive",
         "resolved": "6.1.1",
         "contentHash": "kgpuyJVEFJHoIj/slnc994Go88aoeZqNDfGHDBr4sh7CsEWwJhOTCt/FJqO4ziUImL5L0NEY0kxxOiNgPKI2Fw=="
+      },
+      "Geralt": {
+        "type": "Transitive",
+        "resolved": "4.4.0",
+        "contentHash": "fQ0rNmRFrGkdQNW0IJwfA8VqDwPTDEVmxHme5Acet+70AeKcd9LDTXj8MXFPCHRPiNo3le+lFUW32+tEmITIOQ==",
+        "dependencies": {
+          "libsodium": "[1.0.22, 1.0.23)"
+        }
+      },
+      "libsodium": {
+        "type": "Transitive",
+        "resolved": "1.0.22",
+        "contentHash": "KPD9SloJFclrsjnhABu7dzWrcyYkwPbvx5l1gRSPAX/0n+OBtSiVCKtGFv4n+ecWUHU0tCG9LSSwoZZx673zBQ=="
+      },
+      "calendar.security": {
+        "type": "Project",
+        "dependencies": {
+          "Geralt": "[4.4.0, )"
+        }
       }
     }
   }

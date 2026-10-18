@@ -3,12 +3,16 @@
 The initial API creates calendars from a title and retrieves their persisted
 contents. Controllers implement generated contracts, services initialize business
 values, and repositories use Npgsql/Dapper with parameterized SQL. The frontend/BFF
-already displays persisted calendars. Authentication, user management, calendar
-authorization, editing and scheduled opening remain future features; current
+already displays persisted calendars. Backend authentication and user management
+are implemented; calendar authorization, editing and scheduled opening remain
+future features. Current
 calendar endpoints are anonymous. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
-Authentication, calendar authorization, frontend/BFF security integration and
+Calendar authorization, frontend/BFF security integration and
 production database hardening must be completed and verified before production.
+See [backend authentication](authentication.md) for the protected API, manual
+superadmin provisioning, temporary-password handover, session lifecycle and key
+configuration. Frontend login remains a separate task.
 
 ## Local containers
 
@@ -75,7 +79,7 @@ setting even when accidentally enabled. The sample UUID is
 `5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026`; retrieve it to inspect its doors. Seeding
 uses service initialization, inserts atomically and leaves existing content alone.
 This seed is calendar-only. Startup, migrations, setup and deployment must never
-seed user accounts. The planned superadmin provisioning path is an intentional
+seed user accounts. The superadmin provisioning path is an intentional
 manual database operation using an offline password-hash tool that cannot connect
 to the database or create an account.
 

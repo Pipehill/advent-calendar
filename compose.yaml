@@ -27,6 +27,9 @@ services:
       ConnectionStrings__Calendar: >-
         Host=database;Database=advent;Username=advent;Password=local-development;Timeout=3;Command Timeout=5
       LocalSeed__Enabled: "true"
+      Authentication__KeyDirectory: /var/lib/advent-keys
+    volumes:
+      - development-authentication-keys:/var/lib/advent-keys
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
@@ -61,3 +64,4 @@ services:
       retries: 30
 volumes:
   development-database:
+  development-authentication-keys:

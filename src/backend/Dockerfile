@@ -19,6 +19,7 @@ RUN npm ci --prefix src/contract \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.12@sha256:0fa044f682cb7d93a5a90401a00c626c66f7b00b86922be9441f869eae039f80
 WORKDIR /app
 COPY --from=build /app/ ./
+RUN mkdir -p /var/lib/advent-keys && chown "$APP_UID" /var/lib/advent-keys
 USER $APP_UID
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080

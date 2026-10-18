@@ -1,5 +1,119 @@
 # Backend verification
 
+## 2026-10-18: Backend accounts and authentication
+
+Branch: `feature/backend-user-management`, based on planning commit `12bb0dc`.
+The owner authorized unattended implementation with assumptions/questions reported
+at completion. The plan was not on synchronized `main`, so the implementation
+uses `origin/plan/backend-user-management` without merging/publishing it. Maintained
+frontend/BFF source and published migration 0001 are unchanged. Earlier implemented
+plans are preserved as historical records.
+
+- `node tools/backend/check.mjs check` passed contract validation, both generated
+  languages, locked NuGet restore, Release build, **146 backend tests**, and publish.
+  Build completed with zero warnings/errors. The four existing Redocly advisory
+  warnings remain: private license URL, localhost server and health routes without
+  4xx declarations. `node tools/backend/check.mjs lint` passed SDK formatting/analyzers.
+- PostgreSQL 18.4 Testcontainers ran on Windows/Podman with the real embedded
+  migrations. Coverage includes zero startup/Development seed accounts and restart,
+  manual provisioning, direct API role/maintenance matrix, Norwegian normalization,
+  duplicate/disabled reservations, scoped lists/resets, fixed responsibility and
+  demotion dependencies, password policy/hash handling, actual CSRF/cookie exchange,
+  persisted rolling failures/pause, resource limits, temporary-password deadlines,
+  restricted sessions, five-minute session-bound verification, 30-day/eight-hour
+  expiry, logout/replay, revocation and production transport/key validation.
+- Deterministic barriers pause real verification before reset, own-password change,
+  promotion or disable. Stale results cannot create sessions; older hash upgrades
+  cannot restore reset passwords; concurrent own-password changes have one winner.
+  Another barrier verifies actor revocation during an in-flight target reset.
+  Concurrent duplicate creation and child-creation/demotion preserve identity and
+  responsibility. Shared output caching, unavailable validity storage and unexpected
+  provider errors retain authorization/cache protection. No-store assertions cover
+  successful, validation, anonymous, forbidden, throttled, unavailable and unexpected
+  error responses, including cookie/token issuance.
+- `node tools/frontend/check.mjs check` passed **21 tests**, TypeScript checking,
+  production Vite/Nitro build and Biome. `CalendarClient.get/create` remain compatible.
+  An initial sandbox-limited Nitro build failed reading a Windows parent path;
+  rerunning with the required local read access passed. Existing React Query
+  bundler `use client` notices remain. This is contract compatibility evidence,
+  not frontend/BFF authentication or browser CSRF coverage.
+- NuGet direct/transitive vulnerability audit found no vulnerable packages across
+  all four backend projects. Geralt 4.4.0 and libsodium 1.0.22 are lockfile-pinned;
+  [provider API](https://www.geralt.xyz/password-hashing) and
+  [package metadata](https://www.nuget.org/packages/Geralt/4.4.0) were checked.
+- The offline tool was exercised in real Windows and Linux terminals using randomly
+  generated disposable values. Input was not echoed. An underlength superadmin
+  password was rejected with exit 1; invalid role and redirected input were rejected.
+  Valid output was shared-format verifiable PHC data. Observed 64 MiB/three-pass
+  calibration was approximately **204 ms on Windows and 62 ms on Linux**. Tests also
+  cover supported older costs, malformed/cost-bounded hashes and preservation of
+  higher memory during mixed-cost upgrades. No reduced production hashing policy.
+- The actual final multistage backend Dockerfile built and published on Linux.
+  A separate nonroot runtime container with a disposable PostgreSQL database
+  started with zero accounts. Intentional manual SQL provisioning then enabled
+  login (200), account creation (201), scoped listing (200) and no-store responses.
+  Replacing the API container while preserving only its key volume/database
+  retained a valid authentication cookie (200), verifying durable keys and sessions.
+  Existing development application/database containers and data were untouched.
+- Test containers, the dedicated test network/key volume and **27** verified newly
+  created build/test images were removed. Existing application images, pinned
+  tool/base images, unrelated external build state and database volumes were
+  preserved. Test-generated operator credential/cookie files were deleted.
+
+### Advisory quality comparison
+
+Final saved-source checks use jscpd 5.4.1 and unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+The baseline was archived before replacement; final MCP refresh/statistics and
+clone inspection are saved with the comparison under ignored `quality-reports/health`.
+
+| Metric | Before | After | Change |
+| --- | --- | --- | --- |
+| Overall health | 56.4 | 64.7 | +8.3 |
+| Complexity score / share | 66.4 / 31.7% | 72.5 / 23.6% | +6.1 / -8.1 pp |
+| Raw duplication | 0% | 0.21928% | +0.21928 pp (regression) |
+| Clones / duplicated lines | 0 / 0 | 3 / 27 | +3 / +27 (regression) |
+| Maximum file complexity | 94 | 94 | unchanged |
+| Heuristic dead-code findings | 8 | 8 | unchanged |
+| Dead-code analysis coverage | 81.6% | 52.6% | -29 pp |
+| Analyzed files / lines | 71 / 7,934 | 93 / 12,313 | +22 / +4,379 |
+
+The duplication increase is retained visibly: one 11-line import/header block and
+two short test preparation/assertion blocks (10 and six lines) keep distinct API
+scenarios readable. No production credential/session logic was duplicated for
+these findings; no exclusions or scoring thresholds were altered. Overall score
+improvement is advisory and partly reflects more source outside supported dead-code
+analysis. C#/SQL dead-code coverage is unavailable, not clean. Existing heuristic
+script-entry-point findings are unchanged; complexity hotspots remain existing
+developer/quality tooling. This is working-tree evidence, not a staged receipt or
+PR candidate-merge comparison.
+
+Scope includes authored code/tests matching the existing shared language patterns,
+excluding dependencies, generated code, build output and reports. The exact source
+manifest, formats, clone locations and unsupported dimensions remain in the raw
+reports. Source hashes: before
+`8e5c97b2cd169ab6bcc707d14651a10c32aa640b928516224f37b31e422cb60f`, after
+`4736b6a686c0b12dd54f73001c659ddcd6a76a2eadeb8a3c83bb5adcd47c9be8`.
+
+### Boundaries and assumptions for owner review
+
+The implementation base is the planning branch because plan 00008 is absent from
+`main`. Other implementation selections are documented in
+[backend authentication](authentication.md): Argon2id provider/costs, pinned local
+weak-password source, advisory-locked security transactions and per-instance
+resource budgets. These are technical assumptions within the approved unattended
+implementation, not new product requirements. No user answer is required to review
+or run the implemented backend increment.
+
+No account seeding or real-account provisioning was performed. No commit, push,
+PR, merge or deployment is included. Calendar authorization/recipient assignment,
+frontend/BFF security and browser cache/CSRF integration, production hosting/key
+delivery/rotation/TLS proxy decisions and plan 00009 remain the agreed production
+gates. Native macOS/Linux host workflows and Docker execution retain earlier owner
+deferrals; the Linux container verification above does not claim those platforms.
+
+## Calendar API implementation history
+
 Implementation date: 2026-10-11. Branch: `feature/calendar-api`, based on `f098d82`.
 
 ## Automated evidence

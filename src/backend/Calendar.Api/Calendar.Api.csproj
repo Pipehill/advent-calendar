@@ -3,10 +3,12 @@
         <DefaultItemExcludes>$(DefaultItemExcludes);generated/**</DefaultItemExcludes>
     </PropertyGroup>
     <ItemGroup>
+        <ProjectReference Include="../Calendar.Security/Calendar.Security.csproj" />
         <PackageReference Include="Npgsql" Version="10.0.3" />
         <PackageReference Include="Dapper" Version="2.1.89" />
         <PackageReference Include="dbup-postgresql" Version="7.0.1" />
         <EmbeddedResource Include="Migrations/*.sql" />
+        <EmbeddedResource Include="../../contract/openapi.json" LogicalName="AccountOpenApi.json" />
         <Compile Include="generated/Contract.cs" />
     </ItemGroup>
     <Target Name="GenerateContract" BeforeTargets="BeforeCompile">

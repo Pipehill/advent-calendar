@@ -5,8 +5,9 @@ Last reviewed: 2026-10-18
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
 PostgreSQL migrations, API integration tests and local/CI build commands. The
-Compose stack runs frontend/BFF, backend and database; identity, calendar
-access rules and deployment remain future work. The calendar page displays a
+Compose stack runs frontend/BFF, backend and database. Backend identity is
+implemented; website login, calendar access rules and deployment remain future
+work. The calendar page displays a
 stored title and 24 static doors through tRPC and the generated backend client,
 with Norwegian/English interface translations. The implemented POST/GET API
 requires no user context. See [backend workflows](../src/backend/README.md).
@@ -294,9 +295,9 @@ are separate calendar work; the former email-registration/invitation-membership
 flow is superseded. User-management superadmin permissions do not define future
 calendar authority.
 
-These are agreed requirements, not implemented authentication. The current
-calendar POST/GET API remains anonymous. Backend user management is the next
-increment; calendar authorization/assignment, frontend/BFF security integration
+Backend accounts and authentication are implemented as described in the
+[backend authentication workflow](../src/backend/authentication.md). The current
+calendar POST/GET API remains anonymous. Calendar authorization/assignment, frontend/BFF security integration
 and production database hardening must be completed and verified before production.
 The end-to-end sequence below describes the future integrated system.
 

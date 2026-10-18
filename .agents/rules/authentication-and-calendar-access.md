@@ -11,8 +11,9 @@ authorization/editing, and protected SSR/cache data. See the
 The owner confirmed on 2026-10-18 that
 [plan 00008](../plans/00008-backend-user-management.md) supersedes the earlier
 email-registration, invitation-membership and owner-provisioning-CLI decisions.
-These rules reflect that account model. Authentication and user management are
-not implemented yet; current calendar POST/GET endpoints remain anonymous.
+These rules reflect that account model. Backend authentication and user management
+are implemented; current calendar POST/GET endpoints remain anonymous. See the
+[backend authentication workflow](../../src/backend/authentication.md).
 
 Plan 00008 covers backend accounts, authentication, contracts, persistence and
 verification. Calendar authorization/assignment and frontend/BFF security

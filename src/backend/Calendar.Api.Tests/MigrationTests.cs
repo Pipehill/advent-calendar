@@ -25,7 +25,13 @@ public sealed class MigrationTests(ApiFixture fixture)
             .ToArray();
 
         // Then the migration has its stable, numbered embedded identity.
-        Assert.Equal(["Calendar.Api.Migrations.0001_create_calendars.sql"], scripts);
+        Assert.Equal(
+            [
+                "Calendar.Api.Migrations.0001_create_calendars.sql",
+                "Calendar.Api.Migrations.0002_create_accounts.sql",
+            ],
+            scripts.Order()
+        );
     }
 
     [Fact(

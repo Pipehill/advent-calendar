@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="Geralt" Version="4.4.0" />
+        <EmbeddedResource Include="WeakPasswords.sha256" />
+    </ItemGroup>
+</Project>

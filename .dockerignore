@@ -5,6 +5,7 @@ megalinter-reports
 **/node_modules
 **/bin
 **/obj
+**/.auth-keys
 **/generated
 src/backend/publish
 **/dist
