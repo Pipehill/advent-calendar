@@ -1,10 +1,15 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import * as m from '../generated/paraglide/messages.js';
 
 export const Route = createFileRoute('/')({
-  beforeLoad: () => {
-    throw redirect({
-      to: '/calendars/$id',
-      params: { id: '5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026' },
-    });
-  },
+  component: LandingPage,
 });
+
+function LandingPage() {
+  return (
+    <section className="landing-welcome" aria-labelledby="welcome-heading">
+      <h1 id="welcome-heading">{m.landing_heading()}</h1>
+      <p>{m.landing_description()}</p>
+    </section>
+  );
+}

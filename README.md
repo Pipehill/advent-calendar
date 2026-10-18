@@ -69,11 +69,12 @@ integration and frontend unit tests. Combine both for quick repeat runs.
 Tests and dev contract generation can still compile source with `--skip-build`.
 Run `./run-local.ps1 --help` or `bash run-local.sh --help` for usage.
 
-The launcher prints `http://localhost:3000` for the calendar page and
+The launcher prints `http://localhost:3000` for the landing page and
 `http://localhost:8080` for the API after readiness succeeds. Ctrl+C stops Vite;
 backend/database stay running and preserve calendars. Stop all containers with
-`podman compose stop` or `docker compose stop`. The frontend root
-redirects to the local example; use `/calendars/<id>` to display another calendar.
+`podman compose stop` or `docker compose stop`. The frontend root welcomes
+visitors with a Norwegian Christmas illustration and a disabled login button.
+Use `/calendars/<id>` to display a calendar directly.
 Create with
 `POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
 with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.

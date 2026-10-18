@@ -1,5 +1,8 @@
 {
   "app_name": "Adventskalender",
+  "landing_heading": "Velkommen til advent",
+  "landing_description": "Her kan du lage en adventskalender til en du er glad i eller åpne en kalender noen har laget for deg",
+  "login_label": "Logg inn",
   "language_label": "Språk",
   "loading": "Henter kalenderen …",
   "doors_label": "Kalenderens luker",

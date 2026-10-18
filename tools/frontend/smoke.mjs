@@ -25,19 +25,79 @@ try {
     }
   });
   page.on('response', response => {
-    if (response.status() >= 400 && /\.(js|css)$/.test(new URL(response.url()).pathname)) {
+    if (response.status() >= 400 && /\.(js|css|jpg)$/.test(new URL(response.url()).pathname)) {
       errors.push(`Asset request failed: ${response.status()} ${response.url()}`);
     }
   });
   const requests = [];
   page.on('request', request => requests.push(request.url()));
 
+  // Given a new visitor without a selected language.
+  const welcome = 'Velkommen til advent';
+  const introduction = 'Her kan du lage en adventskalender til en du er glad i eller åpne en kalender noen har laget for deg';
+
+  // When the visitor opens and refreshes the landing page.
+  const response = await page.goto(frontendUrl);
+  const html = await response.text();
+  await page.reload({ waitUntil: 'networkidle' });
+
+  // Then the landing content is server-rendered, stays at / and needs no calendar read.
+  assert.equal(response.status(), 200);
+  assert(html.includes(welcome));
+  assert(html.includes(introduction));
+  assert.equal(new URL(page.url()).pathname, '/');
+  assert.equal(await page.locator('h1').textContent(), welcome);
+  assert.equal(await page.locator('main p').textContent(), introduction);
+  assert.equal(await page.locator('html').getAttribute('lang'), 'nb');
+  assert.equal(await page.getByRole('button', { name: 'Logg inn' }).isDisabled(), true);
+  assert.equal(requests.filter(url => url.includes('/api/trpc/') || url.startsWith(apiUrl)).length, 0);
+  assert.deepEqual(errors, []);
+  await page.screenshot({ path: path.join(reports, 'landing-desktop.png'), fullPage: true });
+  results.push('Landing route, exact Norwegian text, SSR, refresh, disabled login and no calendar reads passed.');
+
+  // Given the landing page and the existing language selector.
+  const languages = [
+    ['en', 'Welcome to Advent', 'Here you can create an advent calendar for someone you love or open a calendar someone has made for you', 'Log in'],
+    ['nb', welcome, introduction, 'Logg inn'],
+  ];
+
+  // When each language is selected and the page is refreshed.
+  for (const [locale, heading, description, login] of languages) {
+    await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.getByRole('combobox').selectOption(locale)]);
+    await page.reload({ waitUntil: 'networkidle' });
+
+    // Then translated content and the disabled control survive SSR and hydration.
+    assert.equal(await page.locator('html').getAttribute('lang'), locale);
+    assert.equal(await page.locator('h1').textContent(), heading);
+    assert.equal(await page.locator('main p').textContent(), description);
+    assert.equal(await page.getByRole('button', { name: login }).isDisabled(), true);
+    assert.equal(new URL(page.url()).pathname, '/');
+  }
+  results.push('Landing language selection, translated content, reload and HTML language passed.');
+
+  // Given a narrow mobile screen.
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  // When the landing page is displayed.
+  await page.reload({ waitUntil: 'networkidle' });
+  const loginBounds = await page.getByRole('button', { name: 'Logg inn' }).boundingBox();
+  const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+
+  // Then controls fit and login remains in the top-right corner.
+  assert.equal(mobileOverflow, false);
+  assert(loginBounds.x > 375 / 2 && loginBounds.x + loginBounds.width <= 375);
+  assert(loginBounds.y < 50);
+  assert.equal(await page.getByRole('combobox').isVisible(), true);
+  await page.screenshot({ path: path.join(reports, 'landing-mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  results.push('Mobile landing layout, visible language selector and top-right login passed.');
+
   // Given the existing seeded calendar and no selected language.
   const sampleId = '5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026';
   const stored = await (await fetch(`${apiUrl}/calendars/${sampleId}`)).json();
 
-  // When the root page redirects and hydrates.
-  await page.goto(frontendUrl);
+  // When the calendar is opened directly and hydrates.
+  await page.goto(`${frontendUrl}/calendars/${sampleId}`);
   await page.getByRole('combobox').waitFor();
   await page.waitForLoadState('networkidle');
 
@@ -49,7 +109,7 @@ try {
   assert.equal(requests.filter(url => url.includes('/api/trpc/')).length, 0);
   assert.deepEqual(errors, []);
   await page.screenshot({ path: path.join(reports, 'calendar-desktop.png'), fullPage: true });
-  results.push('Seeded database calendar, root redirect, ordered doors and hydration without repeat fetch passed.');
+  results.push('Seeded database calendar, direct navigation, ordered doors and hydration without repeat fetch passed.');
 
   // Given the loaded Norwegian calendar.
   const original = await page.locator('h1').textContent();
