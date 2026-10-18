@@ -35,8 +35,9 @@ when changing those boundaries; those files own their respective instructions.
 - Use Tailwind CSS through Vite and shadcn/ui components. Maintain and commit
   customized component source; the generated API-code policy belongs to
   [API contracts](api-contracts.md).
-- Use TanStack Form with Zod and shadcn/ui for login, registration, and
-  administration forms. Reuse compatible form/BFF schemas when inputs match.
+- Use TanStack Form with Zod and shadcn/ui for login, password changes, and
+  authorized account/calendar administration forms. Do not add public registration.
+  Reuse compatible form/BFF schemas when inputs match.
   Attach structured server field errors to fields and show submission-wide
   errors separately; client checks do not replace server validation.
 - Verify UI/form dependencies together with React, Start, Vite, and Zod,

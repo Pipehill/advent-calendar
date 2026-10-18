@@ -32,3 +32,17 @@ Application interface text follows the
 
 The user may communicate in Norwegian. Respond in Norwegian when appropriate;
 this does not change the project's working language.
+
+## 4. Preserve implemented plans as historical records
+
+Plans marked `Status: Implemented (...)` record the decisions and work as they
+stood when implemented. Do not edit, rename or delete an implemented plan without
+first asking the user and receiving explicit approval for that change. This also
+applies to metadata, progress checklists, corrections and supersession notices.
+If the user has already explicitly approved the specific change, do not ask again.
+
+A request to update rules, align documentation or implement a newer plan does not
+authorize changes to implemented plans. Record new or superseding decisions in
+the current unimplemented plan, the plan index, rules or other relevant Markdown
+documentation instead. Keep the implemented plan itself unchanged to preserve
+history. Other documentation may be updated within the user's authorized scope.

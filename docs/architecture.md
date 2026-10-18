@@ -1,6 +1,6 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-10-13
+Last reviewed: 2026-10-18
 
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
@@ -29,7 +29,7 @@ calendar rules, and persistence.
 | Browser UI | TypeScript, React, TanStack Router and Query | Navigation, interactive calendars, forms, and browser query cache |
 | Frontend/BFF container | TanStack Start, tRPC, Node.js LTS, Nitro | SSR, assets, browser API, request-scoped session relay, backend calls |
 | Backend API container | C#, ASP.NET Core, .NET LTS, System.Text.Json | Credentials, sessions, authorization, calendar business rules, API validation |
-| Database container | PostgreSQL | Persistent accounts, session validity, memberships, calendars, and migration journal |
+| Database container | PostgreSQL | Persistent accounts, session validity, calendar ownership/recipient assignments, and migration journal |
 | Backend data access | Npgsql, Dapper, hand-written parameterized SQL | Connections, SQL execution, and C# result mapping |
 | Backend migrations | DbUp with its PostgreSQL provider and SQL scripts | Schema upgrades during backend startup |
 
@@ -57,14 +57,19 @@ flowchart LR
     client -->|"HTTP / OpenAPI; cookie and W3C trace context"| api
     sql --> postgres
     dbup -->|"Before API readiness"| postgres
-    owner["Owner-operated .NET CLI: on demand"] -.->|"Shared Identity logic and stores"| postgres
+    hashTool["Offline hash tool: hidden input, shared password policy"]
+    operator["Trusted operator: manual superadmin provisioning"]
+    hashTool -.->|"Hash only"| operator
+    operator -.->|"Intentional database operation"| postgres
 ```
 
 Browser code calls the BFF through tRPC using `@trpc/tanstack-react-query`.
 Only BFF server code uses the generated backend HTTP client and backend
 connection configuration. The browser does not connect directly to PostgreSQL
-or use the backend client. The provisioning CLI is an on-demand owner tool,
-not a fourth long-running service. DbUp runs inside the backend process.
+or use the backend client. The offline hash tool cannot connect to the database
+or create accounts; a trusted operator manually provisions superadmins. Neither
+is another long-running service. DbUp runs inside the backend process and never
+seeds user accounts.
 The [tRPC integration documentation](https://trpc.io/docs/client/tanstack-react-query/setup)
 describes router-derived client types and TanStack Query option factories.
 
@@ -80,7 +85,7 @@ server QueryClient or mutable credential headers across requests. This isolation
 matches the [Query SSR guidance](https://tanstack.com/query/latest/docs/framework/react/guides/ssr).
 
 Browser caches must distinguish the current user, calendar, and administrator
-versus member view. Clear or replace protected cached data when the authenticated
+versus recipient view. Clear or replace protected cached data when the authenticated
 session changes. SSR output, hydrated data, and prefetches must satisfy the same
 authorization rules as an API response. Shared response caches must not reuse
 authenticated output across users or access modes. Refresh data when a door opens
@@ -96,7 +101,7 @@ The [shadcn/ui Start integration](https://ui.shadcn.com/docs/installation/tansta
 documents the framework setup. Verify styling and components against the selected
 React, Start, and Vite versions, including SSR and hydration behavior.
 
-Login, registration, and administration forms use TanStack Form with Zod for
+Login, password-change, and authorized administration forms use TanStack Form with Zod for
 state and client-side validation, with shadcn/ui fields. Reuse compatible Zod
 schemas between forms and BFF inputs when those inputs match. Attach structured
 BFF/API errors to the appropriate fields; show submission-wide failures
@@ -268,49 +273,83 @@ timeouts may be configured when concrete requirements justify them.
 
 ## Authentication and calendar access
 
-The public landing page accepts calendar invitation codes. A visitor registers
-with email and password or signs in, then uses the invitation to gain calendar
-membership. Calendar use requires login: invitation codes do not substitute for
-identity or confer administrator rights.
+The agreed account model uses usernames and passwords, with exactly three roles:
+`superadmin`, `calendarAdmin` and `calendarUser`. Public registration is excluded.
+Superadmins can create calendaradmins and ordinary users through authorized API
+operations; calendaradmins can create only ordinary users. Superadmins themselves
+are provisioned only by intentional manual database operations. No environment,
+startup, migration, script or deployment path automatically creates user accounts.
 
-Administrators have separate accounts and pages. Only the project owner creates
-administrators, through an owner-operated .NET CLI with database access. Public
-registration creates ordinary users, and public application endpoints cannot
-create administrators. Administrators create and manage their own calendars
-and issue calendar-specific invitation codes; they cannot manage another
-administrator's calendar merely by having that role.
+Each ordinary user has a fixed responsible calendaradmin, independently of the
+audit creator. That administrator can list and reset only assigned accounts that
+currently hold the ordinary role. Superadmin can maintain nonsuperadmin accounts;
+other-account superadmin maintenance remains manual. Role transitions preserve
+responsibility and cannot bypass reset boundaries or demotion dependencies.
 
-### Credentials and owner provisioning
+The public landing page remains public. Future calendar access requires login:
+each calendar has one recipient account, and a recipient may access multiple
+assigned calendars. Calendaradmins manage their own calendars, not other
+administrators' calendars merely by role. Assignment and any invitation behavior
+are separate calendar work; the former email-registration/invitation-membership
+flow is superseded. User-management superadmin permissions do not define future
+calendar authority.
 
-Use ASP.NET Core Identity with custom Npgsql/Dapper stores, implementing the
-store interfaces needed for local email/password accounts and roles. Share
-account validation, creation, and maintained Identity password hashing/verification
-between the API and CLI. PostgreSQL stores salted password hashes, never
-decryptable passwords. Identity uses the same UUID/Guid identifiers and DbUp
-schema as the rest of the application. Entity Framework, its Identity stores,
-migrations, and application templates are excluded. No OAuth2, external identity
-provider, or multifactor authentication is required. Microsoft's
-[custom Identity storage guidance](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-custom-storage-providers?view=aspnetcore-10.0)
-describes replacing stores independently of Identity managers.
+These are agreed requirements, not implemented authentication. The current
+calendar POST/GET API remains anonymous. Backend user management is the next
+increment; calendar authorization/assignment, frontend/BFF security integration
+and production database hardening must be completed and verified before production.
+The end-to-end sequence below describes the future integrated system.
 
-The CLI is an on-demand administrative operation restricted to the owner. Its
-concrete packaging and production invocation are future setup/deployment work;
-it introduces no public administrator-creation endpoint or long-running service.
+### Credentials and manual provisioning
+
+Use ASP.NET Core Identity with custom Npgsql/Dapper stores and a maintained
+Argon2id password hasher; retain UUID/Guid identifiers, DbUp and the exclusion of
+Entity Framework. Usernames are globally unique and case-insensitive, with shared
+Unicode-aware normalization and a database uniqueness constraint. Duplicate
+creation rejects the request instead of changing credentials or granting access.
+The offline hash tool shares password policy/hashing with the backend, accepts
+hidden input and produces a hash without database access or account writes.
+Only the operator performs the actual superadmin database insertion.
+
+Administrator passwords require 15-128 Unicode code points and ordinary passwords
+8-128, with uppercase, lowercase and punctuation/symbol characters and local
+known-weak-password rejection. This approved policy is not a claim of NIST
+compliance. No OAuth2, external identity provider or MFA is added. Detailed
+requirements for hashing costs, input validation, secrets and safe logging belong
+to the [authentication rules](../.agents/rules/authentication-and-calendar-access.md#passwords-and-sensitive-operations).
+
+API-created accounts start with temporary credentials. Initial, reset and promotion
+passwords expire after 30 minutes and allow only a restricted password-change
+flow; normal access requires a different compliant password and a new login.
+Administrators privately deliver temporary credentials to identity-verified
+recipients. Promotion replaces the lower-trust credential atomically, preventing
+a former responsible administrator from retaining a known password at higher privilege.
+
+Sensitive administrative writes require password verification within five minutes,
+bound to the current unrestricted session and account security version. Persisted
+account lockout allows five failures within a rolling 15-minute window, followed
+by a fixed 15-minute pause. Independent IP/global budgets and hashing bounds apply.
+Security versions and transactional actor/target checks prevent stale login,
+password changes, resets and hash upgrades from restoring obsolete authority.
+See the rules for exact lifecycle, concurrency and authorization requirements.
 
 ### Cookie relay and request authentication
 
 The backend issues and validates ASP.NET Core authentication cookies. The browser
 holds a host-only cookie for the public frontend/BFF origin: HttpOnly,
 SameSite=Lax, and Secure in production. On each call, including SSR, the BFF relays
-only the designated authentication cookie to the API. Forward relevant backend
-Set-Cookie headers for login, logout, and any reissuance as separate response
+only the designated authentication/antiforgery cookies and request-token header
+to the API as needed, using an explicit allowlist. Forward relevant backend
+Set-Cookie headers for login, logout, CSRF issuance and reissuance as separate response
 headers, ensuring their scope matches the public origin. The BFF does not decrypt
 cookies or accept browser-supplied user IDs or role headers as identity.
 
-Protect state-changing browser requests, including authentication operations,
-against CSRF. SameSite alone is insufficient. The subsequent implementation must
-verify the chosen CSRF mechanism end to end through the public BFF origin; this
-document does not select a token library or storage mechanism. See Microsoft's
+Use ASP.NET Core's built-in token-based antiforgery validation for state-changing
+authentication/user operations, including login. SameSite alone is insufficient.
+Refresh tokens after principal changes without extending authentication expiry.
+Backend verification belongs to the user-management increment; the later BFF
+integration must verify cookie/header relay end to end through the public origin.
+See Microsoft's
 [CSRF guidance](https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-10.0).
 Describe authentication operations and cookie security in the authored OpenAPI.
 Keep React login screens in the frontend and make API authentication failures
@@ -321,6 +360,10 @@ Keys must be durable and protected across backend container replacement.
 The concrete key storage configuration belongs to deployment work alongside
 hosting and secrets. Cookie validation must also consult persisted session and
 account validity through PostgreSQL stores; cookie integrity alone is insufficient.
+Validity checks fail closed if persistence is unavailable. All authentication and
+user-management responses, including errors, CSRF tokens and cookie responses,
+require `Cache-Control: no-store` and exclusion from shared response/output caches.
+The backend implements that protection first; the future BFF must preserve it.
 
 ```mermaid
 sequenceDiagram
@@ -328,14 +371,24 @@ sequenceDiagram
     participant BFF as Frontend / BFF
     participant API as .NET API
     participant DB as PostgreSQL
-    Browser->>BFF: Public landing page and invitation code
-    Browser->>BFF: tRPC registration or login with CSRF protection
+    Browser->>BFF: Public landing page and CSRF exchange
+    Browser->>BFF: tRPC username/password login with CSRF protection
     BFF->>BFF: Validate input with Zod
     BFF->>API: Generated HTTP client: credentials
     API->>DB: Identity stores: validate account and password#59; persist session
     DB-->>API: Account and session result
     API-->>BFF: Auth result and backend-issued Set-Cookie
     BFF-->>Browser: tRPC result and separate Set-Cookie headers at public origin
+    opt Temporary password requires change before normal access
+        Browser->>BFF: Change password with current temporary password and CSRF token
+        BFF->>API: Allowlisted cookies/token and password-change input
+        API->>DB: Atomically replace credential and revoke all sessions
+        API-->>Browser: Clear authentication through BFF and require new login
+        Browser->>BFF: Login with new password and refreshed CSRF token
+        BFF->>API: Credentials and CSRF exchange
+        API->>DB: Verify current account version and persist unrestricted session
+        API-->>Browser: New authentication cookie through BFF
+    end
     Browser->>BFF: Authenticated tRPC call or SSR page request with cookie
     BFF->>BFF: Request-scoped context and QueryClient
     BFF->>API: Designated cookie and trace context via generated client
@@ -346,10 +399,10 @@ sequenceDiagram
     else Valid administrator who owns calendar
         API-->>BFF: Full preview/edit view, including future doors
         BFF-->>Browser: Isolated administrator result or SSR/hydration
-    else Valid ordinary calendar member
+    else Valid assigned calendar recipient
         API->>API: Check server time against 07:00 Europe/Oslo opening
-        API-->>BFF: Member data with future content withheld
-        BFF-->>Browser: Isolated member result or SSR/hydration
+        API-->>BFF: Recipient data with future content withheld
+        BFF-->>Browser: Isolated recipient result or SSR/hydration
     else Access denied
         API-->>BFF: ProblemDetails authorization error
         BFF-->>Browser: FORBIDDEN
@@ -367,13 +420,21 @@ the original deadline. Browser restarts preserve login within the limit;
 expiration requires a new login. The ordinary-user duration reduces password
 entry for children who may need help signing in.
 
+Temporary-password sessions instead expire at the earlier of ten minutes after
+login and the persisted 30-minute credential deadline. They allow only session
+inspection, required CSRF refresh, own-password change and logout. Repeated login
+or activity cannot extend the credential deadline. An expired temporary credential
+requires an authorized reset; expiry never restores normal access.
+
 Logout invalidates the current session server-side and clears its browser cookie;
 other sessions for the same account remain valid. Password changes, disabling an
-account, or changes to administrator privileges invalidate all of its sessions.
+account, resets or role changes invalidate all of its sessions. Password change
+requires a new login, and enabling an account never revives revoked sessions.
 The API must reject invalidated cookies on subsequent requests, including replay
 through the BFF and SSR. Periodic Identity validation alone must not delay this
 requirement. Persist session/account validity using the selected PostgreSQL
-stack; concrete schema is deferred to runnable setup. Preserve original expiry
+stack; account versions, temporary state and recent verification are part of
+backend user-management persistence. Preserve original expiry
 through all validation/reissuance. The
 [cookie authentication guidance](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0)
 describes validation hooks; project-specific invalidation still needs implementation.
@@ -387,19 +448,19 @@ and transport instants in UTC and keep calendar dates as DateOnly/date strings.
 There is no per-calendar timezone selection in the initial version.
 
 The backend compares current server time with the opening instant and checks
-session validity and membership. At 07:00 the assigned door opens; earlier doors
-remain available to authorized members. Future content must be absent from member
+session validity and recipient assignment. At 07:00 the assigned door opens; earlier doors
+remain available to assigned recipients. Future content must be absent from recipient
 API responses, SSR HTML, hydration data, and prefetched/browser caches. Direct
 API calls and changed browser clocks cannot bypass opening rules. Opening at
 07:00 avoids encouraging children to wait until midnight.
 
-Administrators have full preview and editing access to calendars they own before
+Calendaradmins have full preview and editing access to calendars they own before
 and during the calendar period, including future doors. They can prepare the
 whole calendar and keep editing after the period starts. Moving content requires
 both source and destination doors to be before their scheduled opening instant
 when the backend authorizes the move. Availability is defined by time, not whether
-a particular member clicked a door. Check administrator privileges and ownership
-on every preview/edit/move operation; preserve separate administrator/member
+a particular recipient clicked a door. Check administrator privileges and ownership
+on every preview/edit/move operation; preserve separate administrator/recipient
 responses and caches, and refresh affected data after changes.
 
 ## Data access, migrations, and startup
@@ -514,7 +575,9 @@ and exercise Npgsql/Dapper access. Temporary
 do not change the three-container deployment model. Contract checks may be part
 of API integration tests; no standalone contract-only suite is required.
 
-The runnable setup must demonstrate the following meaningful boundary checks:
+The completed system must demonstrate the following meaningful boundary checks.
+Backend user-management checks belong to that increment; browser/BFF and calendar
+security checks remain separate follow-up work and must pass before production:
 
 - Compile generated abstract controllers and exercise concrete routes, methods,
   parameter bindings, responses, status codes, and OpenAPI-aligned validation.
@@ -523,8 +586,12 @@ The runnable setup must demonstrate the following meaningful boundary checks:
   any used polymorphism through generation, serialization, and applicable stores.
 - Exercise BFF Zod failures, API ProblemDetails/field errors, transport failures,
   total deadline, cancellation, one permitted read retry, and no write or Query retries.
-- Verify API registration and CLI-created administrators share password/account
-  logic while public flows cannot create administrators or elevate roles via codes.
+- Verify direct account APIs enforce the three-role matrix, fixed responsibility
+  and scoped reset/list access, with no public registration, account seeding or API
+  superadmin creation. Verify the offline hash tool cannot connect or write accounts.
+- Verify temporary initial/reset/promotion credentials, restricted sessions, recent
+  administrator verification, lockout/resource budgets, no-store responses and
+  concurrent security-version checks against real PostgreSQL in backend tests.
 - Verify cookie relay, separate Set-Cookie headers, login/logout, CSRF rejection,
   authenticated SSR, and concurrent-user context/cache isolation.
 - Use controlled time for browser-restart persistence, 30-day/eight-hour expiry,
@@ -533,7 +600,7 @@ The runnable setup must demonstrate the following meaningful boundary checks:
 - Check unauthorized calendar access and cross-owner preview/edit attempts;
   test immediately before, at, and after 07:00 using controlled backend time,
   changed browser clocks, and differing client/server timezone settings.
-- Confirm future member content is absent from API, SSR, hydration, prefetch, and
+- Confirm future recipient content is absent from API, SSR, hydration, prefetch, and
   caches; separate administrator data; verify refresh at opening and after edits,
   and reject moves across either source/destination opening boundary.
 - Verify database startup readiness, migrations, transactional rollback, earlier
@@ -591,9 +658,11 @@ This selects correlated logs; full distributed tracing infrastructure is deferre
 
 | Follow-up task | Decisions still required |
 | --- | --- |
-| Runnable application/setup | Actual API resources, content models/screens, UUID version/generation location, concrete session-state schema and validation implementation, CSRF mechanism, CLI packaging, exact package/tool pins, compatible OpenAPI 3.0.x patch and NSwag settings, representative serialization/mapping checks, generation commands/project paths, Compose files and health endpoints |
+| Runnable application/setup | Remaining API resources and content models/screens, UUID version/generation location, exact package/tool pins, representative serialization/mapping checks and build/setup maintenance |
+| Backend user management | Identity stores, Argon2id provider/costs and local weak-password source, account/session schema, offline hash-tool packaging and implementation/verification of the agreed security controls |
+| Calendar authorization and frontend/BFF integration | Owner/recipient assignment and any invitation behavior, calendar endpoint enforcement, account screens, allowlisted cookie/CSRF relay and browser/SSR/cache verification; no public registration |
 | Build/release automation | Concrete GitHub Actions workflows, reliable prior-release migration baseline and integrity enforcement, artifact packaging |
-| Deployment | Production hosting, HTTPS/TLS termination, secrets, persistent database storage, backups, recovery and restoration checks, durable protected Data Protection key configuration, owner CLI invocation, deployment integration and optional Playwright stage |
+| Deployment | Production hosting, HTTPS/TLS termination, secrets, persistent database storage, backups, recovery and restoration checks, durable protected Data Protection key configuration, controlled manual superadmin operator access, database hardening, deployment integration and optional Playwright stage |
 | Observability/operations | Full distributed tracing, collection/storage and visualization of service timings |
 
 No production hosting platform has been selected. Sliplane is only a candidate,
