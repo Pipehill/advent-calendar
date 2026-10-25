@@ -7,11 +7,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectRuntime } from './local-settings.mjs';
+import { onlyMarkdownChanges } from './change-scope.mjs';
 import { gitOutput, splitGitPaths, copyRepositorySnapshot, selectFilesToCheck, createSnapshotMetadata } from './snapshot.mjs';
 
 const toolingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-const containerRuntime = selectRuntime(repositoryRoot);
+let containerRuntime;
 const supportedModes = ['setup', 'clean', 'staged', 'full', 'custom', 'test'];
 const imageInputs = ['Dockerfile', 'package.json', 'package-lock.json', 'requirements.txt'];
 const mountedToolFiles = ['checks.mjs', 'container.mjs', 'puppeteer.json'];
@@ -22,6 +23,11 @@ function main() {
   const receiptPath = path.join(repositoryRoot, 'quality-reports', 'local-hook.json');
   // A failed or manual staged run must never leave an earlier success usable.
   if (mode === 'staged') fs.rmSync(receiptPath, { force: true });
+  if (mode === 'staged' && onlyMarkdownChanges(repositoryRoot, ['--cached'])) {
+    console.log('Quality checks skipped: staged changes contain only Markdown files.');
+    return 0;
+  }
+  containerRuntime = selectRuntime(repositoryRoot);
   if (mode === 'clean') return removeUnusedQualityImages(new Set());
   const image = getQualityImage(mode);
   if (mode === 'setup') return setupQualityImage(image);

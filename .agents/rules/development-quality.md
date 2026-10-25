@@ -4,6 +4,16 @@ Read [advisory code health](../../tools/quality/health.md) for commands, measure
 scope, MCP setup and limitations. Use the pinned repository tools; all analysis is
 check-only. Quality measurements supplement relevant tests and review.
 
+## Markdown-only exception
+
+For work that changes only regular `.md` files, including plans, skip automatic
+lint, tests and advisory health measurements. Do not capture a baseline or run
+the required sequence below solely for Markdown edits. Follow the scope and
+reporting policy in [code quality](../../docs/code-quality.md#markdown-only-changes).
+Mixed code/configuration changes still require the normal checks, even when the
+latest commit contains only Markdown. Explicitly requested verification and
+manual CI dispatch remain available. The protected-branch guard still applies.
+
 ## Test readability
 
 - All automated tests follow Given/When/Then, including backend C# tests and

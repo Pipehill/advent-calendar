@@ -22,19 +22,25 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Identify Markdown-only pull requests
+        id: scope
+        run: node tools/quality/change-scope.mjs ci
       - name: Build pinned quality tools
         id: setup
+        if: steps.scope.outputs.markdown_only != 'true'
         run: node tools/quality/run.mjs setup
       - name: Check the complete repository
         id: checks
+        if: steps.scope.outputs.markdown_only != 'true'
         run: |
-          node --test tools/quality/ci-comment.test.mjs tools/quality/snapshot.test.mjs
+          node --test tools/quality/ci-comment.test.mjs tools/quality/snapshot.test.mjs \
+            tools/quality/change-scope.test.mjs
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
           node tools/quality/run.mjs test
       - name: Advisory application, tooling and whole-repository health evidence
         id: health
-        if: always()
+        if: always() && steps.scope.outputs.markdown_only == 'false'
         continue-on-error: true
         env:
           HEALTH_BASE: ${{ github.event.pull_request.base.sha }}
@@ -48,7 +54,7 @@ jobs:
             node tools/quality/health.mjs doctor
           fi
       - name: Publish reports even after failure
-        if: always()
+        if: always() && steps.scope.outputs.markdown_only != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: quality-reports-${{ github.run_id }}-${{ github.run_attempt }}
@@ -58,6 +64,7 @@ jobs:
       - name: Publish the QA report as a PR comment
         if: >-
           ${{ always() && github.event_name == 'pull_request' &&
+              steps.scope.outputs.markdown_only != 'true' &&
               github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           GH_TOKEN: ${{ github.token }}

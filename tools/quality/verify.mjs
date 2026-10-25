@@ -170,6 +170,10 @@ function expectStagedChecksToFail(reportName) {
 }
 
 function checkStagedFiles({ expectedSuccess, reportName }) {
+  // These enforcement scenarios exercise mixed commits; Markdown-only changes
+  // deliberately skip checks and are covered by change-scope.test.mjs.
+  writeFixture('quality-check-fixture.json', JSON.stringify({ scenario: reportName }) + '\n');
+  runGit('add', 'quality-check-fixture.json');
   // Given captured saved bytes and both Git diffs before invoking the checker.
   const before = captureRepositoryState();
 

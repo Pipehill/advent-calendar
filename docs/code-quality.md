@@ -1,8 +1,32 @@
 # Code quality
 
-Every pull request targeting `main`, including documentation changes and PR updates,
-runs the full repository through the **Code Quality Checks** job in **Code Quality**.
+Pull requests targeting `main` run the full repository through the **Code Quality
+Checks** job in **Code Quality**, except for Markdown-only changes described below.
 Failures block that job; no check changes files or creates commits.
+
+## Markdown-only changes
+
+Commits containing only regular `.md` files, including plans, skip the local
+`staged-quality` checks before container/tool setup. This includes Markdown
+additions, edits, deletions and renames. Non-Markdown files on either side of a
+rename, unsupported file types and empty diffs do not qualify. Unstaged changes
+do not affect the commit decision. The `main` branch guard always remains active.
+
+PR workflows classify the complete merge-base-to-head diff, rather than just the
+latest commit. Markdown-only PRs skip quality-tool setup, lint, tests, application
+builds and advisory health in the Code Quality, Frontend and Backend workflows.
+Their jobs still report successful completion with the exception in the run
+summary; no passing lint/health evidence or PR quality comment is manufactured.
+Mixed PRs run the normal checks, including when their latest commit is only prose.
+Scope detection failures fail the job instead of granting an exception.
+
+No automatic baseline, health comparison or verification run is required for
+Markdown-only work. Explicit `full`, `test`, `custom` and health commands still
+run when requested; manual workflow dispatch also runs the complete checks.
+The PR body generator reports a Markdown-only latest commit as **Skipped**, with
+its commit identity, rather than claiming a passing hook receipt. That local
+exception does not attest to earlier code changes in the PR. Skipped staged runs
+remove obsolete passing receipts.
 
 ## Install after cloning
 
@@ -24,7 +48,7 @@ node tools/quality/verify.mjs
 complete candidate tree to a temporary directory for link targets and filename
 comparisons, but runs content linters and rendering only on staged applicable files.
 Changes to shared settings or tooling expand content checks to the complete candidate
-tree. Any staged Markdown edit checks links in all candidate Markdown documents,
+tree. For mixed changes, any staged Markdown edit checks links in all candidate Markdown documents,
 so changed headings and HTML anchors cannot silently break incoming links.
 Deleting or renaming targets also checks links in all Markdown documents.
 Deleted files are not passed to content linters; renamed files use their new paths.
@@ -141,7 +165,9 @@ prove which machine performed the push. Local receipts are author-supplied evide
 not signed attestations or proof that hooks could not be bypassed. The PR template
 cannot read local files or populate itself on GitHub. The full CI check remains
 independent and must pass separately. Keep the template's unverified placeholder
-when matching local evidence is unavailable. Reports remain ignored by Git.
+when matching local evidence is unavailable. A Markdown-only head commit instead
+produces the documented **Skipped** exception without requiring a receipt.
+Reports remain ignored by Git.
 
 ### Read quality reports
 
@@ -194,8 +220,10 @@ after attribute changes; editor line endings must still be corrected separately.
 
 The stable required status is **Code Quality Checks**
 (workflow display: **Code Quality / Code Quality Checks**).
-There is one job, with no path filters or optional child jobs. A setup failure,
-MegaLinter failure or custom-check failure makes that status fail.
+There is one job, with no workflow-level path filters or optional child jobs.
+Markdown-only PRs complete after scope detection, keeping the required job status
+available. Otherwise a setup failure, MegaLinter failure or custom-check failure
+makes that status fail.
 
 After a real PR has emitted the status, the repository owner should use Settings →
 Rules → Rulesets (or branch protection) to target `refs/heads/main`, require pull
