@@ -5,7 +5,7 @@ import { SessionControls } from '../components/session-controls';
 import * as m from '../generated/paraglide/messages.js';
 import { requireSession } from '../lib/auth-navigation';
 
-export const Route = createFileRoute('/endre-passord')({
+export const Route = createFileRoute('/change-password')({
   staleTime: 0,
   gcTime: 0,
   shouldReload: true,

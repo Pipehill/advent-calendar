@@ -28,7 +28,7 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     assert.equal(await page.locator('h1').textContent(), welcome);
     assert.equal(await page.locator('main p').textContent(), introduction);
     assert.equal(await page.locator('html').getAttribute('lang'), 'nb');
-    assert.equal(await page.getByRole('link', { name: 'Logg inn' }).getAttribute('href'), '/logg-inn');
+    assert.equal(await page.getByRole('link', { name: 'Logg inn' }).getAttribute('href'), '/login');
     assert(!requests.some(url => url.includes('/api/trpc/') || url.startsWith(apiUrl)));
     await page.screenshot({ path: path.join(reports, 'landing-desktop.png'), fullPage: true });
   });
@@ -51,7 +51,7 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
       assert.equal(await page.locator('html').getAttribute('lang'), locale);
       assert.equal(await page.locator('h1').textContent(), heading);
       assert.equal(await page.locator('main p').textContent(), description);
-      assert.equal(await page.getByRole('link', { name: login }).getAttribute('href'), '/logg-inn');
+      assert.equal(await page.getByRole('link', { name: login }).getAttribute('href'), '/login');
       assert.equal(new URL(page.url()).pathname, '/');
     }
   });

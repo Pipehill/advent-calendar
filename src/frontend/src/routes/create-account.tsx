@@ -5,7 +5,7 @@ import { SessionControls } from '../components/session-controls';
 import * as m from '../generated/paraglide/messages.js';
 import { requireSession } from '../lib/auth-navigation';
 
-export const Route = createFileRoute('/opprett-konto')({
+export const Route = createFileRoute('/create-account')({
   staleTime: 0,
   gcTime: 0,
   shouldReload: true,
@@ -13,7 +13,7 @@ export const Route = createFileRoute('/opprett-konto')({
   loader: async ({ context }) => {
     const session = await requireSession(context);
     if (!['superadmin', 'calendarAdmin'].includes(session.user.role))
-      throw redirect({ to: '/min-side' });
+      throw redirect({ to: '/my-page' });
     return session;
   },
   pendingComponent: () => <p role="status">{m.auth_pending()}</p>,
@@ -32,11 +32,11 @@ function CreateAccountPage() {
         context={context}
         actorRole={session.user.role}
         action="create"
-        onCancel={() => void navigate({ to: '/min-side' })}
+        onCancel={() => void navigate({ to: '/my-page' })}
         onSuccess={async (id) => {
           context.queryClient.clear();
           context.administration.createdId = id;
-          await navigate({ to: '/min-side' });
+          await navigate({ to: '/my-page' });
         }}
       />
       <SessionControls context={context} expiresAt={session.expiresAt} />

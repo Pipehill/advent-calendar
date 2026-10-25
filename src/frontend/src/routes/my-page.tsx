@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import * as m from '../generated/paraglide/messages.js';
 import { requireSession } from '../lib/auth-navigation';
 
-export const Route = createFileRoute('/min-side')({
+export const Route = createFileRoute('/my-page')({
   staleTime: 0,
   gcTime: 0,
   shouldReload: true,
@@ -49,7 +49,7 @@ function PersonalPage() {
         <section className="mt-10" aria-label={m.future_actions()}>
           <div className="flex flex-wrap gap-4">
             <Link
-              to="/opprett-konto"
+              to="/create-account"
               className="inline-flex min-h-11 items-center rounded-full bg-emerald-950 px-5 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-800"
             >
               {user.role === 'superadmin' ? m.admin_create_account() : m.create_user()}

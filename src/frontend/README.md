@@ -15,8 +15,8 @@ without a duplicate request. Door contents are omitted from this page's BFF data
 
 ## Sign-in and personal pages
 
-`/logg-inn` accepts username and password through a TanStack Form/Zod form.
-Successful login opens `/min-side`, or `/endre-passord` for a restricted temporary
+`/login` accepts username and password through a TanStack Form/Zod form.
+Successful login opens `/my-page`, or `/change-password` for a restricted temporary
 session. Own-password change revokes all sessions and requires a fresh login.
 Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
@@ -29,7 +29,7 @@ enable/disable accounts and change between calendaradmin/calendar-user roles.
 Superadmin targets remain view-only. Lists show name, username, localized role
 and enabled state, with pagination and refresh. Calendar creation remains unavailable.
 
-`/opprett-konto` is a dedicated, session-protected TanStack Form/Zod creation page.
+`/create-account` is a dedicated, session-protected TanStack Form/Zod creation page.
 Superadmins select a responsible calendaradmin for ordinary users; calendaradmin
 responsibility is derived by the backend. Administrator options load across backend
 pages and are revalidated on submission. After creation, the BFF locates the returned

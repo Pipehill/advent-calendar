@@ -37,7 +37,7 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
   }, [selected]);
   useEffect(() => {
     if (query.error && ['UNAUTHORIZED', 'FORBIDDEN'].includes(errorCode(query.error)))
-      leaveSession(context, '/logg-inn');
+      leaveSession(context, '/login');
   }, [query.error, context]);
   return (
     <section className="mt-10" aria-labelledby="accounts-heading">

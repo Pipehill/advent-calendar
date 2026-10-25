@@ -2,6 +2,38 @@
 
 Last updated: 2026-10-25
 
+## 2026-10-25: English route names
+
+Refactored on `refactor/english-routes` from main
+`f64d124930cc404a2ae22d9dbfe909be73815f48`. Route files and URL paths now use
+`/login`, `/my-page`, `/create-account` and `/change-password`. Navigation,
+session redirects, browser assertions and current documentation use those paths.
+The previous Norwegian routes are removed without compatibility redirects.
+Interface translations remain in the existing Norwegian/English message catalogs.
+The shared English-content rule now explicitly covers source code, identifiers,
+file/directory names, route names and URL paths across interface languages.
+
+- All **77 Vitest tests** passed.
+- Vite production build, explicit TypeScript checking, Nitro packaging and frontend
+  Biome checks passed. Nitro packaging required execution outside the filesystem
+  sandbox because its dependency tracer reads parent-directory metadata.
+- All **28 Playwright/Edge authentication scenarios** and their **eight public/calendar
+  smoke scenarios** passed against production Nitro and isolated PostgreSQL.
+- Full MegaLinter and custom repository checks passed.
+- jscpd 5.4.1 reports unchanged application health **87.5** and tooling health
+  **52.0**. Application duplication remains **0.329421%**, **4 clones / 32 lines**;
+  tooling remains **0.084710%**, **1 clone / 6 lines**. Complexity and heuristic
+  dead-code findings are unchanged. Dead-code coverage remains **33%** for
+  application source and **96%** for tooling; unsupported dimensions and heuristic
+  entry-point findings retain the analyzer limitations documented previously.
+
+Baseline/current identities, configuration hashes, full metrics and refreshed MCP
+schemas/statistics are retained under ignored `quality-reports/health/`.
+Browser evidence remains under `quality-reports/plan00013/browser/` and
+`quality-reports/frontend/`. The disposable database container was removed;
+existing application containers and images were preserved. This evidence covers
+Windows/Podman, Edge and production Nitro on local HTTP.
+
 ## 2026-10-25: Plan 00013 account administration
 
 Implemented on `feature/user-administration`, based on synchronized main
