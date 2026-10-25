@@ -1,5 +1,45 @@
 # Code health verification
 
+## 2026-10-25 Markdown-only quality exception
+
+The owner approved skipping automatic checks for plans and other Markdown-only
+changes. The staged runner now classifies the index before resolving container
+settings, and the three PR workflows classify the complete merge-base/head diff
+before preparing tools. Explicit manual checks remain available. See the
+[scope policy](../../docs/code-quality.md#markdown-only-changes).
+
+On Windows with Node 24.20.0 and Podman, the 16 new scope/report tests and the
+32 existing snapshot/comment tests passed. Coverage includes Markdown-only
+additions/deletions/renames, a missing container runtime, partial staging, stale
+receipt removal, code deletions and cross-extension renames, unsupported file
+types, an advancing PR base, earlier code commits, manual dispatch and honest
+skipped PR evidence. Full lint and repository checks passed after splitting one
+overlong workflow command. Disposable-clone checks confirmed branch protection,
+partial staging, receipt integrity, mixed-change lint/link enforcement and image
+cleanup. The first clone predated that line-wrap fix; the affected configuration
+scenario and remaining detached-checkout/missing-runtime scenarios passed when
+rerun against final saved source. Command logs and the rerun selection/source
+hash are retained under `quality-reports/markdown-skip/` and
+`quality-reports/verification/`. GitHub-hosted skip behavior and native
+macOS/Linux execution have not been observed in this change.
+
+The baseline at `83c04843f3ea9d7fb7f531dac41f034a16f49fbf` was preserved before
+editing source. jscpd 5.4.1 used unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Application health stays 89.4 across the same 53 files and 6,412 lines, with one
+clone, 11 duplicated lines and 0.1715533374922021% duplication. Tooling health
+changes from 49.6 to 50.6, complexity score from 58.4 to 59.6 and dead-code score
+from 22 to 22.8. Its scope grows from 39 files/5,848 lines to 41 files/6,153 lines;
+zero clones and zero duplicated lines remain unchanged. The higher aggregate
+scores include the added scope tests, not removal of the existing six heuristic
+dead-code findings. Maximum complexity remains 94. Dead-code coverage is partial:
+12.6% for application and 97.5% for tooling; script/import false positives remain.
+
+MCP tool schemas, snippet results, refreshed scan and statistics are retained in
+`quality-reports/markdown-skip/mcp.json`. Baseline/current/whole-repository raw
+measurements and content identities are under `quality-reports/health/`. These
+measurements describe saved working source, not passing staged or CI evidence.
+
 ## 2026-10-25 plan 00010 tooling simplification
 
 Current measurements, false-positive entry points and platform limitations are in

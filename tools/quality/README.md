@@ -8,6 +8,7 @@ For baseline/comparison commands, scope and MCP use [advisory health](health.md)
 | Responsibility | Owner |
 | --- | --- |
 | Runtime, image identity, direct Docker/Podman invocation and receipts | `run.mjs`, `local-settings.mjs` |
+| Markdown-only commit/PR classification and CI exception | `change-scope.mjs` |
 | Saved/indexed source, selected files and immutable input identity | `snapshot.mjs` |
 | Offline selected checks, rendering and failure reports | `container.mjs`, `checks.mjs` |
 | Disposable-clone regressions and local QA evidence | `verify.mjs`, `pr-report.mjs` |

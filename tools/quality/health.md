@@ -6,6 +6,11 @@ separate CLI JSON reports. All four runs use the same `.jscpd.json`, binary and
 immutable source snapshot. No score, clone count or finding creates a hook or CI
 gate. Existing lint checks and verified Local QA receipts retain their meaning.
 
+The [Markdown-only exception](../../docs/code-quality.md#markdown-only-changes)
+skips automatic baselines, comparisons and CI health execution for prose-only
+work. The explicit commands below still execute when requested. Mixed PRs retain
+the complete target/candidate comparison regardless of the latest commit's scope.
+
 ## Development commands
 
 Run developer setup first, or run `node tools/quality/install-analysis.mjs`.
@@ -130,7 +135,8 @@ configuration formats are outside this task's scope.
 
 ## PR generation and refresh
 
-Fetch the target branch, then run `node tools/quality/health.mjs pr origin/main HEAD`.
+For PRs with non-Markdown changes, fetch the target branch, then run
+`node tools/quality/health.mjs pr origin/main HEAD`.
 Use explicit base/head refs for other PR targets. The command resolves both commits
 and uses `git merge-tree --write-tree` to create a candidate Git tree without moving
 HEAD, switching branches, modifying the index or merging into the working tree.
