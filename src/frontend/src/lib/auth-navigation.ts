@@ -9,10 +9,10 @@ export async function requireSession(context: RouterContext, restricted = false)
     session = await context.auth.session();
   } catch (error) {
     context.queryClient.clear();
-    if (errorCode(error) === 'UNAUTHORIZED') throw redirect({ to: '/logg-inn' });
+    if (errorCode(error) === 'UNAUTHORIZED') throw redirect({ to: '/login' });
     throw error;
   }
-  if (session.mustChangePassword && !restricted) throw redirect({ to: '/endre-passord' });
+  if (session.mustChangePassword && !restricted) throw redirect({ to: '/change-password' });
   return session;
 }
 

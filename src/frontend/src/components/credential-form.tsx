@@ -77,14 +77,14 @@ export function CredentialForm({
             newPassword: value.newPassword,
           });
           formApi.reset();
-          leaveSession(context, '/logg-inn?changed=1');
+          leaveSession(context, '/login?changed=1');
         } else {
           const session = await context.auth.login({
             username: value.username,
             password: value.password,
           });
           formApi.reset();
-          leaveSession(context, session.mustChangePassword ? '/endre-passord' : '/min-side');
+          leaveSession(context, session.mustChangePassword ? '/change-password' : '/my-page');
         }
       } catch (error) {
         const errors = backendFieldErrors(error);

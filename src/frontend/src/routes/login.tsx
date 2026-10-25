@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { CredentialForm } from '../components/credential-form';
 import * as m from '../generated/paraglide/messages.js';
 
-export const Route = createFileRoute('/logg-inn')({
+export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>): { changed?: number } => ({
     changed: search.changed === '1' || search.changed === 1 ? 1 : undefined,
   }),

@@ -87,13 +87,13 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
   test('Given an anonymous visitor, When personal SSR and keyboard login navigation are requested, Then no personal data is exposed', async () => {
     // Given no authentication cookies.
-    const anonymous = await fetch(`${frontendUrl}/min-side`, { redirect: 'manual' });
+    const anonymous = await fetch(`${frontendUrl}/my-page`, { redirect: 'manual' });
 
     // When the public login link receives keyboard activation.
     await page.goto(frontendUrl);
     await page.getByRole('link', { name: 'Logg inn' }).focus();
     await page.keyboard.press('Enter');
-    await page.waitForURL('**/logg-inn');
+    await page.waitForURL('**/login');
 
     // Then SSR denies personal data and navigation opens an accessible page form.
     assert.match(anonymous.headers.get('cache-control'), /no-store/);
@@ -167,11 +167,11 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   test('Given a restricted superadmin, When direct navigation and password change are attempted, Then fresh login is required before privileges appear', async () => {
     // Given a temporary credential for a superadmin.
     const account = accounts.find(item => item.username === 'browser-temporary');
-    await signIn(account, '/endre-passord');
+    await signIn(account, '/change-password');
 
     // When direct personal-page access is followed by a compliant password change.
-    await page.goto(`${frontendUrl}/min-side`, { waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/endre-passord');
+    await page.goto(`${frontendUrl}/my-page`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/change-password');
     assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 0);
     assert.equal((await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
     const replacement = `Fresh!Ærlig${randomUUID()}`;
@@ -181,12 +181,12 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     await page.locator('#newPassword[aria-invalid=true]').waitFor();
     await page.getByLabel('Nytt passord').fill(replacement);
     await page.getByRole('button', { name: 'Bytt passord', exact: true }).click();
-    await page.waitForURL('**/logg-inn?changed=1');
+    await page.waitForURL('**/login?changed=1');
 
     // Then the old cookie is unusable, the confirmation is localized and a new login grants authority.
     assert.equal(await page.getByRole('status').textContent(), 'Passordet er byttet. Logg inn med det nye passordet.');
-    await page.goto(`${frontendUrl}/min-side`, { waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/logg-inn');
+    await page.goto(`${frontendUrl}/my-page`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/login');
     account.password = replacement;
     await signIn(account);
     assert.equal(await page.getByRole('link', { name: 'Opprett konto' }).count(), 1);
@@ -194,7 +194,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
   test('Given an invalid password, When the language changes, Then generic localized errors and accessible field validation appear', async () => {
     // Given the sign-in form in Norwegian.
-    await page.goto(`${frontendUrl}/logg-inn`);
+    await page.goto(`${frontendUrl}/login`);
     await page.getByRole('button', { name: 'Logg inn' }).click();
     assert.equal(await page.locator('input[aria-invalid=true]').count(), 2);
 
@@ -220,13 +220,13 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
     // When persistence revokes the session before a direct request and refresh.
     command(dotnet, [fixtureDll, 'revoke', account.username], environment);
-    const response = await fetch(`${frontendUrl}/min-side`, { headers: { cookie }, redirect: 'manual' });
+    const response = await fetch(`${frontendUrl}/my-page`, { headers: { cookie }, redirect: 'manual' });
     await page.reload({ waitUntil: 'networkidle' });
 
     // Then backend validation blocks the replay and personal output is absent.
     assert(! (await response.text()).includes(account.name));
     assert.match(response.headers.get('cache-control'), /no-store/);
-    assert.equal(new URL(page.url()).pathname, '/logg-inn');
+    assert.equal(new URL(page.url()).pathname, '/login');
   });
 
   test('Given two sessions, When one logs out, Then its replay and browser history lose personal data while the other stays valid', async () => {
@@ -237,12 +237,12 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     const other = await browser.newContext();
     const otherPage = await other.newPage();
     try {
-      await signIn(account, '/min-side', otherPage);
+      await signIn(account, '/my-page', otherPage);
 
       // When the first session logs out through CSRF-protected BFF revocation.
       await page.getByRole('button', { name: 'Logg ut', exact: true }).click();
       await page.waitForURL(frontendUrl + '/');
-      const response = await fetch(`${frontendUrl}/min-side`, { headers: { cookie: replay }, redirect: 'manual' });
+      const response = await fetch(`${frontendUrl}/my-page`, { headers: { cookie: replay }, redirect: 'manual' });
       await page.goBack({ waitUntil: 'networkidle' });
       await otherPage.reload({ waitUntil: 'networkidle' });
 
@@ -285,7 +285,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
       assert.match(response.headers()['cache-control'], /no-store/);
     }
     await page.reload({ waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/min-side');
+    assert.equal(new URL(page.url()).pathname, '/my-page');
   });
 
   test('Given an expired temporary password, When login is attempted, Then generic feedback grants no restricted or privileged session', async () => {
@@ -294,15 +294,15 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     command(dotnet, [fixtureDll, 'expire', account.username], environment);
 
     // When the former credential is submitted through the normal sign-in form.
-    await page.goto(`${frontendUrl}/logg-inn`);
+    await page.goto(`${frontendUrl}/login`);
     await page.getByLabel('Brukernavn').fill(account.username);
     await page.getByLabel('Passord', { exact: true }).fill(account.password);
     await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
 
     // Then the error does not disclose account state or grant personal access.
     await page.getByRole('alert').filter({ hasText: 'Kunne ikke logge inn' }).waitFor();
-    await page.goto(`${frontendUrl}/min-side`, { waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/logg-inn');
+    await page.goto(`${frontendUrl}/my-page`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/login');
   });
 
   test('Given a cached superadmin list, When the same browser switches to an ordinary account, Then privileged data is absent from its UI and HTML', async () => {
@@ -352,23 +352,23 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
   test('Given direct creation URLs, When anonymous ordinary and restricted callers navigate, Then the form is protected on SSR and refresh', async () => {
     // Given no session followed by an ordinary account.
-    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/logg-inn');
+    await page.goto(`${frontendUrl}/create-account`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/login');
     const ordinary = accounts.find(item => item.username === 'browser-user');
     await signIn(ordinary);
 
     // When direct navigation and a direct creation mutation bypass the UI.
-    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
+    await page.goto(`${frontendUrl}/create-account`, { waitUntil: 'networkidle' });
     const denied = await mutation('accounts.create', { name: 'Denied', username: 'denied-user', role: 'calendarUser', password: `Temporary!${randomUUID()}` });
 
     // Then the ordinary caller sees no form and the independent BFF rejects the write.
-    assert.equal(new URL(page.url()).pathname, '/min-side');
+    assert.equal(new URL(page.url()).pathname, '/my-page');
     assert.equal(await page.locator('#account-password').count(), 0);
     assert.equal(denied.status(), 403);
     assert.match(denied.headers()['cache-control'], /no-store/);
-    await signIn(accounts.find(item => item.username === 'browser-restricted-admin'), '/endre-passord');
-    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
-    assert.equal(new URL(page.url()).pathname, '/endre-passord');
+    await signIn(accounts.find(item => item.username === 'browser-restricted-admin'), '/change-password');
+    await page.goto(`${frontendUrl}/create-account`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/change-password');
     assert.equal(await page.locator('#account-password').count(), 0);
   });
 
@@ -433,7 +433,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('#account-password').inputValue(), '');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
-    await page.waitForURL('**/min-side');
+    await page.waitForURL('**/my-page');
     assert.equal(await page.getByText('Duplicate must not persist', { exact: true }).count(), 0);
     await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
     assert.equal(await page.locator('#account-name').inputValue(), '');
@@ -457,11 +457,11 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     await page.getByLabel('Ditt administratorpassord').fill('Incorrect!Verification');
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
     await page.getByRole('alert').filter({ hasText: 'Passordbekreftelsen mislyktes' }).waitFor();
-    assert.equal(new URL(page.url()).pathname, '/opprett-konto');
+    assert.equal(new URL(page.url()).pathname, '/create-account');
     assert.equal(await page.getByLabel('Ditt administratorpassord').inputValue(), '');
     await page.getByLabel('Ditt administratorpassord').fill(actor.password);
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
-    await page.waitForURL('**/min-side');
+    await page.waitForURL('**/my-page');
     await page.getByText('Bekreftet Administrator', { exact: true }).waitFor();
 
     // Then only explicit resubmission succeeds and verification never extends the session deadline.
@@ -616,7 +616,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(writes, 1);
     assert.equal(await page.getByRole('status').filter({ hasText: 'Kontoen er opprettet' }).count(), 0);
     await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
-    await page.waitForURL('**/min-side');
+    await page.waitForURL('**/my-page');
     await page.getByText(name, { exact: true }).waitFor();
   });
 
@@ -667,8 +667,8 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   });
 });
 
-async function signIn(account, destination = '/min-side', target = page) {
-  await target.goto(`${frontendUrl}/logg-inn`);
+async function signIn(account, destination = '/my-page', target = page) {
+  await target.goto(`${frontendUrl}/login`);
   await target.getByLabel('Brukernavn').fill(account.username);
   await target.getByLabel('Passord', { exact: true }).fill(account.password);
   await target.getByRole('button', { name: 'Logg inn', exact: true }).click();
@@ -698,7 +698,7 @@ async function createAccount(actor, input) {
   const result = await response;
   assert.equal(result.status(), 200, 'Creation succeeds');
   assert.match(result.headers()['cache-control'], /no-store/);
-  await page.waitForURL('**/min-side');
+  await page.waitForURL('**/my-page');
   await page.getByRole('status').filter({ hasText: 'Kontoen er opprettet' }).waitFor();
   await page.getByText(input.name, { exact: true }).waitFor();
   return (await result.json()).result.data;

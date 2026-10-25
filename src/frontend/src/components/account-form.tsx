@@ -78,13 +78,13 @@ export function AccountForm({
           try {
             await context.auth.session();
           } catch (sessionError) {
-            if (errorCode(sessionError) === 'UNAUTHORIZED') leaveSession(context, '/logg-inn');
+            if (errorCode(sessionError) === 'UNAUTHORIZED') leaveSession(context, '/login');
           }
           setFailure(m.admin_verify_failed());
           return;
         }
         if (errorCode(error) === 'UNAUTHORIZED') {
-          leaveSession(context, '/logg-inn');
+          leaveSession(context, '/login');
           return;
         }
         if (verificationRequired(error)) {

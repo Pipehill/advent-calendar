@@ -317,11 +317,11 @@ calendar authority.
 Backend accounts and authentication are implemented as described in the
 [backend authentication workflow](../src/backend/authentication.md). The current
 calendar POST/GET API remains anonymous. Frontend login, required password change,
-logout and `/min-side` use backend-validated sessions through the BFF. Every
+logout and `/my-page` use backend-validated sessions through the BFF. Every
 account has a required single display name, trimmed to 1-100 Unicode code points,
 independent of its unique username and role. Existing usernames are backfilled.
 The personal page greets that name and displays initials. Unrestricted administrators
-open `/opprett-konto` to create permitted accounts and maintain their authorized
+open `/create-account` to create permitted accounts and maintain their authorized
 paginated lists. Superadmins see all accounts and can reset passwords, enable/disable
 and change nonsuperadmin roles; calendaradmins list/reset only assigned ordinary
 accounts. Creation and demotion preserve fixed responsibility. BFF projections include

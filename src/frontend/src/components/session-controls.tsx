@@ -31,7 +31,7 @@ export function SessionControls({
     };
     const timeout = window.setTimeout(
       () => {
-        if (Date.parse(expiresAt) <= Date.now()) leaveSession(context, '/logg-inn');
+        if (Date.parse(expiresAt) <= Date.now()) leaveSession(context, '/login');
         else recheck();
       },
       Math.min(2_147_483_647, Math.max(0, Date.parse(expiresAt) - Date.now())),
@@ -47,7 +47,7 @@ export function SessionControls({
   return (
     <div className="mt-8 flex flex-wrap items-center gap-4">
       {passwordLink && (
-        <Link to="/endre-passord" className="underline underline-offset-4">
+        <Link to="/change-password" className="underline underline-offset-4">
           {m.password_change_title()}
         </Link>
       )}

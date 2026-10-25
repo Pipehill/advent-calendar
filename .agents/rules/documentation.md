@@ -23,7 +23,9 @@ Avoid duplicating instructions across files. Update the file that owns the rule.
 ## 3. Use English for project content
 
 Write project content in English, including documentation, agent instructions,
-plans, code comments, commit messages, and pull requests.
+plans, source code, code comments, commit messages, and pull requests.
+Use English for code identifiers, file and directory names, route names and URL
+paths. Keep application routes consistent across interface languages.
 Use consistent English terminology unless another language is required by the
 content or explicitly requested by the user.
 

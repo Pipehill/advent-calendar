@@ -58,7 +58,7 @@ function Document({ children }: { children: ReactNode }) {
             <div className={isLandingPage ? 'landing-controls' : undefined}>
               <LanguageSelector />
               {isLandingPage && (
-                <Link to="/logg-inn" className="login-link">
+                <Link to="/login" className="login-link">
                   {m.login_label()}
                 </Link>
               )}
