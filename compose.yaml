@@ -26,7 +26,6 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__Calendar: >-
         Host=database;Database=advent;Username=advent;Password=local-development;Timeout=3;Command Timeout=5
-      LocalSeed__Enabled: "true"
       Authentication__KeyDirectory: /var/lib/advent-keys
     volumes:
       - development-authentication-keys:/var/lib/advent-keys

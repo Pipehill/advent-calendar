@@ -89,12 +89,12 @@ exchange and intentional manual superadmin provisioning.
 Create with
 `POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
 with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.
-The local sample ID is `5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026`.
+Startup does not create calendars or other sample data.
 
 See [frontend workflows](src/frontend/README.md) for host development, language
 selection, frontend builds and browser verification. See
 [backend commands and API examples](src/backend/README.md) for host development,
-tests, configuration, seed activation, stopping containers and log inspection.
+tests, configuration, stopping containers and log inspection.
 
 [pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
 [megalinter-badge]: https://img.shields.io/badge/MegaLinter-enabled-brightgreen

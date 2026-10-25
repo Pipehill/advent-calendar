@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using Calendar.Api.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -51,7 +50,6 @@ public sealed class ApiFixture : IAsyncLifetime
 
     public WebApplicationFactory<Program> Application(
         string environment = "Testing",
-        bool seed = false,
         string? connectionString = null,
         TimeProvider? time = null
     ) =>
@@ -65,7 +63,6 @@ public sealed class ApiFixture : IAsyncLifetime
                         {
                             ["ConnectionStrings:Calendar"] =
                                 connectionString ?? Database.GetConnectionString(),
-                            ["LocalSeed:Enabled"] = seed.ToString(),
                             ["Database:StartupAttempts"] = "1",
                             ["Authentication:KeyDirectory"] =
                                 environment == "Production"

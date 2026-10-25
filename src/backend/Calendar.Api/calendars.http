@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:8080
-# Replace with a POST response ID, or use the idempotent local seed ID below.
-@calendarId = 5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026
+# Replace with an ID returned by the create request below.
+@calendarId = 00000000-0000-4000-8000-000000000001
 
 ### Create: 201, calendar body and Location header
 POST {{baseUrl}}/calendars

@@ -1,5 +1,49 @@
 # Backend verification
 
+## 2026-10-25: Remove local calendar seeding
+
+Branch: `chore/remove-calendar-seeding`. Removed the startup seed, its settings,
+and seed-only identifier/conflict options. Calendar creation remains an explicit
+API operation. Published migrations, existing data and development volumes were
+not changed. Browser smoke tests now create their own API fixtures.
+
+- Backend contract validation, locked restore and Release build passed with zero
+  build warnings/errors. All **144 backend tests** passed against isolated
+  PostgreSQL 18.4 Testcontainers. Updated coverage verifies zero accounts,
+  sessions, calendars and doors after startup/restart in Development and
+  Production, and preserves API-created calendar content through restart.
+- All **21 frontend unit tests**, the production Vite/Nitro build and TypeScript
+  checking passed. All **8 browser smoke scenarios** passed against the built
+  frontend and a separate disposable database. Before browser fixtures were
+  created, direct SQL confirmed zero calendars, doors and accounts even with the
+  obsolete `LocalSeed__Enabled=true` environment variable present.
+- The initial browser run against Vite development mode passed the calendar
+  scenarios but failed three locale-switch assertions. The same complete suite
+  passed against the production server. No localization implementation changed.
+  An earlier verification harness used a one-second HTTP timeout with localhost;
+  explicit IPv4 and a three-second readiness timeout resolved that harness issue.
+- Backend SDK formatting/analyzers, frontend Biome, CSharpier 1.3.0 on both API
+  and test source, Markdown lint on changed documentation, JavaScript syntax and
+  `git diff --check` passed. The four existing Redocly advisory warnings remain.
+- Full quality verification is **unavailable**: `node tools/quality/run.mjs full`
+  found no quality image, and `setup` failed because its pinned Alpine package
+  `chromium=155.0.8059.39-r0` was unavailable; the repository offered
+  `155.0.8059.84-r0` and reported an ICU package conflict. The quality Dockerfile
+  was not changed. Direct CSharpier and Markdown checks reused the pinned build
+  stage/base image; they do not establish a complete MegaLinter/custom-check run.
+- Advisory jscpd 5.4.1 health **regressed from 64.7 to 64.6 (-0.1)**; complexity
+  score fell from 72.5 to 72.4 and its measured share rose from 23.6% to 23.7%.
+  Removing seed code changes the measured source mix, while browser fixtures now
+  explicitly create test data. Duplication rose from 0.0893074612% to
+  0.0898986597% because the measured source shrank from 12,317 to 12,236 lines
+  (93 to 92 files); the same single 11-line clone remains. Maximum file
+  complexity stays 94, with eight unchanged heuristic dead-code findings.
+  Dead-code coverage is partial (52.9%); entry points can be misclassified and
+  rounded scores are advisory. MCP snippet checking found no new exact clone,
+  followed by a directory refresh before statistics. Source identities, shared
+  configuration, schemas and detailed results are retained in ignored
+  `quality-reports/health/`; this is working-tree evidence, not a hook receipt.
+
 ## 2026-10-18: Backend accounts and authentication
 
 Branch: `feature/backend-user-management`, based on planning commit `12bb0dc`.

@@ -378,75 +378,39 @@ public sealed class CalendarApiTests(ApiFixture fixture)
         Assert.Equal(PostgresErrorCodes.NotNullViolation, error.SqlState);
     }
 
-    [Theory(
-        DisplayName = "Given an environment or setting that disables seeding, When the API starts, Then the sample calendar does not exist"
-    )]
-    [InlineData("Development", false)]
-    [InlineData("Production", true)]
-    [InlineData("Production", false)]
-    public async Task GivenSeedConditionsNotMetWhenStartingApiThenSampleCalendarDoesNotExist(
-        string environment,
-        bool seed
-    )
-    {
-        // Given a database without the sample and an environment/setting that must not seed.
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
-        await DatabaseStartup.MigrateAsync(
-            fixture.Database.GetConnectionString(),
-            1,
-            CancellationToken.None
-        );
-        await connection.ExecuteAsync(
-            "DELETE FROM calendars WHERE id = @Id",
-            new { Id = LocalSeed.CalendarId }
-        );
-        await using var app = fixture.Application(environment, seed);
-
-        // When the application starts and the sample calendar is requested.
-        using var client = app.CreateClient();
-        var response = await client.GetAsync($"/calendars/{LocalSeed.CalendarId}");
-
-        // Then neither the setting alone nor the environment alone enables seeding.
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
     [Fact(
-        DisplayName = "Given an edited sample calendar, When the API restarts with development seeding enabled, Then one sample remains and its edit is preserved"
+        DisplayName = "Given an edited calendar, When the API restarts, Then its saved content is preserved"
     )]
-    public async Task GivenEditedSampleCalendarWhenRestartingWithSeedEnabledThenPreservesOneEditedSample()
+    public async Task GivenEditedCalendarWhenRestartingThenPreservesSavedContent()
     {
-        // Given a seeded development calendar whose first door has been edited.
-        HttpStatusCode initialStatus;
-        await using (var app = fixture.Application("Development", true))
+        // Given a calendar created through the API whose first door has been edited.
+        CalendarDto created;
+        await using (var app = fixture.Application("Development"))
         {
             using var client = app.CreateClient();
-            initialStatus = (
-                await client.GetAsync($"/calendars/{LocalSeed.CalendarId}")
-            ).StatusCode;
+            var response = await client.PostAsJsonAsync(
+                "/calendars",
+                new { title = "My calendar" }
+            );
+            created = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
         }
         await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
         await connection.ExecuteAsync(
             "UPDATE doors SET content_text = 'preserved' WHERE calendar_id = @Id AND day_number = 1",
-            new { Id = LocalSeed.CalendarId }
+            new { created.Id }
         );
 
-        // When the application restarts with development seeding still enabled.
-        await using var restarted = fixture.Application("Development", true);
+        // When the application restarts and the calendar is retrieved.
+        await using var restarted = fixture.Application("Development");
         using var restartedClient = restarted.CreateClient();
-        var sample = (
-            await restartedClient.GetFromJsonAsync<CalendarDto>(
-                $"/calendars/{LocalSeed.CalendarId}"
-            )
+        var calendar = (
+            await restartedClient.GetFromJsonAsync<CalendarDto>($"/calendars/{created.Id}")
         )!;
-        var sampleCount = await connection.ExecuteScalarAsync<int>(
-            "SELECT count(*)::int FROM calendars WHERE id = @Id",
-            new { Id = LocalSeed.CalendarId }
-        );
 
-        // Then the seed exists once and retains its saved door text.
-        Assert.Equal(HttpStatusCode.OK, initialStatus);
-        Assert.Equal("preserved", sample.Doors[0].Text);
-        Assert.Equal(1, sampleCount);
+        // Then the calendar retains its title and saved door text.
+        Assert.Equal(created.Title, calendar.Title);
+        Assert.Equal("preserved", calendar.Doors[0].Text);
+        Assert.Equal(24, calendar.Doors.Count);
     }
 
     [Fact(

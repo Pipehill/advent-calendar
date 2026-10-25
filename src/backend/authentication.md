@@ -76,7 +76,7 @@ invalidate every account session. Enabling never revives revoked sessions.
 
 ## Manual superadmin provisioning
 
-Startup creates **zero accounts**, including Development with calendar seed enabled.
+Startup creates **zero accounts** in every environment.
 There are no default credentials, bootstrap flags, automatic hooks or provisioning
 routes. Build with the pinned SDK, then use its `dotnet` executable interactively:
 

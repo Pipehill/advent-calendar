@@ -56,12 +56,11 @@ Use the SDK installed by setup (or a matching SDK on PATH):
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
-$env:LocalSeed__Enabled = 'true'
 ./.quality-cache/dotnet/dotnet.exe watch --project src/backend/Calendar.Api --urls http://localhost:8080
 ```
 
 ```bash
-ASPNETCORE_ENVIRONMENT=Development LocalSeed__Enabled=true \
+ASPNETCORE_ENVIRONMENT=Development \
   .quality-cache/dotnet/dotnet watch --project src/backend/Calendar.Api --urls http://localhost:8080
 ```
 
@@ -69,17 +68,16 @@ If setup found an existing SDK, use its saved `dotnet` executable instead. NSwag
 regenerates before compilation, including watch builds. For direct dotnet commands,
 make the selected SDK directory available on PATH so MSBuild invokes that SDK.
 
-## Configuration, migrations and seed
+## Configuration and migrations
 
-`appsettings.json` has a local host database connection and seeding disabled.
-Nonlocal deployments must supply their connection string and keep seeding disabled.
-The Compose file is exclusively for local development: it selects `Development`
-and enables `LocalSeed__Enabled`. Both are required; Production ignores the seed
-setting even when accidentally enabled. The sample UUID is
-`5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026`; retrieve it to inspect its doors. Seeding
-uses service initialization, inserts atomically and leaves existing content alone.
-This seed is calendar-only. Startup, migrations, setup and deployment must never
-seed user accounts. The superadmin provisioning path is an intentional
+`appsettings.json` has a local host database connection. Nonlocal deployments must
+supply their connection string. The Compose file is exclusively for local
+development and selects `Development`.
+
+Startup applies migrations without creating calendars or sample data. Create
+calendars through `POST /calendars` and use the returned ID to retrieve them.
+Startup, migrations, setup and deployment must never seed user accounts.
+The superadmin provisioning path is an intentional
 manual database operation using an offline password-hash tool that cannot connect
 to the database or create an account.
 
@@ -98,14 +96,14 @@ remains 200 and readiness returns 503. Readiness never precedes migration succes
 ## Manual API examples
 
 Open [calendars.http](Calendar.Api/calendars.http) in an HTTP-capable editor.
-Change `baseUrl` and copy an ID returned by POST into `calendarId`, or use the
-sample ID. The file covers creation (201 with `Location`), retrieval (200), an
+Change `baseUrl` and copy an ID returned by POST into `calendarId`.
+The file covers creation (201 with `Location`), retrieval (200), an
 invalid title (400), and an unknown UUID (404). Malformed UUIDs return 400.
 
 ```bash
 curl -i -H 'Content-Type: application/json' \
   -d '{"title":"  My calendar  "}' http://localhost:8080/calendars
-curl -i http://localhost:8080/calendars/5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026
+curl -i 'http://localhost:8080/calendars/<id-returned-by-post>'
 ```
 
 Only `title` is accepted. It is trimmed before the 1-100 Unicode code point limit;

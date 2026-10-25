@@ -6,20 +6,15 @@ namespace Calendar.Api.Repositories;
 
 public sealed class CalendarRepository(NpgsqlDataSource source) : ICalendarRepository
 {
-    public async Task InsertAsync(
-        CalendarModel calendar,
-        CancellationToken cancellationToken,
-        bool skipExisting = false
-    )
+    public async Task InsertAsync(CalendarModel calendar, CancellationToken cancellationToken)
     {
         await using var connection = await source.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         const string insert = """
             INSERT INTO calendars (id, title, created_at, last_modified_at)
-            VALUES (@Id, @Title, @CreatedAt, @LastModifiedAt)
-            ON CONFLICT (id) DO NOTHING;
+            VALUES (@Id, @Title, @CreatedAt, @LastModifiedAt);
             """;
-        var inserted = await connection.ExecuteAsync(
+        await connection.ExecuteAsync(
             new CommandDefinition(
                 insert,
                 calendar,
@@ -27,29 +22,21 @@ public sealed class CalendarRepository(NpgsqlDataSource source) : ICalendarRepos
                 cancellationToken: cancellationToken
             )
         );
-        if (inserted == 0 && !skipExisting)
+        foreach (var door in calendar.Doors)
         {
-            throw new InvalidOperationException("Calendar identifier already exists.");
-        }
-
-        if (inserted != 0)
-        {
-            foreach (var door in calendar.Doors)
-            {
-                await connection.ExecuteAsync(
-                    new CommandDefinition(
-                        "INSERT INTO doors (calendar_id, day_number, content_text) VALUES (@CalendarId, @Number, @Text)",
-                        new
-                        {
-                            CalendarId = calendar.Id,
-                            door.Number,
-                            door.Text,
-                        },
-                        transaction,
-                        cancellationToken: cancellationToken
-                    )
-                );
-            }
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    "INSERT INTO doors (calendar_id, day_number, content_text) VALUES (@CalendarId, @Number, @Text)",
+                    new
+                    {
+                        CalendarId = calendar.Id,
+                        door.Number,
+                        door.Text,
+                    },
+                    transaction,
+                    cancellationToken: cancellationToken
+                )
+            );
         }
 
         await transaction.CommitAsync(cancellationToken);

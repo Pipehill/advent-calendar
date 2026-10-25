@@ -7,7 +7,7 @@ namespace Calendar.Api.Services;
 public sealed class CalendarService(ICalendarRepository repository, TimeProvider clock)
     : ICalendarService
 {
-    public CalendarModel Initialize(string? title, Guid? id = null)
+    public CalendarModel Initialize(string? title)
     {
         var normalized = title?.Trim();
         var length = normalized?.EnumerateRunes().Count() ?? 0;
@@ -23,7 +23,7 @@ public sealed class CalendarService(ICalendarRepository repository, TimeProvider
             .Range(1, 24)
             .Select(number => new DoorModel(number, string.Empty))
             .ToArray();
-        return new CalendarModel(id ?? Guid.NewGuid(), normalized, now, now, doors);
+        return new CalendarModel(Guid.NewGuid(), normalized, now, now, doors);
     }
 
     public async Task<CalendarModel> CreateAsync(string? title, CancellationToken cancellationToken)
