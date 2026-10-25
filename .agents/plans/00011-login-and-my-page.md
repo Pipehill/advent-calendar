@@ -1,6 +1,6 @@
 # 00011: Frontend login and personal page
 
-Status: Not implemented
+Status: Implemented (2026-10-25)
 
 Last updated: 2026-10-25
 
@@ -113,60 +113,72 @@ None.
   [authentication](../rules/authentication-and-calendar-access.md) and
   [development quality](../rules/development-quality.md) rules.
 
+Implementation began from synchronized main `f6981d5` on
+`feature/login-and-my-page`, with commit and PR publication authorized by the
+owner. The pre-edit application/tooling/reference baseline was captured before
+source changes. Verification passed on 2026-10-25: 164 backend tests, 37 frontend
+unit tests, 14 production-Nitro browser scenarios and the eight existing public/
+calendar smoke scenarios. Release builds, generated contracts, TypeScript,
+formatting and full quality checks passed. Application health improved 89.4 to
+90.3; tooling improved 50.6 to 51.5, with complexity regressions and heuristic
+limitations recorded in the frontend verification document. The inherited Vite
+language-switching/platform follow-ups and remaining calendar/database production
+gates are unchanged. No outstanding implementation questions remain.
+
 ### 1. Prepare implementation
 
-- [ ] Review the confirmed decisions and current backend contracts before coding.
+- [x] Review the confirmed decisions and current backend contracts before coding.
   Keep the superadmin list read-only. Profile editing and real calendar/account
   creation screens belong to later increments.
-- [ ] Capture the required application quality baseline before coding.
+- [x] Capture the required application quality baseline before coding.
 
 ### 2. Extend the account name through storage and contracts
 
-- [ ] Add the name property to `src/backend/Calendar.Security/Account.cs` and a
+- [x] Add the name property to `src/backend/Calendar.Security/Account.cs` and a
   new numbered DbUp migration under `Calendar.Api/Migrations`. Do not modify
   `0002_create_accounts.sql`. Apply the agreed backfill and database constraints
   without deleting accounts, changing credentials or provisioning any accounts.
-- [ ] Extend the authored `src/contract/openapi.json` creation/user schemas and
+- [x] Extend the authored `src/contract/openapi.json` creation/user schemas and
   shared backend validation for the agreed name policy. Regenerate both language
   consumers through `src/contract/Contract.proj`; never edit generated files.
-- [ ] Update `Authentication/AccountStore.cs`, `AuthDatabase.cs`,
+- [x] Update `Authentication/AccountStore.cs`, `AuthDatabase.cs`,
   `UserAdministration.cs`, and the concrete `UsersController` and `AuthController`
   mappings. Include the name in all relevant reads, inserts and DTO projections,
   including session inspection and authorized lists. Preserve it during password,
   status and role operations. Avoid adding an unrelated profile-update endpoint.
-- [ ] Update the manual-superadmin SQL example in
+- [x] Update the manual-superadmin SQL example in
   `src/backend/authentication.md` for the agreed name policy. Keep provisioning
   manual; the offline password tool still cannot write accounts. Update direct
   API examples and disposable test fixtures to use the changed creation contract.
 
 ### 3. Integrate browser, BFF and backend authentication
 
-- [ ] Extend the request-local BFF context and generated-client transport with an
+- [x] Extend the request-local BFF context and generated-client transport with an
   explicit request allowlist: `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`.
   Never forward arbitrary cookies, browser identity headers or shared credentials.
-- [ ] Relay only designated backend authentication/antiforgery `Set-Cookie`
+- [x] Relay only designated backend authentication/antiforgery `Set-Cookie`
   headers as separate headers. Preserve host-only scope, path, HttpOnly,
   SameSite, Secure and fixed expiry through development and production adapters.
   Handle newly issued cookies within the same exchange when CSRF refresh follows
   login; the BFF must not decrypt backend cookies or manufacture authentication.
-- [ ] Add tRPC authentication procedures and Zod inputs for the agreed scope.
+- [x] Add tRPC authentication procedures and Zod inputs for the agreed scope.
   Fetch antiforgery tokens before login and refresh them after principal changes.
   Unsafe operations must use the backend's principal-bound antiforgery exchange.
   SSR session checks must receive the incoming request's allowlisted cookies.
-- [ ] Add a protected superadmin account-list procedure using the existing
+- [x] Add a protected superadmin account-list procedure using the existing
   generated `/users` client and bounded offset/limit pagination (maximum 100 per
   page). Check the backend-validated unrestricted superadmin session before
   listing; backend list authorization remains independently enforced. Project
   only the required name, username and role into personal-page data. Do not
   expose the calendaradmin's differently scoped list through this screen.
-- [ ] Keep credentials and CSRF tokens out of URLs, logs, persistence and SSR
+- [x] Keep credentials and CSRF tokens out of URLs, logs, persistence and SSR
   hydration. Expose only public session data needed by the page. Do not store
   authentication in localStorage or use cached client roles to authorize access.
-- [ ] Retain the established total deadline/cancellation and read retry limits;
+- [x] Retain the established total deadline/cancellation and read retry limits;
   never automatically retry login, password change or logout. Preserve structured
   field errors and provide localized handling of generic login failures, resource
   limits, expired credentials and backend unavailability without exposing secrets.
-- [ ] Set `no-store` on authentication tRPC results, errors and cookie responses.
+- [x] Set `no-store` on authentication tRPC results, errors and cookie responses.
   Clear protected queries and router data on session changes and unauthorized
   results. Revalidate protected navigation/SSR against the backend; cached session
   data must not keep revoked accounts on the personal page. Treat the superadmin
@@ -175,36 +187,36 @@ None.
 
 ### 4. Build login and the protected personal page
 
-- [ ] Add a dedicated login route and connect the existing header control to it.
+- [x] Add a dedicated login route and connect the existing header control to it.
   Use a normal page form with username/password labels, autocomplete semantics,
   a password input, pending state and accessible field/submission errors.
-- [ ] Add the protected `/min-side` route with server-side session validation,
+- [x] Add the protected `/min-side` route with server-side session validation,
   the user's name, greeting and agreed avatar. Render the name as plain user text
   and accommodate the 100-character limit without horizontal overflow.
-- [ ] Render role-appropriate initial content from the validated session. For
+- [x] Render role-appropriate initial content from the validated session. For
   superadmins, render the read-only paginated account list with localized role
   labels, loading, empty and error states, and only `Lag ny kalenderadmin` as
   the creation placeholder. Disable placeholders and explain that they
   are not yet available; do not add fake creation navigation or API mutations.
-- [ ] Implement the agreed mandatory-password-change flow before unrestricted
+- [x] Implement the agreed mandatory-password-change flow before unrestricted
   navigation. Keep restricted users out of `/min-side`, explain expired temporary
   credentials generically, and require fresh login after successful change.
   Include logout on the personal and required-password-change pages, using
   backend session revocation and cache clearing, then return to the public page.
-- [ ] Add maintained Norwegian/English messages and reuse the shared header,
+- [x] Add maintained Norwegian/English messages and reuse the shared header,
   language selector and UI styles. Add compatible pinned TanStack Form/shadcn
   components as needed, following the repository's dependency policy.
 
 ### 5. Verify and document the completed increment
 
-- [ ] Implement the boundary and browser verification below using isolated
+- [x] Implement the boundary and browser verification below using isolated
   disposable accounts/databases, with no startup seeds or persistent test users.
-- [ ] Update `src/backend/authentication.md`, relevant frontend/backend READMEs,
+- [x] Update `src/backend/authentication.md`, relevant frontend/backend READMEs,
   `docs/architecture.md` and current authentication rules to describe the actual
   delivered BFF integration. Preserve the remaining calendar/deployment gates.
-- [ ] Record evidence in frontend/backend verification documents. Keep the known
+- [x] Record evidence in frontend/backend verification documents. Keep the known
   Vite-dev language-switching TODO visible; do not claim it resolved by this plan.
-- [ ] Run applicable saved-source quality checks and the required health comparison
+- [x] Run applicable saved-source quality checks and the required health comparison
   using the owning [code quality](../../docs/code-quality.md) and
   [health](../../tools/quality/health.md) workflows. Update this plan and its index
   status only after implementation and verification.

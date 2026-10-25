@@ -20,7 +20,7 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     const html = await response.text();
     await page.reload({ waitUntil: 'networkidle' });
 
-    // Then / renders the exact copy and disabled login without fetching a calendar.
+    // Then / renders the exact copy and login navigation without fetching a calendar.
     assert.equal(response.status(), 200);
     assert(html.includes(welcome));
     assert(html.includes(introduction));
@@ -28,12 +28,12 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     assert.equal(await page.locator('h1').textContent(), welcome);
     assert.equal(await page.locator('main p').textContent(), introduction);
     assert.equal(await page.locator('html').getAttribute('lang'), 'nb');
-    assert.equal(await page.getByRole('button', { name: 'Logg inn' }).isDisabled(), true);
+    assert.equal(await page.getByRole('link', { name: 'Logg inn' }).getAttribute('href'), '/logg-inn');
     assert(!requests.some(url => url.includes('/api/trpc/') || url.startsWith(apiUrl)));
     await page.screenshot({ path: path.join(reports, 'landing-desktop.png'), fullPage: true });
   });
 
-  test('Given the landing page, When English and Norwegian are selected and refreshed, Then translated content and disabled login survive SSR', async () => {
+  test('Given the landing page, When English and Norwegian are selected and refreshed, Then translated content and login navigation survive SSR', async () => {
     // Given the default Norwegian landing page and both supported translations.
     const { page, frontendUrl } = fixture;
     await page.goto(frontendUrl);
@@ -47,11 +47,11 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
       await selectLanguage(page, locale);
       await page.reload({ waitUntil: 'networkidle' });
 
-      // Then the route, translations and disabled control remain consistent.
+      // Then the route, translations and login link remain consistent.
       assert.equal(await page.locator('html').getAttribute('lang'), locale);
       assert.equal(await page.locator('h1').textContent(), heading);
       assert.equal(await page.locator('main p').textContent(), description);
-      assert.equal(await page.getByRole('button', { name: login }).isDisabled(), true);
+      assert.equal(await page.getByRole('link', { name: login }).getAttribute('href'), '/logg-inn');
       assert.equal(new URL(page.url()).pathname, '/');
     }
   });
@@ -63,7 +63,7 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
 
     // When the landing page loads.
     await page.goto(frontendUrl, { waitUntil: 'networkidle' });
-    const login = await page.getByRole('button', { name: 'Logg inn' }).boundingBox();
+    const login = await page.getByRole('link', { name: 'Logg inn' }).boundingBox();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
 
     // Then controls fit and login remains in the top-right corner.

@@ -253,3 +253,106 @@ and reported zero clones. Raw source identities and comparisons remain under
 `quality-reports/health/`; execution logs are in
 `quality-reports/pr-23-setup-diagnosis/`. Platform and heuristic limitations above
 continue to apply.
+
+## 2026-10-25: Login and personal page (plan 00011)
+
+The production frontend now provides username login, own-password change, logout
+and backend-validated `/min-side`. Restricted credentials cannot reach ordinary
+personal content before password change and fresh login. Pages display unchanged
+names and initials, disabled role-specific creation placeholders and, only for
+unrestricted superadmins, a paginated read-only account list. Names are rendered
+as text; the 97-code-point markup-like fixture fits a 375px viewport without
+horizontal overflow. Both interface languages use maintained Paraglide catalogs.
+
+Validation on Windows, Node 24.20.0, .NET SDK 10.0.401 and Podman/PostgreSQL:
+
+- All **37 Vitest frontend/BFF tests** passed. Coverage includes allowlisted
+  cookies/headers, separate Set-Cookie values and attributes, newly issued cookies
+  during login CSRF refresh, minimal session/list projections, bounded pagination,
+  unauthorized/restricted role denial, concurrent request isolation, write failures
+  without retries and the existing total-deadline/cancellation/read-retry cases.
+- Production Vite/Nitro build and explicit TypeScript checks passed. Shared
+  frontend lint, full MegaLinter and custom repository checks passed.
+- All **14 Playwright/Edge authentication scenarios** passed against a separately
+  started production Nitro server, real API and disposable PostgreSQL database.
+  They verify keyboard login navigation, every role, direct protected refresh,
+  all-role superadmin pagination beyond 50 accounts, list loading/empty/error
+  states, safe long-name rendering, localized form errors and backend weak-password
+  field errors, required password change and fresh login, expired temporary
+  credentials, missing/invalid/principal-stale CSRF tokens, revoked-cookie replay,
+  logout with another session preserved, browser history and switching from a
+  superadmin to an ordinary user without retaining list data in UI/HTML/hydration.
+- The authentication suite also ran all **eight public/calendar browser smoke
+  scenarios** successfully against those isolated services. Existing landing copy,
+  mobile layout, language selection, persisted calendars and SSR/hydration remain
+  covered. Browser tests reported no page or hydration errors.
+
+Actual browser cookies remain host-only, HttpOnly, SameSite=Lax and path `/`.
+Ordinary cookies expire after 30 days and administrator cookies after eight hours.
+The production Nitro boundary preserves backend CSRF issuance/deletion and
+no-store on tRPC success/errors and protected SSR. BFF unit evidence separately
+verifies multiple allowed Set-Cookie headers without folding or attribute loss,
+including Secure and Expires. Backend controlled-time tests cover exact fixed
+deadlines; this host run uses local HTTP and does not claim deployed HTTPS evidence.
+Fixture accounts are limited to disposable `browser_*` databases; credentials
+remain in runner memory and do not enter reports. Test containers were removed;
+pre-existing external build containers and images were preserved.
+
+Evidence is retained in ignored `quality-reports/plan00011/`, with browser JUnit,
+API TRX, build/format/lint logs, screenshots and MCP records. The existing smoke
+JUnit/screenshots remain under `quality-reports/frontend/`. The setup requirement
+is documented in the [frontend README](README.md#browser-verification).
+
+Only pinned TanStack Form 1.33.5 was added, with its lockfile and React 19 peer
+compatibility checked. Production dependency audit reports zero advisories.
+Full audit still reports build-only `node-forge` (high) through Nitro's development
+HTTPS helper and `serialize-javascript` (low) through its minifier. The production
+image contains `.output` only. The known Vite-dev language-switching TODO and
+native macOS/Linux/Docker platform gaps remain visible; this task verifies
+production Nitro on the available Windows/Podman environment. Calendar
+authorization/assignment and database hardening remain separate production gates.
+
+### Plan 00011 advisory health
+
+Application overall health improves from **89.4 to 90.3 (+0.9)**. Tooling overall
+health improves from **50.6 to 51.5 (+0.9)**. Regressions remain explicit:
+application maximum file complexity rises from 63 to 64; tooling complexity score
+falls from 59.6 to 57.7 (-1.9) and complexity share rises from 42.6% to 45.4%
+(+2.8 percentage points). Shared name validation adds one branch to
+`UserAdministration.cs`. The fixture and named browser lifecycle scenarios add
+branches to isolate accounts and guarantee cleanup. No scoring settings or
+exclusions changed.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Complexity score / share | 87.6 / 89.0; 6.0% / 5.1% | 59.6 / 57.7; 42.6% / 45.4% |
+| Maximum file complexity | 63 / 64 | 94 / 94 |
+| Duplication score | 93.4 / 94.3 | 93.2 / 93.6 |
+| Duplication percentage | 0.171553% / 0.143979% | 0% / 0% |
+| Clones / duplicated lines | 1 / 1; 11 / 11 | 0 / 0; 0 / 0 |
+| Dead-code score / share | 74.1 / 79.8; 3.6% / 1.7% | 22.8 / 24.5; 20.3% / 19.0% |
+| Heuristic findings | 2 / 2 | 6 / 6 |
+| Dead-code analysis coverage | 12.6% / 22.5% | 97.5% / 96.1% |
+| Analyzed files / lines | 53 / 68; 6412 / 7640 | 41 / 43; 6153 / 6663 |
+
+jscpd 5.4.1 uses unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Baseline identity is synchronized main
+`f6981d5b7f6726613bc92a0ea7ac0ef8713e5e2d`; measurements include saved authored
+source and tests in their separate application/tooling scopes, with the whole
+repository reference retained in raw artifacts. Application source SHA-256 changes
+from `fc54990c8cabd2a763bf3fce042bf3e00deedd013d634bbea770475fadde86eb`
+to `049b5b83e843b5397090f6c944ca505538c1e49b5b7a552de658de48a21ff3f4`.
+Tooling changes from
+`9fe1a48f6a4f1f774181068171008897c992c2b472ff2c91c28a8a4c8bf9839d`
+to `e2510db2943d39088e1facd22a694d03971180eae441c83090447e4df52ef0cc`.
+
+MCP schemas, snippet checking, refreshed statistics and file-clone inspection are
+recorded in `quality-reports/plan00011/`. The sole 11-line clone remains existing
+test imports/namespace setup in authentication lifecycle/administration tests.
+Lower duplication/dead-code shares partly reflect a larger measured denominator,
+not removed findings. The two application dead-code findings are executable
+Nitro build/server entry points, retained after caller review. Unsupported
+dimensions remain unavailable; heuristic findings and rounded scores do not prove
+correctness. These are saved-source comparisons, separate from staged receipts
+and committed PR merge evidence.

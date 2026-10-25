@@ -22,6 +22,7 @@ public sealed class UsersController(UserAdministration administration) : UsersCo
         var account = await administration.CreateAsync(
             User,
             body.Username,
+            body.Name,
             body.Password,
             body.Role == CreateUserRequestRole.CalendarAdmin
                 ? AccountRoles.Administrator

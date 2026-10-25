@@ -89,10 +89,10 @@ public sealed class AccountStore(AuthDatabase database)
             );
         await database.ExecuteAsync(
             """
-            INSERT INTO accounts (id, user_name, normalized_user_name, password_hash, account_role,
+            INSERT INTO accounts (id, name, user_name, normalized_user_name, password_hash, account_role,
                 enabled, security_version, must_change_password, temporary_password_expires_at,
                 responsible_administrator_id, created_by_id, created_at)
-            VALUES (@Id, @UserName, @NormalizedUserName, @PasswordHash, @Role, @Enabled,
+            VALUES (@Id, @Name, @UserName, @NormalizedUserName, @PasswordHash, @Role, @Enabled,
                 @SecurityVersion, @MustChangePassword, @TemporaryPasswordExpiresAt,
                 @ResponsibleAdministratorId, @CreatedById, @CreatedAt)
             """,
@@ -151,6 +151,14 @@ public sealed class AccountValidator : IUserValidator<Account>
 {
     public async Task<IdentityResult> ValidateAsync(UserManager<Account> manager, Account user)
     {
+        if (!AccountDisplayNames.IsValid(user.Name))
+            return IdentityResult.Failed(
+                new IdentityError
+                {
+                    Code = "InvalidName",
+                    Description = "Use 1-100 Unicode characters for the name.",
+                }
+            );
         if (!AccountNames.IsValid(user.UserName))
             return IdentityResult.Failed(
                 new IdentityError

@@ -154,6 +154,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
             new
             {
                 username = "reservedæøå",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }
@@ -245,6 +246,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
             new
             {
                 username = "different-session",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }

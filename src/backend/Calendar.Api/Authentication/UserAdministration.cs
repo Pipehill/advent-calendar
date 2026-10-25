@@ -17,6 +17,7 @@ public sealed class UserAdministration(
     public async Task<Account> CreateAsync(
         ClaimsPrincipal principal,
         string? username,
+        string? name,
         string? password,
         string role,
         Guid? responsible,
@@ -36,6 +37,9 @@ public sealed class UserAdministration(
             },
             cancellationToken
         );
+        name = name?.Trim();
+        if (!AccountDisplayNames.IsValid(name))
+            throw new AuthFailureException(400, "Invalid name", "name");
         if (!AccountNames.IsValid(username))
             throw new AuthFailureException(400, "Invalid username", "username");
         await authentication.ValidatePasswordAsync(role, password);
@@ -64,6 +68,7 @@ public sealed class UserAdministration(
                     {
                         Id = Guid.NewGuid(),
                         UserName = username!,
+                        Name = name!,
                         Role = role,
                         PasswordHash = hash,
                         SecurityVersion = Guid.NewGuid(),
@@ -119,7 +124,7 @@ public sealed class UserAdministration(
                 // Query only authorized metadata, never credentials or lockout state.
                 return await database.QueryAsync<Account>(
                     """
-                    SELECT id, user_name AS UserName, account_role AS Role, enabled,
+                    SELECT id, name, user_name AS UserName, account_role AS Role, enabled,
                         responsible_administrator_id AS ResponsibleAdministratorId,
                         created_by_id AS CreatedById, created_at AS CreatedAt
                     FROM accounts WHERE @Superadmin OR (account_role = 'calendarUser' AND responsible_administrator_id = @ActorId)

@@ -324,6 +324,34 @@ Saved-source measurements and PR merge identities are retained in
 `quality-reports/health/`. Tests exercise real MCP refresh/statistics and clone
 locations; unsupported analysis dimensions remain unavailable.
 
+## 2026-10-25: Account names and frontend authentication integration
+
+Plan 00011 adds migration `0003_add_account_name.sql`, a mandatory single display
+name and its authored/generated contract fields. The new API tests exercise
+missing/null/empty/whitespace-only/NUL/101-code-point rejection, surrounding
+Unicode whitespace trimming, 100 supplementary code points, Norwegian names,
+internal spaces and markup-like text through real PostgreSQL. Existing usernames
+are backfilled without changing password hashes or roles, and repeated migration
+startup is idempotent. Direct database writes verify the constraints. Own-password
+change, promotion and disabling preserve name and responsibility.
+
+The actual browser exchange exposed an inherited generated-enum serialization
+mismatch: System.Text.Json ignored NSwag's EnumMember values and emitted PascalCase
+role strings. A hand-written metadata resolver now overrides generated enum
+property converters with camelCase string conversion and disables numeric values.
+No generated source was edited. New tests inspect raw session JSON for all three
+roles, independently of typed DTO deserialization.
+
+On Windows with .NET SDK 10.0.401 and Podman/PostgreSQL, all **164 backend tests**
+passed with no skips. OpenAPI validation and regeneration, Release solution build
+and `dotnet format --verify-no-changes --no-restore` passed. The four previously
+documented Redocly warnings remain. Existing fixed-expiration, concurrency,
+lockout, restricted-session, revocation and session-isolation coverage remains
+active. The frontend's production Nitro browser suite independently verifies the
+integrated login/change/logout and cookie/CSRF boundaries; see
+[frontend evidence](../frontend/verification.md#2026-10-25-login-and-personal-page-plan-00011).
+Local TRX/build/format logs are under ignored `quality-reports/plan00011/`.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

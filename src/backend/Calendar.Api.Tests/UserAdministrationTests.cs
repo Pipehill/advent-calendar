@@ -34,6 +34,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
         var request = new Dictionary<string, object>
         {
             ["username"] = username,
+            ["name"] = "Test account",
             ["password"] = password,
             ["role"] = targetRole,
         };
@@ -99,6 +100,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
         var request = new Dictionary<string, object?>
         {
             ["username"] = "recipient",
+            ["name"] = "Test account",
             ["password"] = Password(),
             ["role"] = AccountRoles.Administrator,
         };
@@ -154,6 +156,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
             new
             {
                 username = "new-admin",
+                name = "Test account",
                 password,
                 role = AccountRoles.Administrator,
             }
@@ -177,6 +180,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
             new
             {
                 username = "child",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.User,
             }

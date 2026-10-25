@@ -239,6 +239,7 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
                 new
                 {
                     username = "concurrent-child",
+                    name = "Test account",
                     password = Password(),
                     role = AccountRoles.User,
                 }
@@ -370,6 +371,7 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
                 new
                 {
                     username = "SameÆØÅ",
+                    name = "Test account",
                     password = Password(),
                     role = AccountRoles.Administrator,
                 }
@@ -381,6 +383,7 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
                 new
                 {
                     username = "sameæøå",
+                    name = "Test account",
                     password = Password(),
                     role = AccountRoles.Administrator,
                 }

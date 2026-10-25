@@ -79,6 +79,7 @@ public sealed class AuthController(
         {
             Id = user.Id,
             Username = user.UserName,
+            Name = user.Name,
             Role = user.Role switch
             {
                 AccountRoles.Superadmin => UserDtoRole.Superadmin,

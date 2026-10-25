@@ -5,8 +5,9 @@ import { createIsomorphicFn } from '@tanstack/react-start';
 import { getRequest } from '@tanstack/react-start/server';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query';
+import { browserAuthClient } from './lib/auth-client';
 import { routeTree } from './routeTree.gen';
-import { createContext } from './server/context';
+import { currentContext } from './server/context';
 import { type AppRouter, appRouter } from './server/trpc';
 
 export function getRouter() {
@@ -17,7 +18,7 @@ export function getRouter() {
     .server(() =>
       createTRPCOptionsProxy<AppRouter>({
         router: appRouter,
-        ctx: () => createContext(getRequest()),
+        ctx: () => currentContext(getRequest()),
         queryClient,
       }),
     )
@@ -27,9 +28,20 @@ export function getRouter() {
         queryClient,
       }),
     )();
+  const auth = createIsomorphicFn()
+    .server(() => {
+      const caller = appRouter.createCaller(() => currentContext(getRequest()));
+      return {
+        session: () => caller.auth.session(),
+        login: caller.auth.login,
+        changePassword: caller.auth.changePassword,
+        logout: () => caller.auth.logout(),
+      };
+    })
+    .client(browserAuthClient)();
   const router = createRouter({
     routeTree,
-    context: { queryClient, trpc },
+    context: { queryClient, trpc, auth },
     defaultPreloadStaleTime: 0,
   });
   setupRouterSsrQueryIntegration({ router, queryClient });
@@ -37,6 +49,7 @@ export function getRouter() {
 }
 
 export type RouterContext = {
+  auth: ReturnType<typeof browserAuthClient>;
   queryClient: QueryClient;
   trpc: ReturnType<typeof createTRPCOptionsProxy<AppRouter>>;
 };

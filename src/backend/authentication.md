@@ -3,8 +3,9 @@
 The backend implements username/password accounts, persistent cookie sessions and
 the three roles `superadmin`, `calendarAdmin` and `calendarUser`. New account
 operations enforce authentication/authorization independently of the website.
-Calendar POST/GET remain anonymous. Calendar authorization, frontend/BFF security
-integration and database hardening are required before production.
+The website integrates sign-in, password changes, logout and the personal page
+through its tRPC BFF. Calendar POST/GET remain anonymous. Calendar authorization
+and database hardening are required before production.
 
 ## Direct API exchange
 
@@ -37,11 +38,23 @@ in that session. At the exact deadline, creation, reset, status and role mutatio
 require `POST /auth/reauthenticate` with the current `password`. Re-verification
 does not extend session expiry. Listing does not require recent verification.
 
-The future BFF must allowlist only `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`
-on request-scoped exchanges and separately relay their designated `Set-Cookie`
-headers with attributes preserved. Preserve `no-store`, refresh CSRF on principal
-changes, and never relay arbitrary cookies/identity headers or decrypt backend
-cookies. Frontend/BFF relay and browser end-to-end verification remain deferred.
+The BFF allowlists only `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN` on
+request-scoped exchanges. It relays designated `Set-Cookie` headers separately,
+preserving their attributes through production Nitro. Browser mutations first
+obtain a principal-bound token; login refreshes CSRF using the newly issued
+backend cookie within the same exchange. The BFF never decrypts cookies, forwards
+arbitrary browser identity headers or retries writes. Protected SSR validates the
+session against persistence on every navigation, with no-store on tRPC and SSR
+responses, including errors. See [frontend behavior](../frontend/README.md).
+
+Every account has one required display name, distinct from its username and role.
+Creation trims surrounding .NET Unicode whitespace before requiring 1-100 Unicode
+code points, including internal spaces. NUL and invalid Unicode are rejected.
+Names need not be unique. Migration `0003_add_account_name.sql` backfills existing
+usernames and adds PostgreSQL constraints. Security operations preserve names;
+there is no profile editing endpoint. Generated consumers include `name` in
+creation and public user/session/list data. A hand-written JSON metadata modifier
+keeps generated role enum output in the contract's camelCase wire format.
 
 ## Responsibility, temporary credentials and sessions
 
@@ -100,12 +113,12 @@ output from the tool and safely bound/quoted database-client values:
 BEGIN;
 SELECT pg_advisory_xact_lock(800008);
 INSERT INTO accounts (
-    id, user_name, normalized_user_name, password_hash, account_role,
+    id, name, user_name, normalized_user_name, password_hash, account_role,
     security_version, created_at
 ) VALUES (
-    gen_random_uuid(), :'username', :'normalized_username', :'password_hash',
+    gen_random_uuid(), :'name', :'username', :'normalized_username', :'password_hash',
     'superadmin', gen_random_uuid(), CURRENT_TIMESTAMP
-) RETURNING id, user_name, account_role;
+) RETURNING id, name, user_name, account_role;
 COMMIT;
 ```
 
@@ -113,7 +126,10 @@ Usernames accept 3-64 Unicode letters/digits/dot/hyphen/underscore and normalize
 with .NET invariant uppercase, without trimming. PostgreSQL enforces unique
 normalized values using `C` collation. Manual operators must use the tool's output,
 including for Norwegian letters, rather than database-locale-specific `upper()`.
-Disabled usernames remain reserved.
+Disabled usernames remain reserved. Supply `name` as a single already-trimmed
+1-100-code-point display name; PostgreSQL rejects missing, blank, untrimmed or
+overlong values. The offline hash tool still accepts only username and role and
+cannot provision an account.
 
 Other-account superadmin maintenance is manual too. In an explicit transaction,
 take advisory lock `800008`, verify the target and relationship rules, advance its

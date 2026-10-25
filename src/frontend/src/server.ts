@@ -1,19 +1,25 @@
 import handler from '@tanstack/react-start/server-entry';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { paraglideMiddleware } from './generated/paraglide/server.js';
-import { createContext } from './server/context';
+import { createContext, requestContexts } from './server/context';
 import { appRouter } from './server/trpc';
 
 export default {
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/api/trpc/')) {
-      return fetchRequestHandler({
+      const context = createContext(request);
+      const response = await fetchRequestHandler({
         endpoint: '/api/trpc',
         req: request,
         router: appRouter,
-        createContext: () => createContext(request),
+        createContext: () => context,
       });
+      response.headers.set('Cache-Control', 'no-store');
+      for (const cookie of context.responseHeaders.getSetCookie()) {
+        response.headers.append('Set-Cookie', cookie);
+      }
+      return response;
     }
     if (path === '/health/ready') {
       try {
@@ -28,10 +34,15 @@ export default {
         return new Response('Unhealthy', { status: 503 });
       }
     }
-    return paraglideMiddleware(request, async () => {
-      const response = await handler.fetch(request);
-      response.headers.set('Cache-Control', 'private, no-store');
-      return response;
-    });
+    const context = createContext(request);
+    return requestContexts.run(context, () =>
+      paraglideMiddleware(request, async () => {
+        const response = await handler.fetch(request);
+        response.headers.set('Cache-Control', 'private, no-store');
+        for (const cookie of context.responseHeaders.getSetCookie())
+          response.headers.append('Set-Cookie', cookie);
+        return response;
+      }),
+    );
   },
 };

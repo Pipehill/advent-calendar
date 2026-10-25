@@ -54,7 +54,7 @@ public sealed class AuthDatabase(NpgsqlDataSource dataSource)
     )
     {
         const string columns = """
-            SELECT id, user_name AS UserName, normalized_user_name AS NormalizedUserName,
+            SELECT id, name, user_name AS UserName, normalized_user_name AS NormalizedUserName,
                 password_hash AS PasswordHash, account_role AS Role, enabled, security_version AS SecurityVersion,
                 must_change_password AS MustChangePassword,
                 temporary_password_expires_at AS TemporaryPasswordExpiresAt,

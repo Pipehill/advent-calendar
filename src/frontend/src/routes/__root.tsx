@@ -1,6 +1,7 @@
 import {
   createRootRouteWithContext,
   HeadContent,
+  Link,
   Outlet,
   Scripts,
   useRouterState,
@@ -8,7 +9,6 @@ import {
 import type { ReactNode } from 'react';
 import { ErrorState } from '../components/error-state';
 import { LanguageSelector } from '../components/language-selector';
-import { Button } from '../components/ui/button';
 import * as m from '../generated/paraglide/messages.js';
 import { getLocale } from '../generated/paraglide/runtime.js';
 import type { RouterContext } from '../router';
@@ -57,7 +57,11 @@ function Document({ children }: { children: ReactNode }) {
             </span>
             <div className={isLandingPage ? 'landing-controls' : undefined}>
               <LanguageSelector />
-              {isLandingPage && <Button disabled>{m.login_label()}</Button>}
+              {isLandingPage && (
+                <Link to="/logg-inn" className="login-link">
+                  {m.login_label()}
+                </Link>
+              )}
             </div>
           </header>
           <main className={isLandingPage ? 'landing-main' : undefined}>{children}</main>

@@ -29,6 +29,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new
             {
                 username = "fresh-admin",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }
@@ -46,6 +47,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new
             {
                 username = "fresh-admin",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }
@@ -76,6 +78,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new
             {
                 username = "late-recipient",
+                name = "Test account",
                 password = temporary,
                 role = AccountRoles.User,
             }
@@ -136,6 +139,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new
             {
                 username = "expired-recipient",
+                name = "Test account",
                 password = initial,
                 role = AccountRoles.User,
             }

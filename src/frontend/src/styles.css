@@ -16,6 +16,50 @@ body {
   font-family: var(--font-sans);
 }
 
+.login-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #022c22;
+  padding: 0.5rem 1.25rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.login-link:focus-visible {
+  outline: 2px solid #065f46;
+  outline-offset: 4px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+  border: 1px solid #e7e5e4;
+  border-radius: 1.5rem;
+  background: white;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.auth-title {
+  margin-bottom: 1rem;
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: #022c22;
+}
+
+.break-anywhere {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.session-checking .protected-content {
+  visibility: hidden;
+}
+
 .landing-shell {
   position: relative;
   isolation: isolate;
