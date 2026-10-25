@@ -11,29 +11,31 @@ namespace Calendar.Api.Tests;
 [Collection("PostgreSQL")]
 public sealed class AuthenticationTests(ApiFixture fixture)
 {
-    [Fact(
-        DisplayName = "Given an empty development database with seeding enabled, When startup and restart run, Then no accounts are created"
+    [Theory(
+        DisplayName = "Given an empty database, When startup and restart run, Then no accounts or calendars are created"
     )]
-    public async Task StartupNeverSeedsAccounts()
+    [InlineData("Development")]
+    [InlineData("Production")]
+    public async Task StartupNeverCreatesAccountsOrCalendars(string environment)
     {
-        // Given an isolated database and all development seed flags enabled.
-        await using var context = await CreateAsync(fixture, seed: true);
+        // Given an isolated empty database in the selected environment.
+        await using var context = await CreateAsync(fixture, environment: environment);
 
-        // When the API restarts using the same database and development flags.
+        // When the API restarts using the same database and environment.
         await using var restarted = fixture.Application(
-            "Development",
-            true,
+            environment,
             context.ConnectionString,
             context.Time
         );
         using var client = restarted.CreateClient();
         var health = await client.GetAsync("/health/ready");
 
-        // Then only the existing calendar seed exists, with zero accounts or sessions.
+        // Then migrations ran without creating accounts, sessions, calendars or doors.
         Assert.Equal(HttpStatusCode.OK, health.StatusCode);
         Assert.Equal(0, await context.ScalarAsync<int>("SELECT count(*)::int FROM accounts"));
         Assert.Equal(0, await context.CountSessionsAsync());
-        Assert.Equal(1, await context.ScalarAsync<int>("SELECT count(*)::int FROM calendars"));
+        Assert.Equal(0, await context.ScalarAsync<int>("SELECT count(*)::int FROM calendars"));
+        Assert.Equal(0, await context.ScalarAsync<int>("SELECT count(*)::int FROM doors"));
     }
 
     [Theory(

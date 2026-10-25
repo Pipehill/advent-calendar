@@ -1,5 +1,9 @@
 # TODO
 
+- [ ] Review and stabilize developer tools and MegaLinter. Fix the unavailable
+  pinned Chromium package and ICU dependency conflict in the quality image,
+  restore reliable local checks and commit hooks, and investigate the Vite-dev
+  language-switch test failures before extending the tooling further.
 - [ ] Separate health and calendar operations in `src/contract/openapi.json`
   into distinct API groups, so generated health endpoints belong to a dedicated
   controller rather than the calendar controller.

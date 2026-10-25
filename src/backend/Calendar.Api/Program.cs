@@ -86,10 +86,6 @@ await DatabaseStartup.MigrateAsync(
     app.Lifetime.ApplicationStopping
 );
 app.Services.GetRequiredService<MigrationState>().Complete = true;
-if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("LocalSeed:Enabled"))
-{
-    await LocalSeed.ApplyAsync(app.Services, app.Lifetime.ApplicationStopping);
-}
 
 app.Use(
     async (context, next) =>

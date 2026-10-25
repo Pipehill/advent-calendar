@@ -35,7 +35,7 @@ requirements for those follow-ups; do not claim them as delivered by plan 00008.
 - Provision superadmins only by an intentional manual PostgreSQL operation.
   Startup, migrations, scripts, configuration, deployment and development seeds
   must never create accounts of any role. Disposable tests may create their own
-  fixtures in isolated databases. Preserve the existing calendar-only seed.
+  fixtures in isolated databases. Startup must not create sample calendars.
 - Provide an offline hash tool with hidden input and shared role-aware password
   validation/hashing. It must not connect to a database or write an account.
   Actual provisioning is manual; this replaces the former account-creation CLI.

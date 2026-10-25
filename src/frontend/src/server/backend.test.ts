@@ -3,7 +3,7 @@ import { backendConfiguration, retrieveCalendar } from './backend';
 import { createContext } from './context';
 import { appRouter } from './trpc';
 
-const id = '5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026';
+const id = 'a0b1c2d3-1234-4567-890a-bcdef0123456';
 const calendar = {
   id,
   title: 'Min kalender 🎄',

@@ -5,7 +5,6 @@ import { after, afterEach, before, beforeEach, describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../../src/frontend/node_modules/playwright/index.mjs';
 
-const sampleId = '5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026';
 const welcome = 'Velkommen til advent';
 const introduction = 'Her kan du lage en adventskalender til en du er glad i eller åpne en kalender noen har laget for deg';
 
@@ -76,16 +75,16 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     await page.screenshot({ path: path.join(reports, 'landing-mobile.png'), fullPage: true });
   });
 
-  test('Given the seeded calendar, When its URL is opened directly, Then stored ordered doors hydrate without a duplicate read', async () => {
-    // Given the existing database calendar and no selected language.
+  test('Given a persisted calendar, When its URL is opened directly, Then stored ordered doors hydrate without a duplicate read', async () => {
+    // Given a calendar created by this suite and no selected language.
     const { page, frontendUrl, apiUrl, requests, reports } = fixture;
-    const stored = await (await fetch(`${apiUrl}/calendars/${sampleId}`)).json();
+    const stored = await (await fetch(`${apiUrl}/calendars/${fixture.calendar.id}`)).json();
 
     // When the calendar is opened directly and hydrates.
-    await page.goto(`${frontendUrl}/calendars/${sampleId}`, { waitUntil: 'networkidle' });
+    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`, { waitUntil: 'networkidle' });
 
     // Then stored data is rendered without browser reads or hydration errors.
-    assert.equal(new URL(page.url()).pathname, `/calendars/${sampleId}`);
+    assert.equal(new URL(page.url()).pathname, `/calendars/${fixture.calendar.id}`);
     assert.equal(await page.locator('h1').textContent(), stored.title);
     assert.deepEqual(await page.locator('ol li').allTextContents(), stored.doors.map(door => String(door.number)));
     assert.equal(await page.locator('html').getAttribute('lang'), 'nb');
@@ -96,13 +95,13 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
   test('Given a stored calendar title, When English is selected and refreshed, Then the interface changes while the title stays unchanged', async () => {
     // Given the Norwegian calendar and its original stored title.
     const { page, frontendUrl, apiUrl } = fixture;
-    await page.goto(`${frontendUrl}/calendars/${sampleId}`);
+    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`);
     const original = await page.locator('h1').textContent();
 
     // When the user selects English and refreshes.
     await selectLanguage(page, 'en');
     await page.reload({ waitUntil: 'networkidle' });
-    const stored = await (await fetch(`${apiUrl}/calendars/${sampleId}`)).json();
+    const stored = await (await fetch(`${apiUrl}/calendars/${fixture.calendar.id}`)).json();
 
     // Then selected language survives SSR and the stored title is unchanged.
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
@@ -174,13 +173,13 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     assert.equal(await page.getByRole('alert').locator('p').textContent(), 'Vi fant ikke denne kalenderen.');
   });
 
-  test('Given a mobile calendar reader, When the seeded calendar loads, Then all 24 static doors fit without horizontal overflow', async () => {
+  test('Given a mobile calendar reader, When a persisted calendar loads, Then all 24 static doors fit without horizontal overflow', async () => {
     // Given a narrow mobile viewport.
     const { page, frontendUrl, reports } = fixture;
     await page.setViewportSize({ width: 375, height: 812 });
 
-    // When the sample calendar loads.
-    await page.goto(`${frontendUrl}/calendars/${sampleId}`, { waitUntil: 'networkidle' });
+    // When the test calendar loads.
+    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`, { waitUntil: 'networkidle' });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
 
     // Then all doors fit without interactive door controls.
@@ -202,6 +201,13 @@ function browserFixture() {
 
   before(async () => {
     fs.mkdirSync(fixture.reports, { recursive: true });
+    const response = await fetch(`${fixture.apiUrl}/calendars`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Browser test calendar' }),
+    });
+    assert.equal(response.status, 201);
+    fixture.calendar = await response.json();
     browser = await chromium.launch({
       headless: true,
       channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined),

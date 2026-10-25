@@ -87,11 +87,7 @@ public sealed class ServiceTests
     {
         private readonly Dictionary<Guid, CalendarModel> calendars = [];
 
-        public Task InsertAsync(
-            CalendarModel calendar,
-            CancellationToken cancellationToken,
-            bool skipExisting = false
-        )
+        public Task InsertAsync(CalendarModel calendar, CancellationToken cancellationToken)
         {
             calendars.Add(calendar.Id, calendar);
             return Task.CompletedTask;

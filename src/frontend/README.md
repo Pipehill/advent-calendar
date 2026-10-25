@@ -7,7 +7,8 @@ reserved for a later feature. The illustration is served locally; see its
 [generation record](illustration.md).
 
 The page at `/calendars/<id>` shows a stored title and 24 static numbered doors.
-Open `/calendars/5ea3a1b2-48aa-4d10-bce0-dc1e01fe2026` for the local example.
+Create a calendar through `POST /calendars` on the backend and open
+`/calendars/<id>` using the returned ID. Startup does not create sample calendars.
 The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
 server code. The initial calendar is server-rendered and its query cache hydrates
@@ -63,7 +64,6 @@ terminal, start the backend with the repository's pinned SDK:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
-$env:LocalSeed__Enabled = 'true'
 $env:ASPNETCORE_URLS = 'http://localhost:8080'
 node tools/backend/check.mjs generate
 ./.quality-cache/dotnet/dotnet.exe watch --project src/backend/Calendar.Api
@@ -140,8 +140,9 @@ cleanup after every test. It verifies the landing page,
 disabled login, exact welcome text, mobile layout, stored calendars, SSR
 hydration, actual browser/tRPC communication, language selection, translated
 errors, unchanged user-authored titles, static doors and a narrow layout.
-It creates two test calendars through the existing API and records their IDs in
-`calendars.json`, test results in `smoke.xml` (JUnit), and screenshots under ignored
+It creates its own calendar fixtures through the existing API, including two
+distinct calendars whose IDs are recorded in `calendars.json`. Test results are
+saved in `smoke.xml` (JUnit), and screenshots are saved under ignored
 `quality-reports/frontend/`. A failed test or browser startup exits nonzero.
 
 Windows uses installed Edge by default. Elsewhere install Playwright Chromium
