@@ -3,7 +3,8 @@
 The backend implements username/password accounts, persistent cookie sessions and
 the three roles `superadmin`, `calendarAdmin` and `calendarUser`. New account
 operations enforce authentication/authorization independently of the website.
-The website integrates sign-in, password changes, logout and the personal page
+The website integrates sign-in, password changes, logout, the personal page and
+authorized account creation/maintenance
 through its tRPC BFF. Calendar POST/GET remain anonymous. Calendar authorization
 and database hardening are required before production.
 
@@ -59,6 +60,9 @@ An unrestricted administrator login establishes five minutes of recent verificat
 in that session. At the exact deadline, creation, reset, status and role mutations
 require `POST /auth/reauthenticate` with the current `password`. Re-verification
 does not extend session expiry. Listing does not require recent verification.
+Only the recent-verification denial sets the optional ProblemDetails boolean
+`verificationRequired` to true. Other forbidden responses keep it false, so the
+BFF/UI can request re-verification without confusing access denial with expiry.
 
 The BFF allowlists only `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN` on
 request-scoped exchanges. It relays designated `Set-Cookie` headers separately,

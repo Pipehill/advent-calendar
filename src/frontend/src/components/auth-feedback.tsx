@@ -1,5 +1,15 @@
 import * as m from '../generated/paraglide/messages.js';
 import { errorCode } from './error-state';
+import { Button } from './ui/button';
+
+export function RequestFailure({ error, retry }: { error: unknown; retry: () => void }) {
+  return (
+    <div role="alert">
+      <p>{authError(error)}</p>
+      <Button onClick={retry}>{m.retry_label()}</Button>
+    </div>
+  );
+}
 
 export function authError(error: unknown, login = false): string {
   const code = errorCode(error);

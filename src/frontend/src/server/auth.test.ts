@@ -107,10 +107,10 @@ test.each([400, 401, 403, 429, 503, 'network'])(
 
 test.each([
   ['calendarUser', false],
-  ['calendarAdmin', false],
+  ['calendarAdmin', true],
   ['superadmin', true],
 ])(
-  'Given %s with restricted=%s, When the superadmin list is requested, Then the BFF denies before listing',
+  'Given %s with restricted=%s, When the administrator list is requested, Then the BFF denies before listing',
   async (role, restricted) => {
     // Given an independently backend-validated session without unrestricted superadmin authority.
     const request = vi
@@ -139,8 +139,18 @@ test('Given a superadmin, When later account pages are requested, Then bounded p
   // Then only names, usernames and roles leave the BFF and the requested offset reaches the backend.
   expect(String(request.mock.calls[1][0])).toContain('/users?offset=50&limit=50');
   expect(result).toEqual({
-    users: [{ name: 'Ærlig Ørn 🎄', username: 'julebruker', role: 'superadmin' }],
+    users: [
+      {
+        id: 'private-id',
+        name: 'Ærlig Ørn 🎄',
+        username: 'julebruker',
+        role: 'superadmin',
+        enabled: true,
+        responsibleAdministratorId: null,
+      },
+    ],
     hasMore: false,
+    offset: 50,
   });
 });
 

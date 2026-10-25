@@ -1,7 +1,25 @@
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
+import {
+  accountPageInput,
+  createAccountInput,
+  resetAccountInput,
+  roleAccountInput,
+  statusAccountInput,
+  verificationInput,
+} from '../lib/account-input';
 import { changePasswordInput, loginInput } from '../lib/auth-input';
-import { inspectSession, listAccounts, publicSession } from './auth';
+import {
+  AdministrationFieldError,
+  changeAccountRole,
+  changeAccountStatus,
+  createAccount,
+  listAccounts,
+  requireAdministrator,
+  resetAccount,
+  responsibleAdministrators,
+} from './accounts';
+import { inspectSession, publicSession } from './auth';
 import { BackendProblem, callBackend, retrieveCalendar } from './backend';
 import { logRequest, type RequestContext } from './context';
 
@@ -11,12 +29,16 @@ const t = initTRPC.context<RequestContext>().create({
       ...shape,
       data: {
         ...shape.data,
+        verificationRequired:
+          error.cause instanceof BackendProblem && error.cause.verificationRequired,
         fieldErrors:
-          error.cause instanceof BackendProblem
-            ? error.cause.errors
-            : error.cause instanceof z.ZodError
-              ? z.flattenError(error.cause).fieldErrors
-              : {},
+          error.cause instanceof AdministrationFieldError
+            ? { [error.cause.field]: ['Invalid'] }
+            : error.cause instanceof BackendProblem
+              ? error.cause.errors
+              : error.cause instanceof z.ZodError
+                ? z.flattenError(error.cause).fieldErrors
+                : {},
       },
     };
   },
@@ -32,6 +54,13 @@ export const appRouter = t.router({
   auth: t.router({
     csrf: procedure.query(({ ctx }) => callBackend(ctx, (client, signal) => client.csrf(signal))),
     session: procedure.query(({ ctx }) => inspectSession(ctx)),
+    reauthenticate: procedure.input(verificationInput).mutation(({ ctx, input }) =>
+      callBackend(ctx, async (client, signal) => {
+        await requireAdministrator(client, signal);
+        await client.reauthenticate(input, signal);
+        return { ok: true };
+      }),
+    ),
     login: procedure.input(loginInput).mutation(({ ctx, input }) =>
       callBackend(ctx, async (client, signal) => {
         const session = await client.login(input, signal);
@@ -49,14 +78,20 @@ export const appRouter = t.router({
     }),
   }),
   accounts: t.router({
-    list: procedure
-      .input(
-        z.strictObject({
-          offset: z.number().int().min(0).max(1_000_000),
-          limit: z.number().int().min(1).max(100),
-        }),
-      )
-      .query(({ ctx, input }) => listAccounts(ctx, input.offset, input.limit)),
+    list: procedure.input(accountPageInput).query(({ ctx, input }) => listAccounts(ctx, input)),
+    administrators: procedure.query(({ ctx }) => responsibleAdministrators(ctx)),
+    create: procedure
+      .input(createAccountInput)
+      .mutation(({ ctx, input }) => createAccount(ctx, input)),
+    resetPassword: procedure
+      .input(resetAccountInput)
+      .mutation(({ ctx, input }) => resetAccount(ctx, input)),
+    changeStatus: procedure
+      .input(statusAccountInput)
+      .mutation(({ ctx, input }) => changeAccountStatus(ctx, input)),
+    changeRole: procedure
+      .input(roleAccountInput)
+      .mutation(({ ctx, input }) => changeAccountRole(ctx, input)),
   }),
   calendar: t.router({
     get: procedure.input(z.object({ id: z.uuid() })).query(async ({ input, ctx }) => {

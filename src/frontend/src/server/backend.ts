@@ -20,6 +20,7 @@ export class BackendProblem extends Error {
   constructor(
     public readonly status: number,
     public readonly errors: Record<string, string[]> = {},
+    public readonly verificationRequired = false,
   ) {
     super('Backend request failed');
   }
@@ -98,7 +99,13 @@ export async function callBackend<T>(
           }
           const problem: unknown = await response.json().catch(() => null);
           const errors = extractFieldErrors(problem);
-          throw new BackendProblem(response.status, errors);
+          const verificationRequired =
+            response.status === 403 &&
+            !!problem &&
+            typeof problem === 'object' &&
+            'verificationRequired' in problem &&
+            problem.verificationRequired === true;
+          throw new BackendProblem(response.status, errors, verificationRequired);
         } catch (error) {
           if (signal.aborted) throw error;
           if (attempt + 1 < attempts && error instanceof TypeError) {

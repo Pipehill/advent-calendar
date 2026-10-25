@@ -13,7 +13,7 @@ const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
 const runtime = process.env.QUALITY_CONTAINER_RUNTIME || settings.runtime || 'podman';
 const dotnet = process.env.DOTNET_EXE || settings.dotnet || 'dotnet';
-const reports = path.join(root, 'quality-reports/plan00011/browser');
+const reports = path.join(root, 'quality-reports/plan00013/browser');
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
 const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
 const children = [];
@@ -26,6 +26,8 @@ let browser;
 let context;
 let page;
 let errors;
+let apiProcess;
+let apiEnvironment;
 
 describe('Authentication through production Nitro and isolated PostgreSQL', { timeout: 180000 }, () => {
   before(async () => {
@@ -40,11 +42,12 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     accounts = JSON.parse(command(dotnet, [fixtureDll], environment));
     const apiPort = await freePort();
     apiUrl = `http://127.0.0.1:${apiPort}`;
-    launch(dotnet, [path.join(root, 'src/backend/Calendar.Api/bin/Release/net10.0/Calendar.Api.dll')], {
+    apiEnvironment = {
       ...environment, ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: apiUrl,
       ConnectionStrings__Calendar: environment.BROWSER_TEST_CONNECTION,
       Authentication__KeyDirectory: path.join(reports, `keys-${suffix}`),
-    }, path.join(root, 'src/backend/Calendar.Api'), 'backend');
+    };
+    apiProcess = startApi();
     await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
     const frontendPort = await freePort();
     frontendUrl = `http://127.0.0.1:${frontendPort}`;
@@ -54,6 +57,11 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   });
 
   beforeEach(async () => {
+    // Each independent scenario gets fresh aggregate rate budgets; persisted
+    // accounts, lockouts and sessions survive the process replacement unchanged.
+    await stopChild(apiProcess);
+    apiProcess = startApi();
+    await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
     errors = [];
     context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     page = await context.newPage();
@@ -72,8 +80,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   after(async () => {
     await browser?.close();
     for (const child of children.reverse()) {
-      child.kill();
-      await new Promise(resolve => { child.once('exit', resolve); setTimeout(resolve, 2000).unref(); });
+      await stopChild(child);
     }
     if (databaseName) command(runtime, ['stop', '--time', '2', databaseName]);
   });
@@ -132,13 +139,15 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         assert.equal(await page.locator('h1 b').count(), 0);
       } else if (role === 'calendarAdmin') {
-        assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 2);
+        assert.equal(await page.getByRole('link', { name: 'Lag ny kalenderbruker' }).count(), 1);
         assert(await page.getByRole('button', { name: 'Lag ny kalender', exact: true }).isDisabled());
         assert.equal(await page.getByText('Alle kontoer').count(), 0);
+        await page.getByText('Dine kalenderbrukere', { exact: true }).waitFor();
+        await page.getByText(accounts.find(item => item.username === 'browser-user').name, { exact: true }).waitFor();
+        assert.equal(await page.getByText('Annen Bruker', { exact: true }).count(), 0);
       } else {
         await page.getByText('Ærlig Ørn 🎄', { exact: true }).waitFor();
-        assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 1);
-        assert(await page.getByRole('button', { name: 'Lag ny kalenderadmin' }).isDisabled());
+        assert.equal(await page.getByRole('link', { name: 'Opprett konto' }).count(), 1);
         assert.equal(await page.locator('li').count(), 50);
         for (const other of accounts.filter(item => !item.restricted)) {
           assert.equal(await page.getByText(other.name, { exact: true }).count(), 1);
@@ -148,7 +157,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
         await page.getByText('Pagination 51', { exact: true }).waitFor();
         assert.equal(await page.locator('li').count(), accounts.length + 51 - 50);
       }
-      if (role !== 'superadmin') {
+      if (role === 'calendarUser') {
         assert.equal((await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
       }
       await page.screenshot({ path: path.join(reports, `${role}.png`), fullPage: true });
@@ -180,7 +189,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(new URL(page.url()).pathname, '/logg-inn');
     account.password = replacement;
     await signIn(account);
-    assert.equal(await page.getByRole('button', { name: 'Lag ny kalenderadmin' }).count(), 1);
+    assert.equal(await page.getByRole('link', { name: 'Opprett konto' }).count(), 1);
   });
 
   test('Given an invalid password, When the language changes, Then generic localized errors and accessible field validation appear', async () => {
@@ -341,6 +350,310 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.getByRole('button', { name: 'Prøv igjen', exact: true }).count(), 1);
   });
 
+  test('Given direct creation URLs, When anonymous ordinary and restricted callers navigate, Then the form is protected on SSR and refresh', async () => {
+    // Given no session followed by an ordinary account.
+    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/logg-inn');
+    const ordinary = accounts.find(item => item.username === 'browser-user');
+    await signIn(ordinary);
+
+    // When direct navigation and a direct creation mutation bypass the UI.
+    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
+    const denied = await mutation('accounts.create', { name: 'Denied', username: 'denied-user', role: 'calendarUser', password: `Temporary!${randomUUID()}` });
+
+    // Then the ordinary caller sees no form and the independent BFF rejects the write.
+    assert.equal(new URL(page.url()).pathname, '/min-side');
+    assert.equal(await page.locator('#account-password').count(), 0);
+    assert.equal(denied.status(), 403);
+    assert.match(denied.headers()['cache-control'], /no-store/);
+    await signIn(accounts.find(item => item.username === 'browser-restricted-admin'), '/endre-passord');
+    await page.goto(`${frontendUrl}/opprett-konto`, { waitUntil: 'networkidle' });
+    assert.equal(new URL(page.url()).pathname, '/endre-passord');
+    assert.equal(await page.locator('#account-password').count(), 0);
+  });
+
+  for (const [creator, role, prefix] of [
+    ['browser-superadmin', 'calendarAdmin', 'zz-admin-'],
+    ['browser-superadmin', 'calendarUser', 'aa-user-'],
+    ['browser-admin', 'calendarUser', 'zz-user-'],
+  ]) {
+    test(`Given ${creator} on its list, When ${role} is created on a dedicated page, Then the persisted account is visible and the actor stays signed in`, async () => {
+      // Given an authorized administrator, including a later superadmin list page.
+      const actor = accounts.find(item => item.username === creator);
+      await signIn(actor);
+      if (creator === 'browser-superadmin') await page.getByRole('button', { name: 'Neste', exact: true }).click();
+      const input = { name: `Ny Ærlig 🎄 ${randomUUID().slice(0, 6)}`, username: prefix + randomUUID().slice(0, 8), password: `Temporary!${randomUUID()}`, role };
+
+      // When the account is created through real browser/BFF/API transport.
+      const account = await createAccount(actor, input);
+      await page.getByText(input.name, { exact: true }).waitFor();
+      const session = await context.request.get(`${frontendUrl}/api/trpc/auth.session`);
+      const pageNumber = await page.getByText(/^Side \d+$/).textContent();
+      await page.reload({ waitUntil: 'networkidle' });
+      if (pageNumber !== 'Side 1') {
+        await page.getByRole('button', { name: 'Neste', exact: true }).click();
+      }
+
+      // Then API success exposes only metadata, the list survives reload, and no recipient login replaces the actor.
+      await page.getByText(input.name, { exact: true }).waitFor();
+      assert.equal((await session.json()).result.data.user.username, actor.username);
+      assert.equal(account.role, role);
+      assert.equal(account.responsibleAdministratorId, role === 'calendarUser' ? accounts.find(item => item.username === 'browser-admin').id : null);
+      assert(!JSON.stringify(account).includes(input.password));
+      assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
+      assert(!(await page.content()).includes(input.password));
+      await page.screenshot({ path: path.join(reports, `created-${creator}-${role}.png`), fullPage: true });
+    });
+  }
+
+  test('Given account creation validation, When blank duplicate and obsolete conditional fields are submitted, Then errors are accessible and failed accounts never appear', async () => {
+    // Given the dedicated superadmin form at a narrow viewport.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    assert.equal(await page.locator('#account-name[aria-invalid=true]').count(), 1);
+    await page.getByLabel('Visningsnavn').fill('Duplicate must not persist');
+    await page.getByLabel('Brukernavn', { exact: true }).fill('BROWSER-USER');
+    await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin').id);
+    await page.getByLabel('Mottakerens midlertidige passord').fill('Password123456!');
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Sjekk de markerte feltene' }).waitFor();
+    assert.equal(await page.locator('#account-password[aria-invalid=true]').count(), 1);
+    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+
+    // When a duplicate username reaches the API, then the role changes.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Brukernavnet er allerede reservert' }).first().waitFor();
+    await page.getByLabel('Kontotype', { exact: true }).selectOption('calendarAdmin');
+
+    // Then the error belongs to its field, obsolete fields/secrets clear, cancellation discards drafts and mobile layout fits.
+    assert.equal(await page.locator('#account-responsible').count(), 0);
+    assert.equal(await page.locator('#account-password').inputValue(), '');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
+    await page.waitForURL('**/min-side');
+    assert.equal(await page.getByText('Duplicate must not persist', { exact: true }).count(), 0);
+    await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
+    assert.equal(await page.locator('#account-name').inputValue(), '');
+  });
+
+  test('Given stale administrator verification, When a new account is confirmed, Then wrong-password feedback preserves the actor and re-verification completes the explicit submission', async () => {
+    // Given a valid actor whose five-minute verification has elapsed, with fixed session expiry.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    const original = (await (await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).json()).result.data;
+    command(dotnet, [fixtureDll, 'stale-verification', actor.username], environment);
+    await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
+    await page.getByLabel('Kontotype', { exact: true }).selectOption('calendarAdmin');
+    await page.getByLabel('Visningsnavn').fill('Bekreftet Administrator');
+    await page.getByLabel('Brukernavn', { exact: true }).fill(`verify-${randomUUID().slice(0, 8)}`);
+    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+
+    // When the initial write is rejected and the acting password is verified again.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByLabel('Ditt administratorpassord').waitFor();
+    await page.getByLabel('Ditt administratorpassord').fill('Incorrect!Verification');
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByRole('alert').filter({ hasText: 'Passordbekreftelsen mislyktes' }).waitFor();
+    assert.equal(new URL(page.url()).pathname, '/opprett-konto');
+    assert.equal(await page.getByLabel('Ditt administratorpassord').inputValue(), '');
+    await page.getByLabel('Ditt administratorpassord').fill(actor.password);
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.waitForURL('**/min-side');
+    await page.getByText('Bekreftet Administrator', { exact: true }).waitFor();
+
+    // Then only explicit resubmission succeeds and verification never extends the session deadline.
+    const current = (await (await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).json()).result.data;
+    assert.equal(current.expiresAt, original.expiresAt);
+    assert.equal(current.user.username, actor.username);
+  });
+
+  test('Given an authorized account, When reset promotion and demotion run through the list, Then sessions are revoked and fixed responsibility is retained', async () => {
+    // Given a freshly created ordinary target with its own restricted session.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    const input = { name: 'Vedlikehold Ærlig', username: `aa-maint-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarUser' };
+    const account = await createAccount(actor, input);
+    const recipient = await browser.newContext();
+    try {
+      assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 200);
+
+      // When a replacement password and promotion are saved, then the role returns to ordinary.
+      const resetPassword = `Reset!${randomUUID()}`;
+      await maintain(account, 'Tilbakestill passord', resetPassword);
+      assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
+      assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 401);
+      assert.equal((await mutation('auth.login', { username: input.username, password: resetPassword }, recipient.request)).status(), 200);
+      const promotionPassword = `Promoted!${randomUUID()}`;
+      await maintain(account, 'Gjør til kalenderadministrator', promotionPassword);
+      assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
+      await maintain(account, 'Endre til kalenderbruker');
+
+      // Then persisted role/responsibility and temporary credential restriction match the contract.
+      const list = await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50, focusId: account.id }))}`);
+      const persisted = (await list.json()).result.data.users.find(item => item.id === account.id);
+      assert.equal(persisted.role, 'calendarUser');
+      assert.equal(persisted.responsibleAdministratorId, account.responsibleAdministratorId);
+      const login = await mutation('auth.login', { username: input.username, password: promotionPassword }, recipient.request);
+      assert.equal(login.status(), 200);
+      assert.equal((await login.json()).result.data.mustChangePassword, true);
+      assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
+      assert(!(await page.content()).includes(promotionPassword));
+    } finally { await recipient.close(); }
+  });
+
+  test('Given a superadmin and a target account, When disable and enable are confirmed, Then displayed status follows persistence and revoked sessions stay revoked', async () => {
+    // Given a new target signed in with a temporary credential.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    const input = { name: 'Status Bruker', username: `aa-status-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarUser' };
+    const account = await createAccount(actor, input);
+    const recipient = await browser.newContext();
+    try {
+      await mutation('auth.login', { username: input.username, password: input.password }, recipient.request);
+
+      // When the target is disabled and enabled from the authorized list.
+      await maintain(account, 'Deaktiver konto');
+      await page.locator(`[data-account-id="${account.id}"]`).getByText(/Deaktivert/).waitFor();
+      assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 401);
+      await maintain(account, 'Aktiver konto');
+
+      // Then status updates without reload and enabling does not restore the old session.
+      await page.locator(`[data-account-id="${account.id}"]`).getByText(/Aktivert/).waitFor();
+      assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
+      assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 200);
+    } finally { await recipient.close(); }
+  });
+
+  test('Given calendaradmin ownership, When reset and forged cross-owner maintenance are attempted, Then only assigned ordinary targets are maintained', async () => {
+    // Given the first calendaradmin and a new assigned ordinary user.
+    const actor = accounts.find(item => item.username === 'browser-admin');
+    await signIn(actor);
+    const account = await createAccount(actor, { name: 'Egen Bruker', username: `owned-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarUser' });
+
+    // When allowed reset and direct unauthorized operations are submitted.
+    await maintain(account, 'Tilbakestill passord', `Reset!${randomUUID()}`);
+    const other = accounts.find(item => item.username === 'browser-user-two');
+    const results = await Promise.all([
+      mutation('accounts.resetPassword', { id: other.id, password: `Reset!${randomUUID()}` }),
+      mutation('accounts.changeStatus', { id: account.id, enabled: false }),
+      mutation('accounts.changeRole', { id: account.id, role: 'calendarAdmin', temporaryPassword: `Promote!${randomUUID()}` }),
+    ]);
+
+    // Then no status/role controls or cross-owner rows are exposed and forged calls fail.
+    assert(results.every(response => response.status() === 403));
+    assert.equal(await page.getByRole('button', { name: /^Deaktiver konto/ }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: /^Gjør til/ }).count(), 0);
+    assert.equal(await page.getByText(other.name, { exact: true }).count(), 0);
+  });
+
+  test('Given a calendaradmin with attached users, When first demotion is confirmed, Then the conflict is shown without changing the role', async () => {
+    // Given a superadmin viewing the existing administrator with ordinary users.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const target = accounts.find(item => item.username === 'browser-admin');
+    await page.getByRole('button', { name: `Endre til kalenderbruker: ${target.username}`, exact: true }).click();
+    await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin-two').id);
+
+    // When the dependency-protected role change is submitted.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+
+    // Then conflict feedback is accessible and no success or optimistic role change appears.
+    await page.getByRole('alert').filter({ hasText: 'vanlige brukere kan ikke endres' }).waitFor();
+    assert.equal(await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).count(), 0);
+    assert.equal(await page.locator(`[data-account-id="${target.id}"]`).getByText(/Kalenderadministrator/).count(), 1);
+  });
+
+  test('Given an English administrator form, When creation loads and language changes, Then labels and guidance are translated without translating user names', async () => {
+    // Given a calendaradmin with an existing assigned user's original name.
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+    await page.getByRole('combobox').selectOption('en');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('link', { name: 'Create calendar user', exact: true }).click();
+
+    // When the localized form loads and is canceled.
+    await page.getByLabel('Display name').waitFor();
+    assert.equal(await page.locator('#account-role').count(), 0);
+    assert.equal(await page.getByLabel("Recipient's temporary password").getAttribute('type'), 'password');
+    await page.getByText(/It expires after 30 minutes/).waitFor();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+    // Then interface text is English and user-authored content stays unchanged.
+    await page.getByText('Your calendar users', { exact: true }).waitFor();
+    await page.getByText(accounts.find(item => item.username === 'browser-user').name, { exact: true }).waitFor();
+  });
+
+  test('Given a pending creation with a lost response, When submission is repeated, Then one write commits and a later authorized refresh reveals it without false success', async () => {
+    // Given a creation whose API response will be lost after the actual commit.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
+    await page.getByLabel('Kontotype', { exact: true }).selectOption('calendarAdmin');
+    const username = `aa-lost-${randomUUID().slice(0, 8)}`;
+    const name = `Lost response ${randomUUID().slice(0, 6)}`;
+    await page.getByLabel('Visningsnavn').fill(name);
+    await page.getByLabel('Brukernavn', { exact: true }).fill(username);
+    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+    let writes = 0;
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/accounts.create', async route => {
+      writes++;
+      await pending;
+      assert.equal((await route.fetch()).status(), 200);
+      await route.abort('failed');
+    });
+
+    // When a pending form is submitted again and the only response is lost.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.locator('button[type=submit][disabled]').waitFor();
+    await page.locator('form').evaluate(form => form.requestSubmit());
+    release();
+    await page.getByRole('alert').waitFor();
+
+    // Then the browser makes no automatic retry and does not report an unconfirmed success.
+    assert.equal(writes, 1);
+    assert.equal(await page.getByRole('status').filter({ hasText: 'Kontoen er opprettet' }).count(), 0);
+    await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
+    await page.waitForURL('**/min-side');
+    await page.getByText(name, { exact: true }).waitFor();
+  });
+
+  test('Given no eligible responsible administrator, When ordinary creation is opened, Then an actionable empty state blocks unassigned creation', async () => {
+    // Given the authorized superadmin form with no eligible administrator options.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    await page.route('**/api/trpc/accounts.administrators**', route => route.fulfill({ json: { result: { data: [] } } }));
+    await page.getByRole('link', { name: 'Opprett konto', exact: true }).click();
+
+    // When creation is attempted without a valid responsible account.
+    await page.getByText(/Opprett en kalenderadministrator først/).waitFor();
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+
+    // Then selection guidance is accessible and switching to administrator creation removes the requirement.
+    await page.getByRole('alert').filter({ hasText: 'Velg en eksisterende ansvarlig' }).waitFor();
+    await page.getByLabel('Kontotype', { exact: true }).selectOption('calendarAdmin');
+    assert.equal(await page.getByText(/Opprett en kalenderadministrator først/).count(), 0);
+    assert.equal(await page.locator('#account-responsible').count(), 0);
+  });
+
+  test('Given an administrator without previous responsibility, When first demotion is saved, Then a selected administrator is persisted', async () => {
+    // Given a newly created administrator without dependent users.
+    const actor = accounts.find(item => item.username === 'browser-superadmin');
+    await signIn(actor);
+    const account = await createAccount(actor, { name: 'First Demotion', username: `zz-first-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarAdmin' });
+    const owner = accounts.find(item => item.username === 'browser-admin-two');
+
+    // When the first demotion selects an existing responsible administrator.
+    await maintain(account, 'Endre til kalenderbruker', undefined, owner.id);
+
+    // Then the persisted ordinary role has that fixed association.
+    const result = await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50, focusId: account.id }))}`);
+    const persisted = (await result.json()).result.data.users.find(item => item.id === account.id);
+    assert.equal(persisted.role, 'calendarUser');
+    assert.equal(persisted.responsibleAdministratorId, owner.id);
+  });
+
   test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
     const env = { ...process.env, FRONTEND_URL: frontendUrl, API_URL: apiUrl };
@@ -363,6 +676,45 @@ async function signIn(account, destination = '/min-side', target = page) {
   await target.waitForLoadState('networkidle');
 }
 
+async function mutation(name, input, request = context.request) {
+  const csrf = (await (await request.get(`${frontendUrl}/api/trpc/auth.csrf`)).json()).result.data.requestToken;
+  return request.post(`${frontendUrl}/api/trpc/${name}`, { headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf }, data: input });
+}
+
+async function createAccount(actor, input) {
+  await page.getByRole('link', { name: actor.role === 'superadmin' ? 'Opprett konto' : 'Lag ny kalenderbruker', exact: true }).click();
+  await page.getByLabel('Visningsnavn').fill(input.name);
+  await page.getByLabel('Brukernavn', { exact: true }).fill(input.username);
+  if (actor.role === 'superadmin') {
+    await page.getByLabel('Kontotype', { exact: true }).selectOption(input.role);
+    if (input.role === 'calendarUser') await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin').id);
+  } else {
+    assert.equal(await page.locator('#account-role').count(), 0);
+    assert.equal(await page.locator('#account-responsible').count(), 0);
+  }
+  await page.getByLabel('Mottakerens midlertidige passord').fill(input.password);
+  const response = page.waitForResponse(response => response.url().includes('/api/trpc/accounts.create') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+  const result = await response;
+  assert.equal(result.status(), 200, 'Creation succeeds');
+  assert.match(result.headers()['cache-control'], /no-store/);
+  await page.waitForURL('**/min-side');
+  await page.getByRole('status').filter({ hasText: 'Kontoen er opprettet' }).waitFor();
+  await page.getByText(input.name, { exact: true }).waitFor();
+  return (await result.json()).result.data;
+}
+
+async function maintain(account, action, password, responsibleId) {
+  await page.getByRole('button', { name: `${action}: ${account.username}`, exact: true }).click();
+  await page.locator('#account-action-heading').waitFor();
+  if (password) await page.getByLabel('Mottakerens midlertidige passord').fill(password);
+  if (responsibleId) await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(responsibleId);
+  await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+  await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
+  await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).waitFor({ state: 'visible' });
+  await page.waitForLoadState('networkidle');
+}
+
 function command(executable, args, env = process.env) {
   const childEnvironment = { ...env };
   // A separately launched Node test suite needs its own runner context.
@@ -373,12 +725,24 @@ function command(executable, args, env = process.env) {
   return result.stdout;
 }
 
+function startApi() {
+  return launch(dotnet, [path.join(root, 'src/backend/Calendar.Api/bin/Release/net10.0/Calendar.Api.dll')], apiEnvironment, path.join(root, 'src/backend/Calendar.Api'), 'backend');
+}
+
+async function stopChild(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  const stopped = new Promise(resolve => { child.once('exit', resolve); setTimeout(resolve, 2000).unref(); });
+  child.kill();
+  await stopped;
+}
+
 function launch(executable, args, env, cwd, label) {
   const child = spawn(executable, args, { cwd, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-  const log = fs.createWriteStream(path.join(reports, `${label}.log`));
+  const log = fs.createWriteStream(path.join(reports, `${label}.log`), { flags: 'a' });
   child.stdout.pipe(log);
   child.stderr.pipe(log);
   children.push(child);
+  return child;
 }
 
 async function ready(check) {

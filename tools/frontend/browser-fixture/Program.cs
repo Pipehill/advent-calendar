@@ -33,6 +33,14 @@ if (args.FirstOrDefault() == "expire")
     );
     return;
 }
+if (args.FirstOrDefault() == "stale-verification")
+{
+    await database.ExecuteAsync(
+        "UPDATE account_sessions SET verified_at = CURRENT_TIMESTAMP - INTERVAL '5 minutes' WHERE account_id = (SELECT id FROM accounts WHERE user_name = @Username)",
+        new { Username = args[1] }
+    );
+    return;
+}
 
 var originalOutput = Console.Out;
 Console.SetOut(TextWriter.Null);
@@ -46,6 +54,7 @@ finally
 }
 
 var administratorId = Guid.NewGuid();
+var otherAdministratorId = Guid.NewGuid();
 var fixtures = new List<object>();
 foreach (
     var (username, role, name, restricted) in new[]
@@ -53,13 +62,24 @@ foreach (
         ("browser-superadmin", AccountRoles.Superadmin, "Ærlig Ørn 🎄", false),
         ("browser-admin", AccountRoles.Administrator, "Kalender Ansvarlig", false),
         ("browser-user", AccountRoles.User, "<b>" + new string('Æ', 90) + "</b>", false),
+        ("browser-admin-two", AccountRoles.Administrator, "Annen Ansvarlig", false),
+        ("browser-user-two", AccountRoles.User, "Annen Bruker", false),
         ("browser-temporary", AccountRoles.Superadmin, "Midlertidig Bruker", true),
         ("browser-expired", AccountRoles.Administrator, "Utløpt Bruker", true),
+        ("browser-restricted-admin", AccountRoles.Administrator, "Begrenset Administrator", true),
     }
 )
 {
     var password = "Ærlig!" + Guid.NewGuid().ToString("N");
-    var id = username == "browser-admin" ? administratorId : Guid.NewGuid();
+    var id = username switch
+    {
+        "browser-admin" => administratorId,
+        "browser-admin-two" => otherAdministratorId,
+        _ => Guid.NewGuid(),
+    };
+    Guid? responsible = null;
+    if (role == AccountRoles.User)
+        responsible = username == "browser-user-two" ? otherAdministratorId : administratorId;
     var hash = new ArgonPasswordHasher().HashPassword(new Account(), password);
     await database.ExecuteAsync(
         """
@@ -78,7 +98,7 @@ foreach (
             Hash = hash,
             Role = role,
             Version = Guid.NewGuid(),
-            Responsible = role == AccountRoles.User ? (Guid?)administratorId : null,
+            Responsible = responsible,
             Restricted = restricted,
             Deadline = restricted ? (DateTimeOffset?)DateTimeOffset.UtcNow.AddMinutes(30) : null,
         }
@@ -86,6 +106,7 @@ foreach (
     fixtures.Add(
         new
         {
+            id,
             username,
             password,
             name,

@@ -114,6 +114,9 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
 
         // Then role membership alone cannot grant superadmin maintenance authority.
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.False(
+            (await response.Content.ReadFromJsonAsync<ApiProblemDetails>())!.VerificationRequired
+        );
         Assert.True(
             await context.ScalarAsync<bool>(
                 "SELECT enabled AND account_role = 'calendarUser' FROM accounts WHERE id = @Id",

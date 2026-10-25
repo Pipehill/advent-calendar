@@ -1,8 +1,10 @@
 # 00013: Frontend user administration
 
-Status: Not implemented
+Status: Implemented (2026-10-25)
 
 Last updated: 2026-10-25
+
+Implementation type: feature (confirmed by the owner on 2026-10-25).
 
 ## Overview
 
@@ -101,67 +103,67 @@ verification. Listing requires unrestricted role authorization without recent
 verification. Superadmin account maintenance remains manual; responsibility is
 fixed and cannot be reassigned through these forms.
 
-- [ ] Follow the current [authentication rules](../rules/authentication-and-calendar-access.md),
+- [x] Follow the current [authentication rules](../rules/authentication-and-calendar-access.md),
   [architecture rules](../rules/architecture.md) and
   [API contract rules](../rules/api-contracts.md).
-- [ ] Reuse `POST /users`, paginated `GET /users`,
+- [x] Reuse `POST /users`, paginated `GET /users`,
   `POST /users/{id}/reset-password`, `PATCH /users/{id}/status`,
   `PATCH /users/{id}/role` and `POST /auth/reauthenticate` from
   `src/contract/openapi.json` and the generated client. The backend already
   enforces account creation permissions, responsible
   administrator validation and recent verification through `UsersController`,
   `UserAdministrationService` and the session/authentication services.
-- [ ] Keep manual-only superadmin provisioning, fixed responsibility, credential
+- [x] Keep manual-only superadmin provisioning, fixed responsibility, credential
   policy, temporary credential restrictions and account/session concurrency
   protections. This plan does not require a new account table or migration.
   Existing profile editing remains deferred by the account rules.
 
 ### 2. Extend the BFF and browser administration boundary
 
-- [ ] Extend `src/frontend/src/server/trpc.ts` and the account helpers currently
+- [x] Extend `src/frontend/src/server/trpc.ts` and the account helpers currently
   in `src/frontend/src/server/auth.ts` with runtime-validated account creation,
   password reset, status changes, role changes and administrator re-verification.
   Validate sessions using the backend before exposing account administration.
   Never trust browser roles or creator IDs.
-- [ ] Extend the current superadmin-only `accounts.list` guard to accept an
+- [x] Extend the current superadmin-only `accounts.list` guard to accept an
   unrestricted calendaradmin as well. Preserve backend SQL scoping rather than
   downloading all accounts and filtering them in the browser.
-- [ ] Add reusable form/BFF schemas alongside `src/frontend/src/lib/auth-input.ts`
+- [x] Add reusable form/BFF schemas alongside `src/frontend/src/lib/auth-input.ts`
   or in a focused administration input module. Encode UUID target IDs,
   required booleans, allowed roles, conditional responsibility/promotion-password
   inputs, name normalization and Unicode code-point bounds.
   Backend validation remains authoritative, including common-password rejection.
-- [ ] Provide superadmins with selectable responsible calendaradmins from the
+- [x] Provide superadmins with selectable responsible calendaradmins from the
   authorized backend list, retaining IDs only where needed for selection. Load
   enough pages to reach eligible administrators beyond the first page. Show an
   actionable empty state when none exist; do not fabricate an administrator or
   create an unassigned calendar user. Revalidate the selection on submission.
-- [ ] Extend the current list projection of name, username and role with the
+- [x] Extend the current list projection of name, username and role with the
   account ID, enabled state and fixed responsible-administrator ID needed for
   authorized maintenance and demotion. Keep credential and creator/audit data
   out of personal-page hydration. Derive permitted controls from backend-validated
   session and account metadata; the backend independently rechecks each target.
-- [ ] Extend the request-scoped browser client in
+- [x] Extend the request-scoped browser client in
   `src/frontend/src/lib/auth-client.ts` and its router context as needed. Reuse
   the principal-bound CSRF refresh and cookie allowlist for every mutation.
   Do not cache request tokens or create replacement tokens in the BFF.
-- [ ] Integrate recent password verification with `auth.reauthenticate`. Support
+- [x] Integrate recent password verification with `auth.reauthenticate`. Support
   an administrator whose session remains valid after the five-minute verification
   window. Show verification failures without treating every `FORBIDDEN` as a
   revoked login; distinguish access denial from a recoverable verification need
   without weakening the backend guard. Retain lockout and rate-limit handling.
-- [ ] Reuse generated-client error translation, structured field errors,
+- [x] Reuse generated-client error translation, structured field errors,
   cancellation and total deadlines. Keep all account/verification responses,
   including failures, no-store through tRPC, SSR and the production adapter.
 
 ### 3. Build the dedicated creation page and lists
 
-- [ ] Replace the applicable disabled controls in
+- [x] Replace the applicable disabled controls in
   `src/frontend/src/routes/min-side.tsx` with navigation to the creation page.
   Use a general account-creation entry point for superadmins with a type choice;
   give calendaradmins the ordinary-user form. Preserve the calendar-creation
   placeholder and explain its unavailable state separately.
-- [ ] Add a dedicated protected route under `src/frontend/src/routes/` and a form
+- [x] Add a dedicated protected route under `src/frontend/src/routes/` and a form
   component with compatible shared UI components, labeled inputs, masked password
   entry, pending state, field
   errors, submission errors and a cancel action returning to `/min-side`.
@@ -169,65 +171,90 @@ fixed and cannot be reassigned through these forms.
   keep submitted secrets out of route loaders and search parameters.
   Separate the recipient's temporary password from any acting-administrator
   verification password.
-- [ ] When changing the superadmin role choice, adjust conditional fields and
+- [x] When changing the superadmin role choice, adjust conditional fields and
   validation so obsolete responsibility values cannot reach administrator-account
   creation. Display role-appropriate password guidance.
-- [ ] Extend `src/frontend/src/components/account-list.tsx` for both administrator
+- [x] Extend `src/frontend/src/components/account-list.tsx` for both administrator
   scopes. Preserve pagination, render user-authored names as text and handle long
   Unicode names on mobile. Keep ordinary users out of account list queries.
-- [ ] Return to `/min-side` after confirmed creation, refresh the authorized list
+- [x] Return to `/min-side` after confirmed creation, refresh the authorized list
   and make the returned account visible even when its username sorts onto a
   different page. Existing
   backend ordering is by normalized username and ID; invalidation of the current
   page alone does not guarantee the newly created row is visible.
-- [ ] Clear secret form values after success/cancellation and on session changes.
+- [x] Clear secret form values after success/cancellation and on session changes.
   Reuse protected-cache clearing on logout, expiry and account changes; never
   leave another administrator's list or drafts in the next user's view.
-- [ ] Add all new interface, validation, verification and success messages to
+- [x] Add all new interface, validation, verification and success messages to
   `src/frontend/messages/nb.json` and `en.json`, preserving user-authored content.
 
 ### 4. Add maintenance actions to the authorized list
 
-- [ ] Add password-reset actions for each permitted target. Accept a replacement
+- [x] Add password-reset actions for each permitted target. Accept a replacement
   temporary password matching the target's current role policy, verify the acting
   administrator when required, and invoke the existing reset operation. Explain
   expiry, mandatory change, private handover and session revocation. Never return
   or redisplay the secret in a success message.
-- [ ] Add superadmin-only enable/disable and role-change actions for nonsuperadmin
+- [x] Add superadmin-only enable/disable and role-change actions for nonsuperadmin
   targets. Identify the selected account and operation clearly before submission;
   expose pending, success and error feedback. Calendaradmins receive neither
   status nor role-change controls. Superadmin rows remain view-only.
-- [ ] On promotion, collect a different administrator-compliant temporary password
+- [x] On promotion, collect a different administrator-compliant temporary password
   and omit responsibility changes. On demotion, omit the promotion password and
   preserve any existing association; request a responsible calendaradmin only on
   first entry to the ordinary role. Surface backend dependency conflicts and
   concurrent target changes without weakening checks or retrying automatically.
-- [ ] Refresh affected authorized account data after a successful mutation. Ensure
+- [x] Refresh affected authorized account data after a successful mutation. Ensure
   a newly promoted user disappears from the former calendaradmin's ordinary-user
   list on its next authorized refresh, and role/status changes are reflected on
   superadmin pages. Recheck authorization on each mutation rather than treating
   an already-rendered row as continuing permission.
-- [ ] Clear reset, promotion and verification secrets on success/cancellation and
+- [x] Clear reset, promotion and verification secrets on success/cancellation and
   session changes. Keep form errors and pending state tied to the selected target,
   so switching actions cannot apply a request or feedback to a different account.
 
 ### 5. Verify and document the increment
 
-- [ ] Extend focused BFF/schema tests and browser scenarios for the confirmed
+- [x] Extend focused BFF/schema tests and browser scenarios for the confirmed
   scope, including the changed calendaradmin list authorization expectations in
   `src/frontend/src/server/auth.test.ts`.
-- [ ] Reuse isolated PostgreSQL API coverage for the established permissions;
+- [x] Reuse isolated PostgreSQL API coverage for the established permissions;
   extend backend contract/integration tests if backend behavior needs to change.
   Update authored OpenAPI before regenerating consumers for any required contract
   change; never edit generated files directly.
-- [ ] Update the current authentication rules, architecture description and
+- [x] Update the current authentication rules, architecture description and
   frontend/backend documentation where the delivered increment changes them.
   Record actual verification in the existing verification documents. Preserve
   historical plan 00011 while documenting its superseded placeholder behavior
   here and in current documentation.
-- [ ] Run required code quality, health and relevant build/test workflows during
+- [x] Run required code quality, health and relevant build/test workflows during
   implementation. Mark this plan and its index implemented only after completing
   the confirmed behavior and verification.
+
+## Implementation notes
+
+- Implementation branch: `feature/user-administration`; baseline: `92e218d`.
+- Reused existing account operations without database schema/migration changes. Added
+  an optional authored ProblemDetails `verificationRequired` boolean and regenerated
+  both consumers to distinguish recent-verification expiry from other denials.
+- Responsible-administrator options, target checks and new-account page location
+  use authorized backend pagination within one total deadline; no new unrestricted
+  browser list or account lookup endpoint was introduced.
+- Creation success/focus metadata is transient router memory. Temporary and acting
+  passwords stay in form/request memory, outside query/mutation caches and hydration.
+- Browser coverage found and fixed repeated submissions during pending validation;
+  a synchronous form guard prevents another write, including lost-response cases.
+- Verification completed on 2026-10-25: 77 frontend tests, 172 backend tests,
+  five sharpened backend boundary cases, 28 production browser scenarios and eight
+  public/calendar smoke scenarios passed. Three final browser feedback/submission
+  regressions passed after the last UI refinement. Builds, type checks, formatting,
+  full quality and the final advisory comparison passed.
+- Application health regresses 90.8 to 87.5; tooling changes 51.5 to 52.0. Required
+  permission/form/test branches and small scaffold clones are documented in
+  [frontend verification](../../src/frontend/verification.md#2026-10-25-plan-00013-account-administration),
+  including source identities, unsupported metrics and inherited platform/Vite limits.
+- Existing application containers, external build artifacts and data were preserved;
+  disposable test containers were removed. No commit, push or PR was requested.
 
 ## Verification
 

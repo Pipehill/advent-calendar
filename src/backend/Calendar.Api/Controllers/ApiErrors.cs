@@ -10,7 +10,8 @@ public static class ApiErrors
         HttpContext context,
         int status,
         string title,
-        IDictionary<string, List<string>>? errors = null
+        IDictionary<string, List<string>>? errors = null,
+        bool verificationRequired = false
     )
     {
         var result = new ObjectResult(
@@ -21,6 +22,7 @@ public static class ApiErrors
                 Status = status,
                 TraceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier,
                 Errors = errors ?? new Dictionary<string, List<string>>(),
+                VerificationRequired = verificationRequired,
             }
         )
         {

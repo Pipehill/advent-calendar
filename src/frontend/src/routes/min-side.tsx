@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { AccountList } from '../components/account-list';
 import { AuthRouteError } from '../components/auth-feedback';
 import { SessionControls } from '../components/session-controls';
@@ -48,19 +48,20 @@ function PersonalPage() {
       ) : (
         <section className="mt-10" aria-label={m.future_actions()}>
           <div className="flex flex-wrap gap-4">
-            {user.role === 'superadmin' ? (
-              <Button disabled>{m.create_admin()}</Button>
-            ) : (
-              <>
-                <Button disabled>{m.create_calendar()}</Button>
-                <Button disabled>{m.create_user()}</Button>
-              </>
-            )}
+            <Link
+              to="/opprett-konto"
+              className="inline-flex min-h-11 items-center rounded-full bg-emerald-950 px-5 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-800"
+            >
+              {user.role === 'superadmin' ? m.admin_create_account() : m.create_user()}
+            </Link>
+            {user.role === 'calendarAdmin' && <Button disabled>{m.create_calendar()}</Button>}
           </div>
-          <p className="mt-3 text-sm text-stone-600">{m.coming_later()}</p>
+          {user.role === 'calendarAdmin' && (
+            <p className="mt-3 text-sm text-stone-600">{m.admin_calendar_unavailable()}</p>
+          )}
         </section>
       )}
-      {user.role === 'superadmin' && <AccountList context={context} />}
+      {user.role !== 'calendarUser' && <AccountList context={context} actorRole={user.role} />}
       <SessionControls context={context} expiresAt={session.expiresAt} passwordLink />
     </div>
   );

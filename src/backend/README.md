@@ -15,7 +15,7 @@ production database hardening must be completed and verified before production.
 See [backend authentication](authentication.md) for the protected API, manual
 superadmin provisioning, temporary-password handover, session lifecycle and key
 configuration. The frontend/BFF implements login, password changes, logout and
-session-protected personal pages, including the superadmin read-only account list.
+session-protected personal pages and authorized account creation/maintenance lists.
 
 ## Local containers
 

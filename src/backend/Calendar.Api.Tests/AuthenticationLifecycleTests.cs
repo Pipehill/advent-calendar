@@ -19,9 +19,22 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
         await using var context = await CreateAsync(fixture);
         var account = await context.ProvisionAsync();
         var original = await context.LoginAsync(account);
-        context.Time.Advance(TimeSpan.FromMinutes(5));
+        context.Time.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromMilliseconds(1));
 
-        // When creation is attempted at the boundary, followed by current-password re-verification.
+        // When creation is attempted immediately before and at the boundary, then re-verified.
+        var before = await SendAsync(
+            context.Client,
+            HttpMethod.Post,
+            "/users",
+            new
+            {
+                username = "before-deadline",
+                name = "Before deadline",
+                password = Password(),
+                role = AccountRoles.Administrator,
+            }
+        );
+        context.Time.Advance(TimeSpan.FromMilliseconds(1));
         var stale = await SendAsync(
             context.Client,
             HttpMethod.Post,
@@ -55,7 +68,11 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
         var session = (await context.Client.GetFromJsonAsync<SessionDto>("/auth/session"))!;
 
         // Then fresh session-bound verification permits creation while expiry remains fixed.
+        Assert.Equal(HttpStatusCode.Created, before.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, stale.StatusCode);
+        Assert.True(
+            (await stale.Content.ReadFromJsonAsync<ApiProblemDetails>())!.VerificationRequired
+        );
         Assert.Equal(HttpStatusCode.NoContent, refresh.StatusCode);
         Assert.Equal(HttpStatusCode.Created, allowed.StatusCode);
         Assert.Equal(original.ExpiresAt, session.ExpiresAt);

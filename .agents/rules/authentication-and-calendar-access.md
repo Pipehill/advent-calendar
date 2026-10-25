@@ -18,6 +18,8 @@ are implemented; current calendar POST/GET endpoints remain anonymous. See the
 Plan 00008 covers backend accounts, authentication, contracts, persistence and
 verification. Plan 00011 adds frontend/BFF login, password change, logout and
 protected personal pages with a read-only superadmin account list.
+Plan 00013 extends those pages with dedicated account creation, scoped administrator
+lists, password reset, status/role maintenance and recoverable recent verification.
 Calendar authorization/assignment and
 [database hardening in plan 00009](../plans/00009-database-hardening.md) must be
 completed and verified before production. The calendar rules below remain
@@ -109,6 +111,10 @@ requirements for that follow-up; do not claim them as delivered by plan 00008.
   minutes, bound to the current unrestricted session and account security version.
   Unrestricted login may establish it; otherwise use authenticated re-verification.
   Use backend time, reject at the deadline and never extend session expiry.
+- Distinguish expired recent verification using the authored ProblemDetails
+  `verificationRequired` boolean. Only that denial sets it true. BFF/UI access
+  denials must not trigger an automatic write retry or unconditional logout;
+  wrong re-verification credentials do not necessarily invalidate the session.
 - Persist five failed password verifications within a rolling 15-minute account
   window, followed by a fixed 15-minute pause. Successful accepted verification or
   pause expiry clears account failures. Attempts during the pause must not verify

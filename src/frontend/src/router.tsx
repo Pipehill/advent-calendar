@@ -36,12 +36,17 @@ export function getRouter() {
         login: caller.auth.login,
         changePassword: caller.auth.changePassword,
         logout: () => caller.auth.logout(),
+        reauthenticate: caller.auth.reauthenticate,
+        createAccount: caller.accounts.create,
+        resetAccount: caller.accounts.resetPassword,
+        changeAccountStatus: caller.accounts.changeStatus,
+        changeAccountRole: caller.accounts.changeRole,
       };
     })
     .client(browserAuthClient)();
   const router = createRouter({
     routeTree,
-    context: { queryClient, trpc, auth },
+    context: { queryClient, trpc, auth, administration: {} },
     defaultPreloadStaleTime: 0,
   });
   setupRouterSsrQueryIntegration({ router, queryClient });
@@ -49,6 +54,7 @@ export function getRouter() {
 }
 
 export type RouterContext = {
+  administration: { createdId?: string };
   auth: ReturnType<typeof browserAuthClient>;
   queryClient: QueryClient;
   trpc: ReturnType<typeof createTRPCOptionsProxy<AppRouter>>;
