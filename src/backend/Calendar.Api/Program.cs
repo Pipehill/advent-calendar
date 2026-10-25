@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Calendar.Api.Authentication;
 using Calendar.Api.Controllers;
 using Calendar.Api.Infrastructure;
@@ -39,8 +41,26 @@ builder
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true
     )
     .AddJsonOptions(options =>
-        options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
-    );
+    {
+        options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+        // NSwag emits EnumMember attributes, which System.Text.Json ignores.
+        // Override property converters through metadata so actual JSON follows
+        // the authored camelCase role values without editing generated code.
+        var resolver = new DefaultJsonTypeInfoResolver();
+        resolver.Modifiers.Add(info =>
+        {
+            foreach (var property in info.Properties)
+                if (
+                    property.PropertyType.IsEnum
+                    && property.PropertyType.Namespace == "Calendar.Api.Generated"
+                )
+                    property.CustomConverter = new JsonStringEnumConverter(
+                        JsonNamingPolicy.CamelCase,
+                        allowIntegerValues: false
+                    );
+        });
+        options.JsonSerializerOptions.TypeInfoResolver = resolver;
+    });
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -115,13 +135,21 @@ app.Use(
                     .ExecuteResultAsync(new ActionContext { HttpContext = context });
             }
         }
-        catch (AuthFailureException exception)
+        catch (AccountFailureException exception)
         {
             AuthHosting.LogDenied(context, app.Logger);
             await ApiErrors
                 .Create(
                     context,
-                    exception.Status,
+                    exception.Failure switch
+                    {
+                        AccountFailure.InvalidInput => 400,
+                        AccountFailure.Unauthenticated => 401,
+                        AccountFailure.Forbidden => 403,
+                        AccountFailure.Conflict => 409,
+                        AccountFailure.ResourceLimit => 429,
+                        _ => 500,
+                    },
                     exception.Message,
                     exception.Field is null
                         ? null

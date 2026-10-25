@@ -1,13 +1,13 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-25
 
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
 PostgreSQL migrations, API integration tests and local/CI build commands. The
-Compose stack runs frontend/BFF, backend and database. Backend identity is
-implemented; website login, calendar access rules and deployment remain future
-work. The calendar page displays a
+Compose stack runs frontend/BFF, backend and database. Backend identity, website
+login, password changes and a protected personal page are implemented. Calendar
+access rules and deployment remain future work. The calendar page displays a
 stored title and 24 static doors through tRPC and the generated backend client,
 with Norwegian/English interface translations. The implemented POST/GET API
 requires no user context. See [backend workflows](../src/backend/README.md).
@@ -73,6 +73,25 @@ is another long-running service. DbUp runs inside the backend process and never
 seeds user accounts.
 The [tRPC integration documentation](https://trpc.io/docs/client/tanstack-react-query/setup)
 describes router-derived client types and TanStack Query option factories.
+
+## Backend layers
+
+Calendar, authentication and account administration use controller, service and
+repository layers inside `Calendar.Api`. Controllers implement the generated HTTP
+contracts and consume service interfaces. Services apply use-case and authorization
+rules through repository interfaces. Repositories own parameterized SQL and mapping.
+Identity's account store adapts its framework interfaces to the account repository.
+
+Security operations coordinate account, session and password-attempt repositories
+through one scoped transaction so authorization checks, credential changes and
+session revocation remain atomic across backend instances. Cookie/claims adaptation
+and HTTP error mapping stay in the API integration. Services receive account/session
+identifiers and return application results or failure categories.
+
+`Calendar.Security` contains the database-free account model, normalization,
+password policy and hashing shared with the offline password tool. It does not
+depend on API hosting or persistence. See [authentication code boundaries](../src/backend/authentication.md#code-boundaries)
+for the concrete services, repositories and transaction behavior.
 
 ## Frontend, rendering, and forms
 
@@ -297,9 +316,15 @@ calendar authority.
 
 Backend accounts and authentication are implemented as described in the
 [backend authentication workflow](../src/backend/authentication.md). The current
-calendar POST/GET API remains anonymous. Calendar authorization/assignment, frontend/BFF security integration
-and production database hardening must be completed and verified before production.
-The end-to-end sequence below describes the future integrated system.
+calendar POST/GET API remains anonymous. Frontend login, required password change,
+logout and `/min-side` use backend-validated sessions through the BFF. Every
+account has a required single display name, trimmed to 1-100 Unicode code points,
+independent of its unique username and role. Existing usernames are backfilled.
+The personal page greets that name and displays initials, disabled role-specific
+creation placeholders and, for unrestricted superadmins, a read-only paginated
+account list containing only name, username and role. Calendar authorization and
+assignment and production database hardening remain production gates.
+The end-to-end sequence below includes that future calendar authorization.
 
 ### Credentials and manual provisioning
 
@@ -348,8 +373,10 @@ cookies or accept browser-supplied user IDs or role headers as identity.
 Use ASP.NET Core's built-in token-based antiforgery validation for state-changing
 authentication/user operations, including login. SameSite alone is insufficient.
 Refresh tokens after principal changes without extending authentication expiry.
-Backend verification belongs to the user-management increment; the later BFF
-integration must verify cookie/header relay end to end through the public origin.
+The implemented BFF allowlist is `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`.
+Browser writes fetch a token outside protected query caches. Login refresh uses
+the newly issued cookie within one total backend deadline. Production Nitro
+cookie/header relay is verified through the public frontend origin.
 See Microsoft's
 [CSRF guidance](https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-10.0).
 Describe authentication operations and cookie security in the authored OpenAPI.
@@ -364,7 +391,12 @@ account validity through PostgreSQL stores; cookie integrity alone is insufficie
 Validity checks fail closed if persistence is unavailable. All authentication and
 user-management responses, including errors, CSRF tokens and cookie responses,
 require `Cache-Control: no-store` and exclusion from shared response/output caches.
-The backend implements that protection first; the future BFF must preserve it.
+The BFF preserves this through tRPC and protected SSR, including errors. Personal
+route loaders validate sessions directly on each navigation and server request;
+cached roles cannot authorize access. Session changes clear queries and replace
+the document to discard route data and sensitive form state. Account-list queries
+expire immediately, reauthorize independently and never use placeholder data from
+a previous page. Returning tabs and restored browser history revalidate sessions.
 
 ```mermaid
 sequenceDiagram

@@ -44,4 +44,4 @@ jobs:
         run: dotnet format src/backend/Calendar.slnx --verify-no-changes --no-restore
       - name: Verify launcher behavior
         if: steps.scope.outputs.markdown_only != 'true'
-        run: node --test tools/development/run-local.test.mjs
+        run: node --test tools/development/run-local.test.mjs tools/development/dotnet.test.mjs

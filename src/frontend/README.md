@@ -1,9 +1,8 @@
 # Calendar frontend
 
 The React/TanStack Start landing page at `/` welcomes visitors with a warm
-Norwegian Christmas illustration, Norwegian/English text, and a disabled login
-button at the top right. It renders without reading calendar data; login is
-reserved for a later feature. The illustration is served locally; see its
+Norwegian Christmas illustration, Norwegian/English text, and a login link at the
+top right. It renders without reading calendar data. The illustration is served locally; see its
 [generation record](illustration.md).
 
 The page at `/calendars/<id>` shows a stored title and 24 static numbered doors.
@@ -13,6 +12,33 @@ The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
 server code. The initial calendar is server-rendered and its query cache hydrates
 without a duplicate request. Door contents are omitted from this page's BFF data.
+
+## Sign-in and personal pages
+
+`/logg-inn` accepts username and password through a TanStack Form/Zod form.
+Successful login opens `/min-side`, or `/endre-passord` for a restricted temporary
+session. Own-password change revokes all sessions and requires a fresh login.
+Both protected pages include logout. Forms use maintained shadcn/ui inputs,
+accessible labels/errors, password autofill and Norwegian/English messages.
+
+The personal page displays the backend-validated name and a circle with initials.
+Calendar users see the initial calendar placeholder. Calendaradmins see disabled
+calendar/account creation placeholders. Superadmins see only the calendaradmin
+creation placeholder and a read-only paginated list of name, username and role
+for every account. No creation, edit or reset screen is implemented.
+
+The BFF relays only `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`; backend
+`Set-Cookie` headers remain separate with their original attributes. CSRF tokens
+are fetched outside the query cache before mutations and refreshed after login.
+SSR and every protected navigation inspect the session directly against the
+backend, bypassing cached roles. Authentication responses/errors and protected
+HTML/hydration carry no-store. Returning tabs revalidate; session changes discard
+query caches and perform a document navigation to clear router data and inputs.
+Account lists use zero stale/garbage-collection times and reauthorize each read.
+Credentials and tokens never enter URLs, localStorage or SSR hydration.
+
+Calendar authorization/assignment and production database hardening remain
+separate production gates. No startup fixture accounts are provisioned.
 
 ## Run locally
 
@@ -142,7 +168,7 @@ This Playwright smoke workflow uses Node's test runner separately from Vitest/AP
 integration tests and runs against an already started environment. Eight named
 scenarios each get a fresh browser context, with page/hydration/asset checks and
 cleanup after every test. It verifies the landing page,
-disabled login, exact welcome text, mobile layout, stored calendars, SSR
+login navigation, exact welcome text, mobile layout, stored calendars, SSR
 hydration, actual browser/tRPC communication, language selection, translated
 errors, unchanged user-authored titles, static doors and a narrow layout.
 It creates its own calendar fixtures through the existing API, including two
@@ -155,3 +181,20 @@ with `pnpm exec playwright install chromium` from `src/frontend`; use
 `BROWSER_CHANNEL` to select another installed channel. `FRONTEND_URL` and `API_URL`
 override environment addresses. See [verification](verification.md) for actual
 results, dependency audit findings and platform coverage.
+
+The authentication browser suite starts its own disposable PostgreSQL database,
+host API and built production Nitro server, and removes its container afterwards:
+
+```text
+node tools/development/dotnet.mjs restore tools/frontend/browser-fixture/BrowserFixture.csproj --locked-mode
+node tools/development/dotnet.mjs build tools/frontend/browser-fixture/BrowserFixture.csproj --no-restore -c Release
+node tools/frontend/pnpm.mjs run build
+node --test tools/frontend/browser/authentication.test.mjs
+```
+
+It uses the selected container runtime/SDK and installed Edge or Playwright
+Chromium. Fixture credentials remain in runner memory; only isolated `browser_*`
+databases are accepted. The suite covers roles, real cookies/CSRF, temporary
+credentials, pagination, logout/replay, revoked-session SSR and the existing eight
+public/calendar smoke tests. Reports/screenshots are kept under
+`quality-reports/plan00011/`. It is separate from normal unit/API tests.

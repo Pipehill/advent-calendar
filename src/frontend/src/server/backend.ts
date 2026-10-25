@@ -1,7 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { TRPCError } from '@trpc/server';
 import { CalendarClient } from '../generated/backend';
-import type { RequestContext } from './context';
+import { type RequestContext, relayCookies } from './context';
 
 const retryStatuses = new Set([502, 503, 504]);
 const statusCodes = {
@@ -10,6 +10,7 @@ const statusCodes = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  429: 'TOO_MANY_REQUESTS',
   502: 'SERVICE_UNAVAILABLE',
   503: 'SERVICE_UNAVAILABLE',
   504: 'SERVICE_UNAVAILABLE',
@@ -54,20 +55,43 @@ export async function retrieveCalendar(
   configuration = backendConfiguration(),
   request: typeof fetch = fetch,
 ) {
+  return callBackend(context, (client, signal) => client.get(id, signal), configuration, request);
+}
+
+// One total deadline covers the entire exchange, including principal-bound CSRF refresh.
+export async function callBackend<T>(
+  context: RequestContext,
+  operation: (client: CalendarClient, signal: AbortSignal) => Promise<T>,
+  configuration = backendConfiguration(),
+  request: typeof fetch = fetch,
+): Promise<T> {
   const deadline = AbortSignal.timeout(configuration.deadlineMs);
   const signal = AbortSignal.any([context.signal, deadline]);
   const transport = {
     async fetch(url: RequestInfo | URL, init?: RequestInit) {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      const read = !init?.method || ['GET', 'HEAD'].includes(init.method.toUpperCase());
+      const attempts = read ? 2 : 1;
+      for (let attempt = 0; attempt < attempts; attempt++) {
         signal.throwIfAborted();
         try {
+          const headers = new Headers(init?.headers);
+          headers.set('traceparent', context.traceparent);
+          if (context.cookies.size)
+            headers.set(
+              'Cookie',
+              [...context.cookies].map(([name, value]) => `${name}=${value}`).join('; '),
+            );
+          if (!read && context.csrfToken) headers.set('X-CSRF-TOKEN', context.csrfToken);
           const response = await request(url, {
             ...init,
             signal,
-            headers: { ...init?.headers, traceparent: context.traceparent },
+            headers,
+            cache: 'no-store',
+            redirect: 'error',
           });
+          relayCookies(context, response.headers);
           if (response.ok) return response;
-          if (attempt === 0 && retryStatuses.has(response.status)) {
+          if (attempt + 1 < attempts && retryStatuses.has(response.status)) {
             await response.body?.cancel();
             await delay(300, undefined, { signal });
             continue;
@@ -77,7 +101,7 @@ export async function retrieveCalendar(
           throw new BackendProblem(response.status, errors);
         } catch (error) {
           if (signal.aborted) throw error;
-          if (attempt === 0 && error instanceof TypeError) {
+          if (attempt + 1 < attempts && error instanceof TypeError) {
             await delay(300, undefined, { signal });
             continue;
           }
@@ -88,7 +112,7 @@ export async function retrieveCalendar(
     },
   };
   try {
-    return await new CalendarClient(configuration.baseUrl, transport).get(id, signal);
+    return await operation(new CalendarClient(configuration.baseUrl, transport), signal);
   } catch (error) {
     if (context.signal.aborted) {
       throw new TRPCError({ code: 'CLIENT_CLOSED_REQUEST', message: 'CLIENT_CLOSED_REQUEST' });

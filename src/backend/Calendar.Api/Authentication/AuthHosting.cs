@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
+using Calendar.Api.Infrastructure;
+using Calendar.Api.Repositories;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -41,11 +44,18 @@ public static class AuthHosting
         services.AddSingleton<IDataProtectionProvider>(provider =>
             CreateKeyProvider(provider.GetRequiredService<IConfiguration>(), builder.Environment)
         );
-        services.AddScoped<AuthDatabase>();
-        services.AddScoped<SessionService>();
+        services.AddScoped<SecurityTransaction>();
+        services.AddScoped<ISecurityTransaction>(provider =>
+            provider.GetRequiredService<SecurityTransaction>()
+        );
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IPasswordAttemptRepository, PasswordAttemptRepository>();
+        services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<SessionCookieEvents>();
-        services.AddScoped<AuthenticationService>();
-        services.AddScoped<UserAdministration>();
+        services.AddScoped<IAuthenticationService, Services.AuthenticationService>();
+        services.AddScoped<AccountCredentialService>();
+        services.AddScoped<IUserAdministrationService, UserAdministrationService>();
         services.AddScoped<PasswordAttempts>();
         services.AddScoped<IPasswordVerification, PasswordVerification>();
         services.AddScoped<ContractRequestFilter>();
@@ -64,7 +74,7 @@ public static class AuthHosting
         identity.AddPasswordValidator<AccountPasswordValidator>();
         identity.AddUserValidator<AccountValidator>();
         services
-            .AddAuthentication(SessionService.Scheme)
+            .AddAuthentication(SessionAuthentication.Scheme)
             .AddCookie(options =>
             {
                 options.Cookie.Name = "advent.auth";
@@ -91,7 +101,7 @@ public static class AuthHosting
         });
         services
             .AddOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
-                SessionService.Scheme
+                SessionAuthentication.Scheme
             )
             .Configure<TimeProvider>((options, time) => options.TimeProvider = time);
     }
@@ -162,7 +172,10 @@ public static class AuthHosting
                     && !app.Environment.IsEnvironment("Testing")
                     && !context.Request.IsHttps
                 )
-                    throw new AuthFailureException(400, "HTTPS is required");
+                    throw new AccountFailureException(
+                        AccountFailure.InvalidInput,
+                        "HTTPS is required"
+                    );
                 await next(context);
             }
         );
@@ -228,7 +241,10 @@ public sealed class AccountResourceBudget : IDisposable
             && !context.Request.Path.Value!.EndsWith("/status", StringComparison.Ordinal);
         using var work = hashes ? concurrency.AttemptAcquire() : null;
         if (!peer.IsAcquired || !aggregate.IsAcquired || work is { IsAcquired: false })
-            throw new AuthFailureException(429, "Authentication resource limit reached");
+            throw new AccountFailureException(
+                AccountFailure.ResourceLimit,
+                "Authentication resource limit reached"
+            );
         await next(context);
     }
 

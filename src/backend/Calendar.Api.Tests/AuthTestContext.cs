@@ -58,9 +58,9 @@ internal sealed class AuthTestContext : IAsyncDisposable
         var hash = new ArgonPasswordHasher().HashPassword(new Account(), password);
         await ExecuteAsync(
             """
-            INSERT INTO accounts (id, user_name, normalized_user_name, password_hash, account_role,
+            INSERT INTO accounts (id, name, user_name, normalized_user_name, password_hash, account_role,
                 security_version, created_at, responsible_administrator_id)
-            VALUES (@Id, @Username, @Normalized, @Hash, @Role, @Version, @Now, @Responsible)
+            VALUES (@Id, @Username, @Username, @Normalized, @Hash, @Role, @Version, @Now, @Responsible)
             """,
             new
             {

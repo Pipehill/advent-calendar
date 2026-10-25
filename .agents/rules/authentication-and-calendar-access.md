@@ -16,11 +16,12 @@ are implemented; current calendar POST/GET endpoints remain anonymous. See the
 [backend authentication workflow](../../src/backend/authentication.md).
 
 Plan 00008 covers backend accounts, authentication, contracts, persistence and
-verification. Calendar authorization/assignment and frontend/BFF security
-integration are separate tasks. Those tasks and
+verification. Plan 00011 adds frontend/BFF login, password change, logout and
+protected personal pages with a read-only superadmin account list.
+Calendar authorization/assignment and
 [database hardening in plan 00009](../plans/00009-database-hardening.md) must be
-completed and verified before production. The calendar and BFF rules below remain
-requirements for those follow-ups; do not claim them as delivered by plan 00008.
+completed and verified before production. The calendar rules below remain
+requirements for that follow-up; do not claim them as delivered by plan 00008.
 
 ## Accounts and permissions
 
@@ -44,6 +45,12 @@ requirements for those follow-ups; do not claim them as delivered by plan 00008.
   shared normalization for creation, lookup and manual provisioning, backed by a
   database uniqueness constraint. Reject duplicates, including disabled accounts;
   never replace credentials, merge identities or assign access through creation.
+- Require one display name distinct from username and authority. Trim surrounding
+  Unicode whitespace, then accept 1-100 Unicode code points including internal
+  spaces; reject missing/null/blank names, NUL and invalid Unicode. Enforce this
+  in the contract, shared backend policy and PostgreSQL. Names need not be unique;
+  preserve them through security operations and render them as user-authored text.
+  Existing usernames are backfilled by migration 0003; profile editing is deferred.
 - Every ordinary user has one fixed responsible calendaradmin. Derive it from a
   calendaradmin creator; a superadmin must select an existing calendaradmin.
   Persist the actual creator separately for audit. No reassignment API is allowed.
@@ -139,8 +146,10 @@ requirements for those follow-ups; do not claim them as delivered by plan 00008.
 - Use ASP.NET Core's built-in token-based antiforgery validation for state-changing
   authentication/user operations, including login. SameSite alone is insufficient.
   Refresh tokens after principal changes without extending authentication expiry.
-  Verify the backend token/cookie exchange in plan 00008; browser/BFF/API relay and
-  end-to-end verification belong to the later frontend/BFF integration.
+  The implemented BFF allowlist is `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`.
+  Refresh CSRF before browser mutations outside query caches and use newly issued
+  cookies within the login exchange. Never issue an unsafe backend operation with
+  a BFF-manufactured token in place of the caller's principal-bound token.
 - Keep Data Protection keys owned by the backend, durable and protected across
   replacement. Resolve concrete storage alongside hosting/secrets in deployment;
   the BFF does not need these keys.
@@ -161,7 +170,7 @@ requirements for those follow-ups; do not claim them as delivered by plan 00008.
 - Apply `Cache-Control: no-store` to all authentication/user-management responses,
   including errors, CSRF issuance and cookie responses, and exclude those routes
   from shared response/output caches. Preserve protection through middleware and
-  the future BFF. `no-cache` or `Vary: Cookie` alone is insufficient.
+  the BFF and production Nitro adapter. `no-cache` or `Vary: Cookie` alone is insufficient.
 
 ## Calendar access boundary
 

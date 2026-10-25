@@ -18,6 +18,16 @@ public static class AccountNames
     }
 }
 
+public static class AccountDisplayNames
+{
+    public static bool IsValid(string? name) =>
+        name is not null
+        && AccountPasswordValidator.HasValidEncoding(name)
+        && !name.Contains('\0')
+        && name.EnumerateRunes().Count() is >= 1 and <= 100
+        && name == name.Trim();
+}
+
 public sealed class AccountNameNormalizer : ILookupNormalizer
 {
     public string? NormalizeName(string? name) =>

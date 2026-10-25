@@ -1,18 +1,21 @@
 # Calendar backend
 
 The initial API creates calendars from a title and retrieves their persisted
-contents. Controllers implement generated contracts, services initialize business
-values, and repositories use Npgsql/Dapper with parameterized SQL. The frontend/BFF
+contents. Calendar and account/authentication controllers implement generated
+contracts and consume service interfaces. Services apply business and authorization
+rules through repositories, which use Npgsql/Dapper with parameterized SQL.
+The frontend/BFF
 already displays persisted calendars. Backend authentication and user management
 are implemented; calendar authorization, editing and scheduled opening remain
 future features. Current
 calendar endpoints are anonymous. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
-Calendar authorization, frontend/BFF security integration and
+Calendar authorization and
 production database hardening must be completed and verified before production.
 See [backend authentication](authentication.md) for the protected API, manual
 superadmin provisioning, temporary-password handover, session lifecycle and key
-configuration. Frontend login remains a separate task.
+configuration. The frontend/BFF implements login, password changes, logout and
+session-protected personal pages, including the superadmin read-only account list.
 
 ## Local containers
 

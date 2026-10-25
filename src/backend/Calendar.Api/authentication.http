@@ -37,6 +37,13 @@ X-CSRF-TOKEN: {{csrfToken}}
 ### Bounded SQL-scoped public metadata.
 GET {{baseUrl}}/users?offset=0&limit=50
 
+### An unrestricted, recently verified superadmin may create a calendaradmin.
+POST {{baseUrl}}/users
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"username":"<new-username>","name":"<display-name>","password":"<private-temporary-password>","role":"calendarAdmin"}
+
 ### Revoke the current session only.
 POST {{baseUrl}}/auth/logout
 X-CSRF-TOKEN: {{csrfToken}}

@@ -324,6 +324,72 @@ Saved-source measurements and PR merge identities are retained in
 `quality-reports/health/`. Tests exercise real MCP refresh/statistics and clone
 locations; unsupported analysis dimensions remain unavailable.
 
+## 2026-10-25: Account names and frontend authentication integration
+
+Plan 00011 adds migration `0003_add_account_name.sql`, a mandatory single display
+name and its authored/generated contract fields. The new API tests exercise
+missing/null/empty/whitespace-only/NUL/101-code-point rejection, surrounding
+Unicode whitespace trimming, 100 supplementary code points, Norwegian names,
+internal spaces and markup-like text through real PostgreSQL. Existing usernames
+are backfilled without changing password hashes or roles, and repeated migration
+startup is idempotent. Direct database writes verify the constraints. Own-password
+change, promotion and disabling preserve name and responsibility.
+
+The actual browser exchange exposed an inherited generated-enum serialization
+mismatch: System.Text.Json ignored NSwag's EnumMember values and emitted PascalCase
+role strings. A hand-written metadata resolver now overrides generated enum
+property converters with camelCase string conversion and disables numeric values.
+No generated source was edited. New tests inspect raw session JSON for all three
+roles, independently of typed DTO deserialization.
+
+On Windows with .NET SDK 10.0.401 and Podman/PostgreSQL, all **164 backend tests**
+passed with no skips. OpenAPI validation and regeneration, Release solution build
+and `dotnet format --verify-no-changes --no-restore` passed. The four previously
+documented Redocly warnings remain. Existing fixed-expiration, concurrency,
+lockout, restricted-session, revocation and session-isolation coverage remains
+active. The frontend's production Nitro browser suite independently verifies the
+integrated login/change/logout and cookie/CSRF boundaries; see
+[frontend evidence](../frontend/verification.md#2026-10-25-login-and-personal-page-plan-00011).
+Local TRX/build/format logs are under ignored `quality-reports/plan00011/`.
+
+## 2026-10-25: Consistent account and authentication layers
+
+Account/authentication controllers now consume service interfaces. Services own
+authorization and use-case rules, repositories own account/session/password-failure
+SQL, and the Identity store delegates to the account repository. Cookie/claims
+adaptation remains in authentication integration; services receive session IDs
+and expose failure categories mapped to HTTP by the API. `Calendar.Security`
+remains the database-free library shared with the offline password tool.
+
+The same scoped `ISecurityTransaction` and advisory lock `800008` coordinate all
+participating repositories. Password hashing remains outside the short lock, and
+final actor/target/version checks remain inside it. Queries use the transaction's
+cancellation token. No schema, migration, contract or credential-policy change
+was required. Existing implemented plans remain historical records.
+
+On Windows with .NET SDK 10.0.401 and Podman/PostgreSQL, all **168 backend tests**
+passed with no skips, including existing authentication, authorization, lockout,
+revocation and concurrency scenarios. Four added cases exercise rollback across
+credential/session/failure repositories and rejection of repository writes outside
+an active security transaction. Release build, OpenAPI validation/generation,
+`dotnet format --verify-no-changes --no-restore` and full repository quality passed.
+The four documented Redocly warnings remain. Logs/TRX are retained under ignored
+`quality-reports/auth-layering/`; lint and health reports use their standard paths.
+
+The saved-source comparison uses jscpd 5.4.1 with unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Application health changed **90.3 to 90.7 (+0.4)**; complexity score changed
+89.0 to 89.5 (+0.5), complexity share 5.1% to 4.9% (-0.2 pp), and maximum file
+complexity 64 to 60 (-4). Duplication remains **one clone / 11 lines**; its
+percentage decreases because the analyzed source grows with explicit boundaries
+and transaction tests, not because a clone was removed. Tooling health remains
+51.5 with zero clones/duplicated lines. Application analysis grows from 68 files /
+7640 lines to 82 files / 8142 lines. Dead-code analysis coverage decreases from
+22.5% to 21.1% (-1.4 pp); C# dead-code analysis remains unsupported, and the same
+two frontend entry-point findings remain heuristic. Raw source identities,
+duplication percentages, counts and coverage limitations are retained in
+`quality-reports/health/`.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

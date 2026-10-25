@@ -1,7 +1,9 @@
+using Calendar.Api.Infrastructure;
+using Calendar.Api.Repositories;
 using Calendar.Security;
 using Microsoft.AspNetCore.Identity;
 
-namespace Calendar.Api.Authentication;
+namespace Calendar.Api.Services;
 
 // Tests can replace this seam to coordinate verification/mutation races without
 // weakening real hashing, production policy or database concurrency controls.
@@ -19,7 +21,9 @@ public sealed class PasswordVerification(UserManager<Account> manager) : IPasswo
 }
 
 public sealed class PasswordAttempts(
-    AuthDatabase database,
+    ISecurityTransaction transaction,
+    IAccountRepository accounts,
+    IPasswordAttemptRepository failures,
     TimeProvider time,
     IPasswordVerification verifier,
     UserManager<Account> manager,
@@ -45,7 +49,7 @@ public sealed class PasswordAttempts(
     {
         if (password is null || password.Length > 256)
             return null;
-        var account = await database.RunAsync(
+        var account = await transaction.RunAsync(
             async () =>
             {
                 var found = AccountNames.IsValid(username)
@@ -86,10 +90,10 @@ public sealed class PasswordAttempts(
             result == PasswordVerificationResult.SuccessRehashNeeded
                 ? manager.PasswordHasher.HashPassword(account, password)
                 : null;
-        return await database.RunAsync(
+        return await transaction.RunAsync(
             async () =>
             {
-                var current = await database.FindAsync("id = @Id", new { account.Id });
+                var current = await accounts.FindByIdAsync(account.Id);
                 if (!Matches(current, account) || current!.LockedUntil > time.GetUtcNow())
                     return null;
                 if (current.LockedUntil is not null)
@@ -121,61 +125,29 @@ public sealed class PasswordAttempts(
         verified.Account.PasswordHash = verified.UpgradedHash;
         var result = await manager.UpdateAsync(verified.Account);
         if (!result.Succeeded)
-            throw new AuthFailureException(409, "Account changed; retry authentication");
+            throw new AccountFailureException(
+                AccountFailure.Conflict,
+                "Account changed; retry authentication"
+            );
     }
 
     private async Task ClearAsync(Guid id)
     {
-        await database.ExecuteAsync(
-            "DELETE FROM password_failures WHERE account_id = @Id",
-            new { Id = id }
-        );
-        await database.ExecuteAsync(
-            "UPDATE accounts SET locked_until = NULL WHERE id = @Id",
-            new { Id = id }
-        );
+        await failures.ClearAsync(id);
+        await accounts.SetLockedUntilAsync(id, null);
     }
 
     private async Task FailAsync(Guid id)
     {
         var now = time.GetUtcNow();
-        await database.ExecuteAsync(
-            "DELETE FROM password_failures WHERE account_id = @Id AND occurred_at <= @Cutoff",
-            new { Id = id, Cutoff = now.AddMinutes(-15) }
-        );
-        await database.ExecuteAsync(
-            "INSERT INTO password_failures (account_id, occurred_at) VALUES (@Id, @Now)",
-            new { Id = id, Now = now }
-        );
-        if (
-            await database.ScalarAsync<int>(
-                "SELECT count(*)::int FROM password_failures WHERE account_id = @Id",
-                new { Id = id }
-            ) >= 5
-        )
+        await failures.RemoveExpiredAsync(id, now.AddMinutes(-15));
+        await failures.InsertAsync(id, now);
+        if (await failures.CountAsync(id) >= 5)
         {
-            await database.ExecuteAsync(
-                "UPDATE accounts SET locked_until = @Until WHERE id = @Id",
-                new { Id = id, Until = now.AddMinutes(15) }
-            );
+            await accounts.SetLockedUntilAsync(id, now.AddMinutes(15));
             SecurityLog.Event(logger, "account-paused", null, id, "denied");
         }
     }
 }
 
 public sealed record VerifiedPassword(Account Account, string? UpgradedHash);
-
-internal static partial class SecurityLog
-{
-    [LoggerMessage(
-        Level = LogLevel.Information,
-        Message = "Security operation {Operation}; actor {ActorId}; target {TargetId}; result {Result}"
-    )]
-    public static partial void Event(
-        ILogger logger,
-        string operation,
-        Guid? actorId,
-        Guid? targetId,
-        string result
-    );
-}

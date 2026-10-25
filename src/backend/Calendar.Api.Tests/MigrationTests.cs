@@ -29,6 +29,7 @@ public sealed class MigrationTests(ApiFixture fixture)
             [
                 "Calendar.Api.Migrations.0001_create_calendars.sql",
                 "Calendar.Api.Migrations.0002_create_accounts.sql",
+                "Calendar.Api.Migrations.0003_add_account_name.sql",
             ],
             scripts.Order()
         );

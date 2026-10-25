@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
-using Calendar.Api.Authentication;
 using Calendar.Api.Generated;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -154,6 +154,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
             new
             {
                 username = "reservedæøå",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }
@@ -245,6 +246,7 @@ public sealed class AuthenticationBoundaryTests(ApiFixture fixture)
             new
             {
                 username = "different-session",
+                name = "Test account",
                 password = Password(),
                 role = AccountRoles.Administrator,
             }

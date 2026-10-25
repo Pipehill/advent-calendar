@@ -1,5 +1,6 @@
 using Calendar.Api.Authentication;
 using Calendar.Api.Generated;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,13 +16,14 @@ namespace Calendar.Api.Controllers;
 ]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None), OutputCache(NoStore = true)]
 [RequestSizeLimit(16384)]
-public sealed class UsersController(UserAdministration administration) : UsersControllerBase
+public sealed class UsersController(IUserAdministrationService administration) : UsersControllerBase
 {
     public override async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest body)
     {
         var account = await administration.CreateAsync(
-            User,
+            SessionAuthentication.ReadIdentity(User),
             body.Username,
+            body.Name,
             body.Password,
             body.Role == CreateUserRequestRole.CalendarAdmin
                 ? AccountRoles.Administrator
@@ -39,7 +41,7 @@ public sealed class UsersController(UserAdministration administration) : UsersCo
     )
     {
         var users = await administration.ListAsync(
-            User,
+            SessionAuthentication.ReadIdentity(User),
             offset ?? 0,
             limit ?? 50,
             HttpContext.RequestAborted
@@ -50,7 +52,7 @@ public sealed class UsersController(UserAdministration administration) : UsersCo
     public override async Task<IActionResult> ResetPassword(ResetPasswordRequest body, Guid id)
     {
         await administration.ResetPasswordAsync(
-            User,
+            SessionAuthentication.ReadIdentity(User),
             id,
             body.Password,
             HttpContext.RequestAborted
@@ -60,14 +62,19 @@ public sealed class UsersController(UserAdministration administration) : UsersCo
 
     public override async Task<IActionResult> ChangeStatus(ChangeStatusRequest body, Guid id)
     {
-        await administration.ChangeStatusAsync(User, id, body.Enabled, HttpContext.RequestAborted);
+        await administration.ChangeStatusAsync(
+            SessionAuthentication.ReadIdentity(User),
+            id,
+            body.Enabled,
+            HttpContext.RequestAborted
+        );
         return NoContent();
     }
 
     public override async Task<IActionResult> ChangeRole(ChangeRoleRequest body, Guid id)
     {
         await administration.ChangeRoleAsync(
-            User,
+            SessionAuthentication.ReadIdentity(User),
             id,
             body.Role == ChangeRoleRequestRole.CalendarAdmin
                 ? AccountRoles.Administrator
