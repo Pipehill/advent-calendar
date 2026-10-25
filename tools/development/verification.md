@@ -207,3 +207,33 @@ cover missing engine/provider, failed builds and readiness timeout separately fr
 runtime evidence. See [backend verification](../../src/backend/verification.md).
 Docker execution was explicitly deferred by the owner; native macOS/Linux host
 verification remains unavailable and existing follow-up rules remain in force.
+
+## Windows SDK selector search path (2026-10-25)
+
+Local startup failed during backend contract validation with MSB3073 / exit 9009
+because MSBuild could not resolve `node`. The failure was reproduced by launching
+the SDK selector with an inherited `Path` variable. Windows resolves environment
+keys case-insensitively on `process.env`, while the selector's copied JavaScript
+object retained only the original spelling. Reading `env.PATH` therefore replaced
+the inherited search entries with `undefined` when prepending the private SDK.
+
+The selector now reads the inherited value from `process.env.PATH`. Three native
+Windows subprocess tests exercise `PATH`, `Path` and `pAtH`, with paths containing
+spaces and invocation outside the repository. The two mixed-case cases failed
+before the fix; all three pass afterward. All 37 targeted SDK-selector, launcher
+and runtime-endpoint tests pass, and actual MSBuild contract validation/generation
+succeeds under the previously failing `Path` spelling. The backend CI launcher
+step includes the new suite; the two Windows-specific cases are skipped on Unix.
+
+On Windows x64 with Node 24.20.0, .NET SDK 10.0.401 and Podman 6.0.2, the actual
+`run-local.ps1 --frontend=container --skip-build` invocation with inherited `Path`
+passed all 168 backend tests and 37 frontend tests, then reported API readiness
+on port 8080 and frontend readiness on port 3000. Existing application images
+were reused. The verification containers were removed afterward, preserving
+the development database volume. The launcher transcript is retained under
+`quality-reports/node-path-fix/`; full repository quality passed.
+
+The saved-source jscpd 5.4.1 comparison retains application/tooling health at
+90.7 / 51.5. Tooling grows from 43 files / 6663 lines to 44 files / 6698 lines
+with zero clones or duplicated lines. Raw source/configuration identities,
+coverage limitations and measurements remain under `quality-reports/health/`.
