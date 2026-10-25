@@ -15,6 +15,10 @@
   ],
   "tags": [
     {
+      "name": "health",
+      "description": "Process liveness and database readiness"
+    },
+    {
       "name": "calendars",
       "description": "Calendar creation and retrieval"
     },
@@ -122,7 +126,7 @@
         "operationId": "Live",
         "summary": "Check process liveness",
         "tags": [
-          "calendars"
+          "health"
         ],
         "responses": {
           "200": {
@@ -143,7 +147,7 @@
         "operationId": "Ready",
         "summary": "Check migration completion and current database availability",
         "tags": [
-          "calendars"
+          "health"
         ],
         "responses": {
           "200": {

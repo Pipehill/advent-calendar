@@ -390,6 +390,60 @@ two frontend entry-point findings remain heuristic. Raw source identities,
 duplication percentages, counts and coverage limitations are retained in
 `quality-reports/health/`.
 
+## 2026-10-25: Separate health and calendar controllers (plan 00012)
+
+The authored OpenAPI `health` tag now generates `HealthControllerBase` with
+`Live` and `Ready`; `CalendarsControllerBase` contains only `Create` and `Get`.
+The hand-written `HealthController` owns the unchanged health actions and
+`HealthCheckService` dependency. Database/migration checks, request cancellation
+and service registrations remain unchanged.
+
+On Windows with .NET 10 and Podman/PostgreSQL, all **172 backend tests** passed
+with no skips. Four MVC endpoint-discovery cases verify HTTP methods and concrete
+controller ownership for both health routes and both calendar routes. The existing
+isolated database outage/recovery scenario now checks anonymous HTTP status,
+exact `Healthy`/`Unhealthy` bodies and `text/plain` for initial liveness/readiness,
+outage liveness/readiness and recovered readiness. Calendar, authentication,
+user-management and migration coverage remains passing.
+
+Both ignored generated contract files were deleted before the Release solution
+build. The build validated OpenAPI and regenerated both consumers once through
+`Contract.proj`, without a running API dependency. Build, publish and
+`dotnet format --verify-no-changes --no-restore` passed. Inspection confirmed the
+generated controller split and that OpenAPI changes only health grouping; all
+routes, operation IDs and response definitions are preserved. The regenerated
+TypeScript `CalendarClient` is byte-for-byte identical to its pre-change output.
+All **37 frontend/BFF tests**, explicit TypeScript checking, Vite/Nitro production
+build and frontend lint passed using those regenerated contracts. Nitro initially
+encountered sandbox `EPERM` while reading a parent directory; the production build
+passed when rerun with the required filesystem access. Full repository quality
+passed. Four inherited Redocly warnings and dependency `use client` bundling
+warnings remain advisory. Generated output is absent from the Git diff.
+
+The saved-source comparison uses jscpd 5.4.1 with unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Application health changed **90.7 to 90.8 (+0.1)**; complexity score remains
+89.5, complexity share changes 4.9% to 4.8% (-0.1 pp), and maximum file complexity
+remains 60. Duplication remains **one clone / 11 lines**, decreasing from
+0.13510194055514615% to 0.13416270276863032% (-0.0009392378 pp) because analyzed
+source grows from 82 files / 8142 lines to 83 files / 8199 lines. No clone was
+removed. Dead-code score/share remain 79.8 / 1.7%; coverage decreases from 21.1%
+to 21.0% (-0.1 pp). C# dead-code analysis remains unsupported; the same two frontend
+script entry-point findings remain heuristic. Tooling health remains 51.5 with
+zero clones/duplicated lines across 44 files / 6698 lines; all tooling metrics
+are unchanged. MCP snippet checking found no matches, and the final comparison
+refreshed MCP scans before reading statistics for each immutable scope.
+
+Application baseline/final source SHA-256 values are
+`3bf996cdf23a3ce1017acb697bf72c9d1ee12329ad9934004421778febe8ef50` and
+`d6a4d476bbebc9988aeb5b136b1e343776fd846a80c4452dc2ad320277e70836`.
+Detailed scope, source identities, tool schemas, raw measurements and the retained
+whole-repository reference are under ignored `quality-reports/health/`. Build,
+test/TRX, formatting, publish and contract inspection logs are under
+`quality-reports/plan00012/`; full lint reports use `quality-reports/full/`.
+Test containers were disposed; existing application containers and images were
+preserved. Native-platform and Docker limitations below remain unchanged.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

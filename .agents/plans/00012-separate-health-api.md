@@ -1,6 +1,6 @@
 # 00012: Separate health and calendar API controllers
 
-Status: Not implemented
+Status: Implemented (2026-10-25)
 
 Last updated: 2026-10-25
 
@@ -66,32 +66,41 @@ None.
 
 ### Work steps
 
-1. [ ] Follow the [development quality rules](../rules/development-quality.md)
+1. [x] Follow the [development quality rules](../rules/development-quality.md)
    before implementation, including the baseline for source changes. Reinspect
    the contract, controllers and existing health integration coverage.
-2. [ ] Add a top-level `health` tag with a description and apply it to both health
+2. [x] Add a top-level `health` tag with a description and apply it to both health
    operations in `src/contract/openapi.json`. Retain existing operation IDs and
    response definitions. Keep the generator settings and pinned tools unchanged.
-3. [ ] Add `src/backend/Calendar.Api/Controllers/HealthController.cs`, following
+3. [x] Add `src/backend/Calendar.Api/Controllers/HealthController.cs`, following
    the existing `[ApiController]` and generated-base-class pattern. Move `Live`
    and `Ready` there with `HealthCheckService` as its dependency. Leave calendar
    actions, mapping and `ICalendarService` in `CalendarsController`; remove its
    unused health imports and constructor parameter.
-4. [ ] Validate and regenerate through `Contract.proj`, then compile against the
+4. [x] Validate and regenerate through `Contract.proj`, then compile against the
    regenerated base classes. Run generation once per check sequence using the
    existing build dependency order; do not invoke NSwag separately or introduce
    a running-API dependency.
-5. [ ] Extend backend integration coverage to prove that MVC maps both health
+5. [x] Extend backend integration coverage to prove that MVC maps both health
    routes to `HealthController` and calendar routes to `CalendarsController`.
    Assert health status, plain-text body and media type. Reuse the existing
    outage/recovery scenario in `Calendar.Api.Tests/CalendarApiTests.cs` and its
    isolated PostgreSQL fixture rather than duplicating container lifecycle setup.
    Follow the repository's Given/When/Then test conventions.
-6. [ ] Update the relevant backend documentation to describe the controller split
+6. [x] Update the relevant backend documentation to describe the controller split
    and record verification in `src/backend/verification.md`. Mark this plan and
    its index entry implemented only after implementation and verification pass.
 
 ## Verification
+
+Implementation verified on 2026-10-25: clean generated-contract rebuild, Release
+build/publish, formatting, all 172 backend tests (including controller ownership
+and database outage/recovery), all 37 frontend/BFF tests, explicit TypeScript
+checking, production build and full repository quality passed. The TypeScript
+client is byte-for-byte unchanged. Application/tooling advisory health changed
+90.7 to 90.8 / 51.5 to 51.5, with no new clones. See
+[backend verification](../../src/backend/verification.md#2026-10-25-separate-health-and-calendar-controllers-plan-00012)
+for evidence and inherited limitations.
 
 - Use the existing [backend contract/build/test commands](../../src/backend/README.md#contract-build-and-tests)
   to validate OpenAPI, regenerate both consumers, build the solution, run backend

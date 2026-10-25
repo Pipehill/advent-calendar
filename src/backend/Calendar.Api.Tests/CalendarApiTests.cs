@@ -2,12 +2,16 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Calendar.Api.Controllers;
 using Calendar.Api.Generated;
 using Calendar.Api.Infrastructure;
 using Calendar.Api.Models;
 using Calendar.Api.Repositories;
 using Calendar.Api.Services;
 using Dapper;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Xunit;
 
@@ -413,54 +417,100 @@ public sealed class CalendarApiTests(ApiFixture fixture)
         Assert.Equal(24, calendar.Doors.Count);
     }
 
+    [Theory(
+        DisplayName = "Given generated API routes, When MVC discovers endpoints, Then health and calendar operations belong to their dedicated controllers"
+    )]
+    [InlineData("health/live", "GET", typeof(HealthController))]
+    [InlineData("health/ready", "GET", typeof(HealthController))]
+    [InlineData("calendars", "POST", typeof(CalendarsController))]
+    [InlineData("calendars/{id}", "GET", typeof(CalendarsController))]
+    public async Task GivenApiRoutesWhenDiscoveringEndpointsThenMapsDedicatedControllers(
+        string route,
+        string method,
+        Type controller
+    )
+    {
+        // Given an initialized API using the generated controller contracts.
+        await using var app = fixture.Application();
+        using var client = app.CreateClient();
+
+        // When MVC exposes its concrete route endpoints and action metadata.
+        var endpoints = app.Services.GetRequiredService<EndpointDataSource>().Endpoints;
+        var endpoint = Assert.Single(
+            endpoints.OfType<RouteEndpoint>(),
+            candidate => candidate.RoutePattern.RawText == route
+        );
+        var action = endpoint.Metadata.GetMetadata<ControllerActionDescriptor>();
+
+        // Then each HTTP route has exactly one action on the intended controller.
+        Assert.NotNull(action);
+        Assert.Equal(controller, action.ControllerTypeInfo.AsType());
+        Assert.Equal(
+            method,
+            Assert.Single(endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods)
+        );
+    }
+
     [Fact(
-        DisplayName = "Given a healthy database, When an outage occurs and recovers, Then liveness stays healthy and readiness detects both states"
+        DisplayName = "Given an anonymous client and a healthy database, When an outage occurs and recovers, Then liveness stays healthy and readiness reports both states as plain text"
     )]
     public async Task GivenHealthyDatabaseWhenOutageRecoversThenLivenessStaysOkAndReadinessRecovers()
     {
         // Given a running API connected to its isolated PostgreSQL container.
         await using var app = fixture.Application();
         using var client = app.CreateClient();
-        var initialLive = (await client.GetAsync("/health/live")).StatusCode;
-        var initialReady = (await client.GetAsync("/health/ready")).StatusCode;
-        HttpStatusCode outageLive;
-        HttpStatusCode outageReady;
+        using var initialLive = await client.GetAsync("/health/live");
+        using var initialReady = await client.GetAsync("/health/ready");
+        HttpResponseMessage outageLive;
+        HttpResponseMessage outageReady;
 
         // When PostgreSQL is suspended and resumed without replacing its published port.
         await fixture.Database.PauseAsync();
         try
         {
-            outageLive = (await client.GetAsync("/health/live")).StatusCode;
-            outageReady = (await client.GetAsync("/health/ready")).StatusCode;
+            outageLive = await client.GetAsync("/health/live");
+            outageReady = await client.GetAsync("/health/ready");
         }
         finally
         {
             await fixture.Database.UnpauseAsync();
         }
-        var recoveredReady = await WaitForReadinessAsync(client);
+        using var recoveredReady = await WaitForReadinessAsync(client);
 
         // Then the process stays live, readiness detects the outage, and the same API recovers.
-        Assert.Equal(HttpStatusCode.OK, initialLive);
-        Assert.Equal(HttpStatusCode.OK, initialReady);
-        Assert.Equal(HttpStatusCode.OK, outageLive);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, outageReady);
-        Assert.Equal(HttpStatusCode.OK, recoveredReady);
+        using (outageLive)
+        using (outageReady)
+        {
+            await AssertHealth(initialLive, HttpStatusCode.OK);
+            await AssertHealth(initialReady, HttpStatusCode.OK);
+            await AssertHealth(outageLive, HttpStatusCode.OK);
+            await AssertHealth(outageReady, HttpStatusCode.ServiceUnavailable);
+            await AssertHealth(recoveredReady, HttpStatusCode.OK);
+        }
     }
 
-    private static async Task<HttpStatusCode> WaitForReadinessAsync(HttpClient client)
+    private static async Task<HttpResponseMessage> WaitForReadinessAsync(HttpClient client)
     {
         // Probe actual recovery; fail within a fixed deadline if availability never returns.
         using var recoveryDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        HttpStatusCode recoveryStatus;
-        do
+        while (true)
         {
-            using var response = await client.GetAsync("/health/ready", recoveryDeadline.Token);
-            recoveryStatus = response.StatusCode;
-            if (recoveryStatus == HttpStatusCode.ServiceUnavailable)
-                await Task.Delay(TimeSpan.FromMilliseconds(250), recoveryDeadline.Token);
-        } while (recoveryStatus == HttpStatusCode.ServiceUnavailable);
+            var response = await client.GetAsync("/health/ready", recoveryDeadline.Token);
+            if (response.StatusCode != HttpStatusCode.ServiceUnavailable)
+                return response;
+            response.Dispose();
+            await Task.Delay(TimeSpan.FromMilliseconds(250), recoveryDeadline.Token);
+        }
+    }
 
-        return recoveryStatus;
+    private static async Task AssertHealth(HttpResponseMessage response, HttpStatusCode status)
+    {
+        Assert.Equal(status, response.StatusCode);
+        Assert.Equal("text/plain", response.Content.Headers.ContentType!.MediaType);
+        Assert.Equal(
+            status == HttpStatusCode.OK ? "Healthy" : "Unhealthy",
+            await response.Content.ReadAsStringAsync()
+        );
     }
 
     private static async Task AssertProblem(HttpResponseMessage response, HttpStatusCode status)
