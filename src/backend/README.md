@@ -95,6 +95,11 @@ Prior-release integrity checks and deployment integration await release tooling.
 `GET /health/live` checks the process; `GET /health/ready` requires migrations and
 a current database query within two seconds. During a database outage, liveness
 remains 200 and readiness returns 503. Readiness never precedes migration success.
+Both routes allow anonymous access and return `text/plain`: `Healthy` on success,
+or `Unhealthy` for failed readiness. The OpenAPI `health` group generates
+`HealthControllerBase`, implemented by `HealthController`; the `calendars` group
+and `CalendarsController` own only calendar creation and retrieval. The frontend
+retains a single generated `CalendarClient` for all API groups.
 
 ## Manual API examples
 
