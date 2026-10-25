@@ -1,5 +1,11 @@
 # Backend verification
 
+## 2026-10-25: Plan 00010 native build commands
+
+Clean generation/build/test/publish and failure evidence are recorded in the
+[tooling review](../../tools/development/tooling-review.md#verification-record).
+Earlier entries below retain their original commands and dates.
+
 ## 2026-10-25: Remove local calendar seeding
 
 Branch: `chore/remove-calendar-seeding`. Removed the startup seed, its settings,

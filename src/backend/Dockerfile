@@ -10,11 +10,10 @@ WORKDIR /source
 COPY global.json ./
 COPY .config/ .config/
 COPY src/ src/
-COPY tools/backend/ tools/backend/
-COPY tools/quality/local-settings.mjs tools/quality/local-settings.mjs
 RUN npm ci --prefix src/contract \
-    && CI=true node tools/backend/check.mjs publish \
-    && cp -r src/backend/publish /app
+    && dotnet tool restore \
+    && dotnet restore src/backend/Calendar.slnx --locked-mode \
+    && dotnet publish src/backend/Calendar.Api --no-restore -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.12@sha256:0fa044f682cb7d93a5a90401a00c626c66f7b00b86922be9441f869eae039f80
 WORKDIR /app

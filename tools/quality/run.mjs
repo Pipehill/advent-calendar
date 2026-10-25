@@ -72,6 +72,7 @@ function readMode() {
 const runGit = (args, encoding = 'utf8') => gitOutput(repositoryRoot, args, encoding);
 
 function runContainer(args) {
+  console.log(`Container command: ${JSON.stringify([containerRuntime, ...args])}`);
   const result = spawnSync(containerRuntime, args, { stdio: 'inherit' });
   if (result.error) throw result.error;
   return result.status ?? 1;

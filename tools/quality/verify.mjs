@@ -225,7 +225,11 @@ function prepareDisposableClone() {
   runGit('config', 'core.autocrlf', 'false');
   const names = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
     { cwd: repositoryRoot, encoding: 'utf8' }).split('\0').filter(Boolean);
-  for (const name of names) writeFixture(name, fs.readFileSync(path.join(repositoryRoot, name)));
+  for (const name of names) {
+    const source = path.join(repositoryRoot, name);
+    if (fs.existsSync(source)) writeFixture(name, fs.readFileSync(source));
+    else fs.rmSync(path.join(cloneDirectory, name), { force: true });
+  }
   runGit('add', '--all');
   runGit('-c', 'core.hooksPath=', 'commit', '-m', 'Prepare disposable verification baseline');
   runCommand(preCommitExecutable, ['install']);

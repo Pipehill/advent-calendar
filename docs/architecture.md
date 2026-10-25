@@ -527,7 +527,12 @@ when building runnable setup. The [Start hosting guide](https://tanstack.com/sta
 describes this Node.js/Nitro workflow.
 
 Backend builds use dotnet CLI/MSBuild: `dotnet restore`, `dotnet build`,
-`dotnet test`, and `dotnet publish`. Hook generation into the shared build workflow
+`dotnet test`, and `dotnet publish`. `src/contract/Contract.proj` owns Redocly
+validation followed by pinned local NSwag generation of both consumers. The API
+invokes this sequence before compilation; frontend scripts invoke the same target
+without compiling or starting the API. Setup restores the generator once. Keep
+generation serial within each build/check sequence; CI jobs and image builds have
+independent source trees. Hook generation into the shared build workflow
 before compilation, including clean builds. The Dockerfile has an SDK build
 stage for restore, generation, build, and publish, then an ASP.NET runtime stage
 containing the published application, DbUp provider, and embedded migrations.

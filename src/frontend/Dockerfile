@@ -9,13 +9,13 @@ COPY global.json biome.json ./
 COPY .config/ .config/
 COPY src/ src/
 COPY tools/frontend/ tools/frontend/
-COPY tools/backend/ tools/backend/
-COPY tools/development/commands.mjs tools/development/commands.mjs
+COPY tools/development/commands.mjs tools/development/dotnet.mjs tools/development/
 COPY tools/quality/local-settings.mjs tools/quality/local-settings.mjs
 RUN npm ci --prefix tools/frontend \
     && npm ci --prefix src/contract \
-    && CI=true node tools/frontend/check.mjs install \
-    && CI=true node tools/frontend/check.mjs build
+    && dotnet tool restore \
+    && CI=true node tools/frontend/pnpm.mjs install --frozen-lockfile \
+    && CI=true node tools/frontend/pnpm.mjs run build
 
 FROM node AS runtime
 WORKDIR /app

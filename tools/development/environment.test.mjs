@@ -436,7 +436,7 @@ test('Given missing Node on Windows, When PowerShell doctor starts, Then it fail
   const directory = fixture(t);
   const shell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   const doctorScript = path.join(root, 'tools/development/doctor.ps1');
-  const argumentsList = ['-NoProfile', '-NonInteractive', '-File', doctorScript];
+  const argumentsList = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', doctorScript];
 
   // When doctor is launched.
   const result = spawnSync(shell, argumentsList, {

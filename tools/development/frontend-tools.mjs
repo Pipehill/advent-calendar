@@ -12,9 +12,9 @@ export function prepareFrontendTools({ root, run }, node) {
   } else {
     run('npm', args, true);
   }
-  const check = path.join(root, 'tools/frontend/check.mjs');
-  run(node, [check, 'install'], true);
-  run(node, [check, 'generate'], true);
+  const pnpm = path.join(root, 'tools/frontend/pnpm.mjs');
+  run(node, [pnpm, 'install', '--frozen-lockfile'], true);
+  run(node, [pnpm, 'run', 'generate'], true);
 }
 
 export function checkFrontendTools({ root, run, checks }, node) {

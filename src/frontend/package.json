@@ -5,12 +5,17 @@
   "packageManager": "pnpm@12.11.2",
   "engines": { "node": ">=24.14.0 <25" },
   "scripts": {
-    "generate": "node ../../tools/frontend/check.mjs generate",
-    "dev": "node ../../tools/frontend/check.mjs generate && vite --host 0.0.0.0",
-    "typecheck": "node ../../tools/frontend/check.mjs generate && vite build --mode typecheck && tsc --noEmit",
-    "build": "node ../../tools/frontend/check.mjs generate && vite build && tsc --noEmit && node build-nitro.mjs",
+    "generate:contract": "node ../../tools/development/dotnet.mjs msbuild ../contract/Contract.proj -t:GenerateContract",
+    "generate:translations": "paraglide-js compile --project ./project.inlang --outdir ./src/generated/paraglide --emit-ts-declarations",
+    "generate": "pnpm run generate:contract && pnpm run generate:translations",
+    "dev": "pnpm run generate:contract && vite --host 0.0.0.0",
+    "typecheck": "pnpm run generate:contract && vite build --mode typecheck && tsc --noEmit",
+    "build:app": "vite build && tsc --noEmit && node build-nitro.mjs",
+    "build": "pnpm run generate:contract && pnpm run build:app",
     "start": "node .output/server/index.mjs",
-    "test": "node ../../tools/frontend/check.mjs generate && vitest run",
+    "test:unit": "vitest run",
+    "test": "pnpm run generate && pnpm run test:unit",
+    "check": "pnpm run generate && pnpm run test:unit && pnpm run build:app && pnpm run lint",
     "lint": "biome check src vite.config.ts vitest.config.ts"
   },
   "dependencies": {

@@ -1,6 +1,8 @@
 # Advisory analyzer dependencies
 
-This separate npm package pins jscpd 5.4.1 and its platform-specific native binary.
+This private npm package pins jscpd 5.4.1, its platform-specific native binary and
+the official MCP SDK used by the repository client. Versions and transitives are
+owned by `package.json` and its lockfile.
 Run `node tools/quality/install-analysis.mjs` from the repository root to install
 from the lockfile. Developer setup runs this command and reuses a matching installation.
 The installed wrapper and native binary support Windows x64/ARM64, macOS x64/ARM64,

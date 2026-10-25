@@ -45,7 +45,8 @@ check-only. Quality measurements supplement relevant tests and review.
    findings, supported dimensions, missing evidence and measurement limitations.
    Keep actual old/new values and deltas, duplication percentages, absolute clone/
    line counts, scope, input identity, tool version and configuration with reports.
-5. When a PR is authorized, fetch its target and regenerate the whole-codebase merge
+5. When a PR is authorized, fetch its target and regenerate the application,
+   tooling and whole-repository reference merge
    comparison after each head/base change. GitHub Actions publishes Code health in
    the same comment as MegaLinter; the PR body retains Description and Local QA.
    Keep stale/conflicting evidence unavailable. Use the compact comment layout:
@@ -65,6 +66,13 @@ Refactor only concrete findings within architecture boundaries. Never suppress
 findings or change exclusions/scoring solely to report improvement. Health scores
 and colored indicators are advisory: no minimum score, merge gate or new approval
 requirement applies. Existing lint failures continue to block as configured.
+
+The owner approved separate application/tooling views on 2026-10-25. Use the scope
+definitions in [advisory health](../../tools/quality/health.md#whole-codebase-scope-and-limitations);
+preserve the whole-repository reference in raw artifacts and compare identical
+scopes/settings. Reports show only application and tooling sections.
+Prefer lower maintenance and easier autonomous execution; a modest advisory score
+decline is acceptable when that tradeoff is supported by concrete evidence.
 
 ## Container artifact cleanup
 

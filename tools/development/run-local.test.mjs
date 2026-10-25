@@ -218,7 +218,8 @@ for (const component of ['backend', 'frontend']) {
     const calls = [];
     const run = (_executable, args) => {
       calls.push(args);
-      const failed = args.includes('test') && args[0].includes(component);
+      const failed = args.includes('test') && (component === 'backend'
+        ? args.includes('src/backend/Calendar.slnx') : args[0].includes('frontend'));
       return { status: failed ? 1 : 0 };
     };
     const options = parseLocalOptions(['--skip-build']);

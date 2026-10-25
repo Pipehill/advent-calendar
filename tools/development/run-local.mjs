@@ -109,10 +109,13 @@ export async function runLocal(
   if (!options.skipTest) {
     console.log('Running backend integration and frontend unit tests.');
     const testsEnv = testEnvironment(config.runtime, env, run);
-    for (const component of ['backend', 'frontend']) {
-      const script = path.join(config.root, 'tools', component, 'check.mjs');
-      checkedCommand(run, process.execPath, [script, 'test'], testsEnv, `${component} tests failed; startup stopped.`);
-    }
+    checkedCommand(run, process.execPath, [
+      path.join(config.root, 'tools/development/dotnet.mjs'),
+      'test', 'src/backend/Calendar.slnx', '-c', 'Release', '-p:RestoreLockedMode=true',
+    ], testsEnv, 'backend tests failed; startup stopped.');
+    checkedCommand(run, process.execPath, [
+      path.join(config.root, 'tools/frontend/pnpm.mjs'), 'run', 'test',
+    ], testsEnv, 'frontend tests failed; startup stopped.');
   }
   if (options.frontend === 'dev') {
     // Stop the container frontend before Vite claims the same published port.
@@ -125,8 +128,8 @@ export async function runLocal(
     console.log(`Local API ready: ${config.url}`);
     if (options.frontend === 'dev') {
       const frontendEnv = { ...env, BACKEND_API_URL: config.url };
-      const generator = path.join(config.root, 'tools/frontend/check.mjs');
-      checkedCommand(run, process.execPath, [generator, 'generate'], frontendEnv, 'Frontend generation failed. Run setup/doctor.');
+      const pnpm = path.join(config.root, 'tools/frontend/pnpm.mjs');
+      checkedCommand(run, process.execPath, [pnpm, 'run', 'generate:contract'], frontendEnv, 'Frontend generation failed. Run setup/doctor.');
       await develop(config, frontendEnv, request);
     } else {
       await waitForReady(config.frontendUrl, config.timeout, request);

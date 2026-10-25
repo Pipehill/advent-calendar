@@ -25,8 +25,13 @@ jobs:
       - name: Restore contract validator
         run: npm ci --prefix src/contract
       - name: Validate, generate, build, test and publish
-        run: node tools/backend/check.mjs check
+        run: |
+          dotnet tool restore
+          dotnet restore src/backend/Calendar.slnx --locked-mode
+          dotnet build src/backend/Calendar.slnx --no-restore -c Release
+          dotnet test src/backend/Calendar.slnx --no-build -c Release
+          dotnet publish src/backend/Calendar.Api --no-build --no-restore -c Release -o src/backend/publish
       - name: Check C# formatting and analyzers
-        run: node tools/backend/check.mjs lint
+        run: dotnet format src/backend/Calendar.slnx --verify-no-changes --no-restore
       - name: Verify launcher behavior
         run: node --test tools/development/run-local.test.mjs

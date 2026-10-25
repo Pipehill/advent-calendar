@@ -3,17 +3,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { root, requireAnalyzer } from './jscpd.mjs';
 
 try {
   const directory = path.join(root, 'tools/quality/analysis');
   const lockHash = createHash('sha256').update(fs.readFileSync(path.join(directory, 'package-lock.json'))).digest('hex');
   const receipt = path.join(directory, 'node_modules/.advent-install.json');
+  const require = createRequire(path.join(directory, 'package.json'));
   let installed;
   try { installed = JSON.parse(fs.readFileSync(receipt, 'utf8')); } catch { /* A fresh install has no receipt. */ }
   if (installed?.lockHash === lockHash && installed.platform === process.platform && installed.arch === process.arch) {
     try {
       requireAnalyzer();
+      require.resolve('@modelcontextprotocol/sdk/client/index.js');
+      require.resolve('@modelcontextprotocol/sdk/client/stdio.js');
       console.log('Reusing pinned jscpd installation.');
       process.exit(0);
     } catch {
@@ -33,6 +37,8 @@ try {
   });
   if (result.error || result.status !== 0) throw new Error('Pinned jscpd installation failed; check network/npm diagnostics.');
   requireAnalyzer();
+  require.resolve('@modelcontextprotocol/sdk/client/index.js');
+  require.resolve('@modelcontextprotocol/sdk/client/stdio.js');
   fs.writeFileSync(receipt, JSON.stringify({ lockHash, platform: process.platform, arch: process.arch }) + '\n');
 } catch (error) {
   console.error(error.message);

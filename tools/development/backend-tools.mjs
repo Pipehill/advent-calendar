@@ -31,5 +31,6 @@ export function prepareBackendTools(context, detectedDotnet, runtime) {
     DOTNET_EXE: dotnet,
     PATH: path.dirname(dotnet) + path.delimiter + process.env.PATH,
   };
-  run(process.execPath, [path.join(root, 'tools/backend/check.mjs'), 'restore'], true, environment);
+  run(dotnet, ['tool', 'restore'], true, environment);
+  run(dotnet, ['restore', 'src/backend/Calendar.slnx', '--locked-mode'], true, environment);
 }
