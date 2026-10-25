@@ -86,4 +86,4 @@ changed. Scope baselines were derived only after their committed source manifest
 exactly matched the original saved baseline; its original bytes are archived in
 `quality-reports/health/baseline-original-00010.json`. Current reports retain hashes,
 coverage limitations and heuristic entry-point findings; scope changes are never
-reported as improvements. The plan remains open for inherited verification gaps.
+reported as improvements.

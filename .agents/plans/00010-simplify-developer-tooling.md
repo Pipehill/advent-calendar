@@ -1,6 +1,6 @@
 # 00010: Simplify developer tooling
 
-Status: Not implemented
+Status: Implemented (2026-10-25)
 
 Last updated: 2026-10-25
 
@@ -18,6 +18,8 @@ On 2026-10-25 the owner authorized implementation on the existing
 `plan/simplify-developer-tooling` branch with its pending plan/index/TODO edits.
 The owner subsequently requested documentation cleanup and separate application
 and tooling health measurements while retaining the whole-repository reference.
+On 2026-10-25 the owner accepted the plan as implemented, with inherited browser
+failures and unavailable-platform verification retained as follow-ups.
 
 ## Requirements
 
@@ -65,7 +67,8 @@ owner choices. Any proposed functionality reduction requires a separate decision
   whole-repository reference and test scope isolation/stale evidence.
 - [x] Run final saved-source lint, relevant tests and unchanged-setting comparisons;
   record net code/configuration/documentation cost in the concise review.
-- [ ] Close the outstanding Vite/browser and unavailable-platform verification.
+- [x] Record inherited Vite/browser failures and unavailable-platform verification
+  as follow-ups accepted by the owner on 2026-10-25.
 
 ## Evidence
 
@@ -86,4 +89,5 @@ invalid/corrected linter fixtures, index/source preservation, hook receipts,
 stale/missing CI evidence and actual Windows/Podman startup. Docker and native
 macOS/Linux evidence remain unavailable. Production browser smoke passed all eight
 cases; Vite reproduced three language-switch failures on the original commit.
-The [existing stabilization TODO](TODO.md) remains open.
+The [Vite language-switch follow-up](TODO.md) remains open; native-platform
+verification follow-ups remain in their existing verification records.
