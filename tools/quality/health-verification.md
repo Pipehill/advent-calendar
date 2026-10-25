@@ -1,5 +1,37 @@
 # Code health verification
 
+## 2026-10-25 PR 26 quality image recovery
+
+[CI run 40187781359](https://github.com/Pipehill/advent-calendar/actions/runs/40187781359)
+for PR head `1f1804ca0e74ad1f358c968e201e2cef8f85cb7b` failed before linting.
+APK exited 9 at `tools/quality/Dockerfile:17`: the stable Alpine v3.24 community
+index no longer supplied `chromium=155.0.8059.39-r0`. The reported ICU conflict
+was another dependency-resolution symptom of that unavailable version.
+
+Inside the exact digest-pinned MegaLinter base, `apk policy chromium` reported
+`155.0.8059.84-r0`. A simulated installation of that pin succeeded and selected
+`icu-data-full` in place of `icu-data-en` automatically. Only the Chromium pin
+and its documented version changed; no manual package removal was needed.
+
+Windows with Node 24.20.0 and Podman successfully built
+`localhost/advent-quality:2398a96fb94141df125d`. Both
+`node tools/quality/run.mjs full` and `node tools/quality/run.mjs test` passed,
+including Mermaid rendering and invalid/corrected language fixtures. The CI
+comment, snapshot and development environment tests passed (72 passed, one
+platform-specific test skipped). Logs are retained under ignored
+`quality-reports/pr26-*.log`. The unchanged npm lockfile installation reported
+three dependency audit findings (two high, one critical); this repair does not
+establish that those dependencies are vulnerability-free.
+
+Advisory jscpd 5.4.1 measurements are unchanged: health 64.6, complexity score
+72.4, duplication 0.08989865969271003%, one clone and 11 duplicated lines across
+92 measured files and 12,236 lines. The before/after source SHA-256 is
+`22383cc2f340e0e2ab215ecd4d5c7368f34ea65ae632dbe853ebd80d5602a243`;
+configuration SHA-256 is
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+These authored-source measurements exclude Dockerfiles and prose, and dead-code
+coverage remains partial (52.9%). Raw evidence is in `quality-reports/health/`.
+
 ## 2026-10-18 PR 23 quality image recovery
 
 [CI run 39123387404](https://github.com/Pipehill/advent-calendar/actions/runs/39123387404)
