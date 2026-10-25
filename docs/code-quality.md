@@ -221,6 +221,7 @@ excluded. Browser smoke runs separately against a started environment.
 ## Advisory measurements during development
 
 [Advisory health](../tools/quality/health.md) owns scope, baseline/comparison and MCP
-commands. Application and tooling results are separate, with a whole-repository
-reference. Scores remain advisory; required lint and verified hook evidence are
-independent. Refresh committed PR evidence whenever the head or base changes.
+commands. Reports show application and tooling results; the whole-repository
+reference is retained in raw artifacts. Scores remain advisory; required lint and
+verified hook evidence are independent. Refresh committed PR evidence whenever
+the head or base changes.

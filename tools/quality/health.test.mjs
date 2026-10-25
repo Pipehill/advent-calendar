@@ -199,7 +199,8 @@ test('Given no application source, When grouped health runs, Then the missing sc
   assert.equal(report.groups.tooling.available, true);
   assert.match(rendered, /Application code health\n\n.*Unavailable.*Empty/);
   assert.match(rendered, /Tooling code health\n\nOverall health/);
-  assert.match(rendered, /Whole-repository code health \(reference\)\n\nOverall health/);
+  assert.doesNotMatch(rendered, /Whole-repository code health/);
+  assert.equal(rendered.match(/^## /gm).length, 2);
 });
 
 test('Given grouped PR evidence, When an application result has a stale head, Then its CI section is unavailable and other scopes retain evidence', async t => {
@@ -220,7 +221,8 @@ test('Given grouped PR evidence, When an application result has a stale head, Th
   // Then a stale subgroup cannot inherit a successful current-head result.
   assert.match(body, /Application code health\n\n.*Unavailable.*Conflicting PR measurement identity/);
   assert.match(body, /Tooling code health\n\nTarget commit:/);
-  assert.match(body, /Whole-repository code health \(reference\)\n\nTarget commit:/);
+  assert.doesNotMatch(body, /Whole-repository code health/);
+  assert.equal(body.match(/^## .*code health/gm).length, 2);
 });
 
 for (const direction of ['regression', 'improvement', 'unchanged']) {

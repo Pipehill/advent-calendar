@@ -69,7 +69,8 @@ requirement applies. Existing lint failures continue to block as configured.
 
 The owner approved separate application/tooling views on 2026-10-25. Use the scope
 definitions in [advisory health](../../tools/quality/health.md#whole-codebase-scope-and-limitations);
-preserve the whole-repository reference and compare identical scopes/settings.
+preserve the whole-repository reference in raw artifacts and compare identical
+scopes/settings. Reports show only application and tooling sections.
 Prefer lower maintenance and easier autonomous execution; a modest advisory score
 decline is acceptable when that tradeoff is supported by concrete evidence.
 

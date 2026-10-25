@@ -37,22 +37,25 @@ An improvement in one dimension never hides regressions in other dimensions.
 
 ## Whole-codebase scope and limitations
 
-Each baseline, comparison and PR report contains three independent views:
+Development and PR reports show two independent views:
 
 | View | Authored source |
 | --- | --- |
 | Application | Files below `src/`, including application tests and build entry points. |
 | Tooling | All remaining authored files, including `tools/` and root launch scripts. |
-| Whole repository (reference) | Both groups together; retains cross-group clones and the original comparable scope. |
 
-All views use identical `.jscpd.json` settings, exclusions, thresholds and binary.
+The whole-repository reference remains in raw artifacts for cross-group clones and
+baseline comparability; it is not rendered as a report section.
+All measurements use identical `.jscpd.json` settings, exclusions, thresholds and
+binary.
 The groups partition the reference manifest; group/source identity is validated,
 and changing groups cannot count as an improvement. Scores are independent rather
 than averages: language coverage and cross-group clones can affect the reference.
 Missing/empty/failed groups and missing legacy group baselines stay unavailable.
 Local comparison exits nonzero for unavailable group evidence; PR results remain
 advisory. Full raw per-group reports live under `application/` and `tooling/` beside
-the reference measurement, and their results appear in the same CI comment.
+the reference measurement. Only application and tooling sections appear in the
+CI comment.
 
 The authored source extensions in `.jscpd.json` cover JavaScript, TypeScript, C#,
 SQL, Bash and PowerShell along with other configured formats as they appear.

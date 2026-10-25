@@ -133,10 +133,6 @@ export function renderComparison(comparison, { compact = Boolean(comparison.iden
         reason: left?.reason || right?.reason || `Missing or mismatched ${group} baseline/current measurement` };
       sections.push(renderComparison(report, { compact }).replace('## Code health', `## ${label} code health`));
     }
-    const { groups: beforeGroups, ...referenceBefore } = before;
-    const { groups: afterGroups, ...referenceAfter } = after;
-    sections.push(renderComparison({ ...comparison, before: referenceBefore, after: referenceAfter }, { compact })
-      .replace('## Code health', '## Whole-repository code health (reference)'));
     return sections.join('\n');
   }
   if (compact && identity) {
