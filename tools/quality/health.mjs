@@ -22,16 +22,17 @@ function authored(name) {
   return !ignored && extensions.includes(path.extname(name).slice(1));
 }
 
-function inputFiles(directory, tree) {
+function inputFiles(directory, tree, group = 'all') {
   const output = tree
     ? git(directory, 'ls-tree', '-r', '--name-only', '-z', tree)
     : git(directory, 'ls-files', '--cached', '--others', '--exclude-standard', '-z');
-  return [...new Set(output.split('\0').filter(Boolean))].filter(authored).sort();
+  return [...new Set(output.split('\0').filter(Boolean))]
+    .filter(name => authored(name) && (group === 'all' || (name.startsWith('src/') === (group === 'application')))).sort();
 }
 
-export function snapshot(directory, destination, tree) {
+export function snapshot(directory, destination, tree, group = 'all') {
   const files = [];
-  for (const name of inputFiles(directory, tree)) {
+  for (const name of inputFiles(directory, tree, group)) {
     let contents;
     if (tree) {
       const mode = git(directory, 'ls-tree', tree, '--', name).split(' ')[0];
@@ -63,14 +64,15 @@ export function validateStatistics(result) {
   return total;
 }
 
-export async function measure(directory, output, identity = {}, tree) {
+export async function measure(directory, output, identity = {}, tree, group = 'all') {
+  if (!['all', 'application', 'tooling'].includes(group)) throw new Error(`Unknown health group: ${group}`);
   requireAnalyzer();
   fs.mkdirSync(output, { recursive: true });
   fs.rmSync(path.join(output, 'measurement.json'), { force: true });
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'advent-health-'));
   let client;
   try {
-    const files = snapshot(directory, scratch, tree);
+    const files = snapshot(directory, scratch, tree, group);
     if (!files.length) throw new Error('Empty authored source scope');
     const configBytes = fs.readFileSync(configuration);
     const config = path.join(scratch, '.jscpd.json');
@@ -98,7 +100,7 @@ export async function measure(directory, output, identity = {}, tree) {
       throw new Error('Invalid CLI analysis result');
     }
     if (!tree) {
-      const current = inputFiles(directory).filter(name => fs.existsSync(path.join(directory, name)))
+      const current = inputFiles(directory, undefined, group).filter(name => fs.existsSync(path.join(directory, name)))
         .map(name => ({ path: name, hash: digest(fs.readFileSync(path.join(directory, name))) }));
       if (JSON.stringify(current) !== JSON.stringify(files)) {
         throw new Error('Saved source changed during measurement; rescan before comparison');
@@ -107,7 +109,7 @@ export async function measure(directory, output, identity = {}, tree) {
     const report = {
       schema: 1, available: true, createdAt: new Date().toISOString(), identity,
       tool: { name: 'jscpd', version, configHash: digest(configBytes), config: JSON.parse(configBytes) },
-      input: { files, hash: digest(JSON.stringify(files)), scope: JSON.parse(configBytes).pattern },
+      input: { files, hash: digest(JSON.stringify(files)), scope: JSON.parse(configBytes).pattern, group },
       mcp: { server: client.server, tools: client.tools, statistics, refresh },
       health, complexity, deadCode,
       limitations: [
@@ -125,6 +127,26 @@ export async function measure(directory, output, identity = {}, tree) {
   }
 }
 
+// Independent group scores use the same engine/settings and partition the reference.
+export async function measureGroups(directory, output, identity = {}, tree) {
+  const report = await measure(directory, output, identity, tree);
+  report.groups = {};
+  for (const group of ['application', 'tooling']) {
+    try {
+      const result = await measure(directory, path.join(output, group), identity, tree, group);
+      const expected = report.input.files.filter(file => file.path.startsWith('src/') === (group === 'application'));
+      if (JSON.stringify(result.input.files) !== JSON.stringify(expected)) {
+        throw new Error('Source changed between reference and group scans; rescan');
+      }
+      report.groups[group] = result;
+    } catch (error) {
+      report.groups[group] = { available: false, reason: error.message };
+    }
+  }
+  fs.writeFileSync(path.join(output, 'measurement.json'), JSON.stringify(report, null, 2) + '\n');
+  return report;
+}
+
 export async function prComparison(baseRef = 'origin/main', headRef = 'HEAD', directory = root) {
   const output = path.join(directory, 'quality-reports', 'health', 'pr');
   fs.mkdirSync(output, { recursive: true });
@@ -137,8 +159,8 @@ export async function prComparison(baseRef = 'origin/main', headRef = 'HEAD', di
     const head = git(directory, 'rev-parse', `${headRef}^{commit}`);
     const candidate = git(directory, 'merge-tree', '--write-tree', base, head).split('\n')[0];
     identity = { kind: 'pr-merge', base, head, candidate, baseRef };
-    const before = await measure(directory, path.join(output, 'before'), { kind: 'target', commit: base }, base);
-    const after = await measure(directory, path.join(output, 'after'), identity, candidate);
+    const before = await measureGroups(directory, path.join(output, 'before'), { kind: 'target', commit: base }, base);
+    const after = await measureGroups(directory, path.join(output, 'after'), identity, candidate);
     comparison = { available: true, identity, before, after };
   } catch (error) {
     comparison = { available: false, identity, reason: error.message };
@@ -181,13 +203,21 @@ async function main() {
   const before = mode === 'compare' ? JSON.parse(fs.readFileSync(baselineFile, 'utf8')) : undefined;
   const output = path.join(reports, mode === 'baseline' ? 'baseline' : 'current');
   fs.rmSync(path.join(output, 'measurement.json'), { force: true });
-  const after = await measure(root, output, workingIdentity(root));
+  const after = await measureGroups(root, output, workingIdentity(root));
+  for (const [group, result] of Object.entries(after.groups)) {
+    if (!result.available) {
+      console.error(`${group} measurement unavailable: ${result.reason}`);
+      process.exitCode = 1;
+    }
+  }
   if (mode === 'compare') {
     const comparison = { available: true, before, after };
     const text = renderComparison(comparison);
     fs.writeFileSync(path.join(reports, 'development.md'), text);
     console.log(text);
-    if (comparable(before, after)) process.exitCode = 1;
+    if (comparable(before, after) || ['application', 'tooling'].some(group =>
+      before.groups?.[group]?.input?.group !== group || after.groups[group]?.input?.group !== group
+      || comparable(before.groups[group], after.groups[group]))) process.exitCode = 1;
   } else {
     console.log(`Baseline saved: ${baselineFile}`);
   }

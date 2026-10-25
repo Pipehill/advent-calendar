@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { connect } from './mcp-client.mjs';
 import { configuration, root } from './jscpd.mjs';
-import { measure, prComparison, git, validateStatistics, snapshot } from './health.mjs';
+import { measure, measureGroups, prComparison, git, validateStatistics, snapshot } from './health.mjs';
 import { renderComparison, comparable, assessment } from './health-report.mjs';
+import { buildComment } from './ci-comment.mjs';
 
 function fixture(t, beforeCleanup = async () => {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'health test '));
@@ -106,9 +107,8 @@ test('Given a previously scanned clone that is deleted, When MCP refreshes, Then
 
 test('Given an unrelated working directory, When the documented stdio launcher runs, Then it resolves and scans the repository', async t => {
   // Given the documented launcher started outside the repository directory.
-  const launch = () => spawn(process.execPath, [path.join(root, 'tools/quality/jscpd.mjs')], {
-    cwd: os.tmpdir(), stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  const launch = () => ({ command: process.execPath,
+    args: [path.join(root, 'tools/quality/jscpd.mjs')], cwd: os.tmpdir() });
 
   // When the client connects, refreshes and reads statistics.
   const client = await connect(root, configuration, launch);
@@ -160,6 +160,68 @@ async function measuredComparison(t) {
   const after = await measure(directory, path.join(reportDirectory, 'after'), { kind: 'fixture' });
   return { available: true, before, after };
 }
+
+test('Given application, tooling and root source, When grouped health runs, Then scopes partition the unchanged reference settings', async t => {
+  // Given measurable files in both scopes, including a root launcher and ignored output.
+  const directory = fixture(t);
+  save(directory, 'src/feature.mjs', block);
+  save(directory, 'tools/helper.mjs', block);
+  save(directory, 'launcher.mjs', block);
+  save(directory, 'node_modules/ignored.mjs', block);
+  const index = git(directory, 'ls-files', '--stage');
+
+  // When all three views are measured from saved source.
+  const report = await measureGroups(directory, path.join(directory, 'quality-reports/groups'));
+  const { application, tooling } = report.groups;
+
+  // Then the views cover every authored input with the same settings and preserve the index.
+  assert.deepEqual(application.input.files.map(file => file.path), ['src/feature.mjs']);
+  assert.deepEqual(tooling.input.files.map(file => file.path), ['launcher.mjs', 'tools/helper.mjs']);
+  assert.deepEqual([...application.input.files, ...tooling.input.files].sort((a, b) => a.path.localeCompare(b.path)), report.input.files);
+  assert.equal(application.tool.configHash, report.tool.configHash);
+  assert.equal(tooling.tool.configHash, report.tool.configHash);
+  assert.equal(comparable(application, tooling), 'Tool version, configuration, schema or source scope differs');
+  assert.equal(git(directory, 'ls-files', '--stage'), index);
+});
+
+test('Given no application source, When grouped health runs, Then the missing scope stays unavailable beside valid reference and tooling results', async t => {
+  // Given measurable tooling and no application files.
+  const directory = fixture(t);
+  save(directory, 'tools/helper.mjs', block);
+
+  // When grouped measurement and reporting run.
+  const report = await measureGroups(directory, path.join(directory, 'quality-reports/groups'));
+  const rendered = renderComparison({ available: true, before: report, after: report });
+
+  // Then missing input is explicit and does not become a zero score or hide other views.
+  assert.equal(report.groups.application.available, false);
+  assert.match(report.groups.application.reason, /Empty/);
+  assert.equal(report.groups.tooling.available, true);
+  assert.match(rendered, /Application code health\n\n.*Unavailable.*Empty/);
+  assert.match(rendered, /Tooling code health\n\nOverall health/);
+  assert.match(rendered, /Whole-repository code health \(reference\)\n\nOverall health/);
+});
+
+test('Given grouped PR evidence, When an application result has a stale head, Then its CI section is unavailable and other scopes retain evidence', async t => {
+  // Given a PR changing application source while tooling remains present.
+  const directory = fixture(t);
+  save(directory, 'src/feature.mjs', block);
+  save(directory, 'tools/helper.mjs', block);
+  const base = commit(directory, 'base');
+  save(directory, 'src/copy.mjs', block);
+  const head = commit(directory, 'head');
+  const report = await prComparison(base, head, directory);
+  report.after.groups.application.identity = { ...report.identity, head: 'stale' };
+
+  // When the existing CI publisher renders this evidence without any network publication.
+  const body = buildComment({ revision: head, baseRevision: base, runUrl: 'https://example.invalid/run',
+    setupOutcome: 'success', checkOutcome: 'success', healthOutcome: 'success', healthComparison: report });
+
+  // Then a stale subgroup cannot inherit a successful current-head result.
+  assert.match(body, /Application code health\n\n.*Unavailable.*Conflicting PR measurement identity/);
+  assert.match(body, /Tooling code health\n\nTarget commit:/);
+  assert.match(body, /Whole-repository code health \(reference\)\n\nTarget commit:/);
+});
 
 for (const direction of ['regression', 'improvement', 'unchanged']) {
   test(`Given a ${direction} in duplication, When the comparison is rendered, Then the direction and measured units are explicit`, async t => {
@@ -430,12 +492,13 @@ function protocolLauncher(mode) {
     const readline = require('node:readline');
     readline.createInterface({ input: process.stdin }).on('line', line => {
       const request = JSON.parse(line);
-      if (!request.id) return;
+      if (request.id === undefined) return;
       const mode = ${JSON.stringify(mode)};
       if (mode === 'malformed') { console.log('invalid json'); return; }
       let result;
       if (request.method === 'initialize') {
-        result = mode === 'bad-init' ? {} : { serverInfo: { name: 'fixture' }, capabilities: { tools: {} } };
+        result = mode === 'bad-init' ? {} : { protocolVersion: '2024-11-05',
+          serverInfo: { name: 'fixture', version: '1.0.0' }, capabilities: { tools: {} } };
       } else if (request.method === 'tools/list') {
         result = { tools: ${JSON.stringify(names)}.map(name => ({ name, inputSchema: { type: 'object' } })) };
         if (mode === 'bad-schema') result.tools[0].inputSchema = {};
@@ -446,7 +509,7 @@ function protocolLauncher(mode) {
       console.log(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));
     });
   `;
-  return () => spawn(process.execPath, ['-e', code], { stdio: ['pipe', 'pipe', 'pipe'] });
+  return () => ({ command: process.execPath, args: ['-e', code] });
 }
 
 for (const mode of ['bad-init', 'bad-schema', 'malformed']) {
@@ -478,7 +541,7 @@ for (const mode of ['tool-error', 'bad-tool-json']) {
 
 test('Given a missing MCP executable, When the client connects, Then the process launch failure is explicit', async () => {
   // Given a launcher pointing to an executable that does not exist.
-  const launch = () => spawn(path.join(os.tmpdir(), 'nonexistent-jscpd-fixture'), []);
+  const launch = () => ({ command: path.join(os.tmpdir(), 'nonexistent-jscpd-fixture') });
 
   // When the client attempts connection.
   const initialize = () => connect(root, configuration, launch);

@@ -32,7 +32,7 @@ jobs:
           node --test tools/development/environment.test.mjs
           node tools/quality/run.mjs full
           node tools/quality/run.mjs test
-      - name: Advisory whole-codebase health evidence
+      - name: Advisory application, tooling and whole-repository health evidence
         id: health
         if: always()
         continue-on-error: true

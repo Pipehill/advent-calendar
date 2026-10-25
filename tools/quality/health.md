@@ -10,15 +10,16 @@ gate. Existing lint checks and verified Local QA receipts retain their meaning.
 
 Run developer setup first, or run `node tools/quality/install-analysis.mjs`.
 Installation uses the committed npm lockfile and reuses matching platform packages;
-server startup never downloads a release.
+server startup never downloads a release. The same private installation contains
+the pinned official MCP SDK; it owns transport, request timeouts and shutdown.
 
 | Command | Purpose |
 | --- | --- |
-| `node tools/quality/health.mjs baseline` | Capture saved whole-codebase source before a task. |
+| `node tools/quality/health.mjs baseline` | Capture application, tooling and whole-repository baselines before a task. |
 | `node tools/quality/run.mjs full` | Lint saved working-tree changes using the hook/CI configuration. |
-| `node tools/quality/health.mjs compare` | Rescan and compare with the preserved development baseline. |
+| `node tools/quality/health.mjs compare` | Compare the same three scopes with their preserved baselines. |
 | `node tools/quality/health.mjs doctor` | Verify pinned binary, MCP schema/refresh, scope and CLI readiness. |
-| `node tools/quality/health.mjs pr origin/main HEAD` | Compare target commit with the candidate merge tree. |
+| `node tools/quality/health.mjs pr origin/main HEAD` | Compare all three scopes on target and candidate merge trees. |
 | `node --test tools/quality/health.test.mjs` | Verify analyzer and reporting behavior with disposable fixtures. |
 
 Baseline refuses to overwrite an existing baseline. Archive the ignored
@@ -36,8 +37,25 @@ An improvement in one dimension never hides regressions in other dimensions.
 
 ## Whole-codebase scope and limitations
 
-The authored source extensions in `.jscpd.json` cover current JavaScript modules,
-Bash and PowerShell, plus the planned application's code extensions as they appear.
+Each baseline, comparison and PR report contains three independent views:
+
+| View | Authored source |
+| --- | --- |
+| Application | Files below `src/`, including application tests and build entry points. |
+| Tooling | All remaining authored files, including `tools/` and root launch scripts. |
+| Whole repository (reference) | Both groups together; retains cross-group clones and the original comparable scope. |
+
+All views use identical `.jscpd.json` settings, exclusions, thresholds and binary.
+The groups partition the reference manifest; group/source identity is validated,
+and changing groups cannot count as an improvement. Scores are independent rather
+than averages: language coverage and cross-group clones can affect the reference.
+Missing/empty/failed groups and missing legacy group baselines stay unavailable.
+Local comparison exits nonzero for unavailable group evidence; PR results remain
+advisory. Full raw per-group reports live under `application/` and `tooling/` beside
+the reference measurement, and their results appear in the same CI comment.
+
+The authored source extensions in `.jscpd.json` cover JavaScript, TypeScript, C#,
+SQL, Bash and PowerShell along with other configured formats as they appear.
 The source inventory comes from Git's tracked and nonignored untracked files;
 snapshots never follow symlinks. All included files are scanned, including unchanged
 files, tests, new files and saved deletions. Files below the pinned minimum size
@@ -115,7 +133,7 @@ and uses `git merge-tree --write-tree` to create a candidate Git tree without mo
 HEAD, switching branches, modifying the index or merging into the working tree.
 It may add temporary Git objects. Conflicts and missing refs are unavailable.
 
-Both complete trees are analyzed with the currently pinned tool/settings. Evidence
+Both complete trees and their two source groups are analyzed with the pinned tool/settings. Evidence
 identifies the base commit, PR head, candidate tree, input hashes and measurement
 settings. It measures merging the committed PR head, not saved uncommitted edits.
 If analysis settings change, the PR uses one common set for both trees; explain that

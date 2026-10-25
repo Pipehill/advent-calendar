@@ -1,5 +1,10 @@
 # Developer tooling verification
 
+## Plan 00010: native build ownership (2026-10-25)
+
+Current outcomes and limitations are maintained once in the
+[tooling review](tooling-review.md#verification-record).
+
 ## Root local launcher and frontend modes (2026-10-13)
 
 The root `run-local.ps1` and `run-local.sh` entry scripts forward flags to the

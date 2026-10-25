@@ -65,8 +65,7 @@ terminal, start the backend with the repository's pinned SDK:
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $env:ASPNETCORE_URLS = 'http://localhost:8080'
-node tools/backend/check.mjs generate
-./.quality-cache/dotnet/dotnet.exe watch --project src/backend/Calendar.Api
+node tools/development/dotnet.mjs watch --project src/backend/Calendar.Api
 ```
 
 The backend's development connection string uses localhost and database port
@@ -77,7 +76,7 @@ the same environment variables with `export`.
 In a third terminal, run:
 
 ```text
-node tools/frontend/check.mjs dev
+node tools/frontend/pnpm.mjs run dev
 ```
 
 This uses repository-local pnpm. With pnpm 12.11.2 on PATH, `cd src/frontend` and
@@ -94,17 +93,23 @@ Run commands from the repository root:
 ```text
 npm ci --prefix tools/frontend
 npm ci --prefix src/contract
-node tools/frontend/check.mjs install
-node tools/frontend/check.mjs check
+node tools/development/dotnet.mjs tool restore
+node tools/frontend/pnpm.mjs install --frozen-lockfile
+node tools/frontend/pnpm.mjs run check
 ```
 
 The frozen install uses `pnpm-lock.yaml`. Generation validates authored OpenAPI
 and emits both C# and TypeScript contracts without a running API, then compiles
-translations. Builds/dev/tests regenerate first; Vite generates the route tree.
+translations for standalone tests. Builds/dev let the Paraglide Vite plugin own
+translation generation; Vite also generates the route tree. The combined `check`
+generates contracts once, then runs the unit tests and application build directly.
 Generated output, route trees and build artifacts remain untracked. CI uses the
 same commands. `check` runs Vitest, production build with explicit TypeScript
-checking, and Biome. Individual modes are `generate`, `test`, `typecheck`, `build`,
-`lint` and `dev`. Code quality hooks use the same pinned Biome configuration.
+checking, and Biome. Individual package scripts are `generate`, `test`, `typecheck`,
+`build`, `lint` and `dev`. Invoke them with `node tools/frontend/pnpm.mjs run <script>`
+or `pnpm run <script>` from `src/frontend` with pinned pnpm on PATH. Internal
+`test:unit` and `build:app` require generated contracts; prefer `test`/`build` for
+standalone runs. Code quality hooks use the same pinned Biome configuration.
 
 The production build packages Start's fetch entry and client assets using stable
 Nitro 2.13.4. It deliberately uses Nitro's build API instead of the Nitro 3 beta

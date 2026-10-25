@@ -22,6 +22,11 @@ API serialization/validation, and BFF backend calls. See the
 - Regenerate both languages after spec changes, then adapt controller/BFF code.
   Verify concrete routes, methods, parameter binding, bodies, status codes,
   and runtime validation in API integration tests; signatures alone are insufficient.
+- Keep validation and both consumer generators in `src/contract/Contract.proj`.
+  Invoke its `GenerateContract` target before API compilation and from frontend
+  package scripts. Restore the pinned local tool during setup/CI installation;
+  generation itself must not restore dependencies. Keep one generation invocation
+  per check sequence and independent trees for concurrent application builds.
 - Use System.Text.Json for the API and configure C# generation explicitly for it.
   Verify attributes/converters and representative schemas, including any used
   polymorphism. Report incompatibility rather than silently changing serializer.

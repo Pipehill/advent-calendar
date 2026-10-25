@@ -10,5 +10,3 @@
 - [ ] Add calendar creation in the frontend.
 - [ ] Add calendar-user account creation in the frontend.
 - [ ] Enable calendar users to open calendar doors.
-- [ ] Simplify developer tooling; avoid complex `.mjs` files where simpler
-  solutions are sufficient.

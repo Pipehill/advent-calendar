@@ -6,38 +6,10 @@ Failures block that job; no check changes files or creates commits.
 
 ## Install after cloning
 
-Install Git, Node.js 24 LTS, Python 3.14, and Docker with Linux containers, or Podman
-with a running Linux machine. The host Node process only creates snapshots; Mermaid
-runs under the Node version supplied by the pinned container. Allow several GB of
-disk space for the documentation image and Chromium. No application is installed.
-
-Use the [developer setup and doctor scripts](../tools/development/README.md):
-
-```powershell
-./tools/development/setup.ps1
-./tools/development/doctor.ps1
-```
-
-On Linux/macOS run `bash tools/development/setup.sh` and
-`bash tools/development/doctor.sh`. Setup bootstraps missing Node, installs missing
-system prerequisites, prepares the pinned Python environment and quality image,
-and installs hooks. Installation may require administrator privileges and a
-terminal/IDE restart. Rerun setup after resolving any reported failure.
-
-Setup persists the selected runtime in ignored `.quality-cache/development.json`.
-`QUALITY_CONTAINER_RUNTIME` remains an explicit override, including an absolute
-executable path. New terminals and IDE commits can use the saved path without a
-setup-only environment variable. CI ignores local settings and uses Docker.
-Doctor reports paths, versions and remedies without installing or repairing tools.
-
-For manual recovery, create `.quality-cache/venv` with Python 3.14, install
-`tools/quality/pre-commit-requirements.txt`, run `node tools/quality/run.mjs setup`,
-and install pre-commit hooks. Windows venv executables live under `Scripts`;
-Linux/macOS executables live under `bin`. See the developer tooling instructions
-for package-manager installation, PATH, virtualization and Python alias recovery.
-
-Hooks must be installed after every clone. The branch guard runs even for empty
-commits and rejects `main`; create a task branch before committing.
+Run [developer setup and doctor](../tools/development/README.md) after each clone.
+That document owns prerequisites, private tools, runtime selection, installation
+and recovery. Hooks reject `main`, including empty commits; use a task branch.
+Setup/image preparation is separate from ordinary commit checks.
 
 ## Commands and scope
 
@@ -106,6 +78,9 @@ Scenario progress is printed while the suite runs.
 | pre-commit 4.6.2 and pre-commit-hooks 6.0.0 | `.pre-commit-config.yaml`, `tools/quality/requirements.txt` |
 | Mermaid CLI 12.0.0 | `tools/quality/package.json` and npm lockfile |
 | Chromium 155.0.8059.84-r0 | `tools/quality/Dockerfile` |
+| CSharpier 1.3.0 / .NET 10 | Quality Dockerfile; shared authored C#/project checks |
+| SQLFluff 4.3.0 | Quality Dockerfile, PostgreSQL dialect in `.sqlfluff` |
+| Biome 2.5.15 | Quality manifest, shared `biome.json` for TypeScript/TSX/CSS |
 | Whitespace and LF/CRLF policy | `.editorconfig`, `.gitattributes`, `tools/quality/checks.mjs` |
 | Mermaid and repository links | `tools/quality/checks.mjs`, MarkdownIt parser |
 
@@ -124,23 +99,14 @@ protocol-relative external links are outside scope. Markdown fragments must iden
 a heading or explicit HTML anchor. Mermaid fences are extracted through MarkdownIt
 and rendered into temporary SVGs; render output is never committed.
 
-The tooling package is separate from future application packages. Its KaTeX override
-pins the patched 0.18.2 release. Review direct and transitive updates with `npm audit`
-inside `tools/quality`; update the lockfile explicitly and verify diagram rendering.
-The image key hashes the Dockerfile and container dependency manifests/lockfile. Check
-scripts and browser settings are mounted from the exact input snapshot without rebuilding.
-Setup removes obsolete unused quality images; `node tools/quality/run.mjs clean` removes
-all unused quality images. See the [tool README](../tools/quality/README.md) for lifecycle details.
-Alpine package dependencies follow the base distribution; Chromium's direct version is
-pinned and unavailable packages fail setup.
-Update the image, lockfile, action versions and these instructions together.
-
-The host pre-commit environment is pinned in `pre-commit-requirements.txt` and the
-hook's ruamel.yaml dependency is pinned explicitly. The MegaLinter base image supplies
-its own Node/Python runtime as part of its digest. This is an explicit exception to
-the LTS preference for bundled runtimes: the pinned image currently uses Node 26.5.1
-(Current). Contributor host runtimes still use LTS Node and stable Python. The
-exception applies only to the quality image and does not change application runtimes.
+Container versions and image identity belong to the Dockerfile and locked manifests;
+see [image lifecycle](../tools/quality/README.md#image-lifecycle) for reuse and safe cleanup.
+Checks run offline with read-only snapshots, writable reports, no socket and no
+credentials. Direct/transitive changes require explicit lockfile updates, audit and
+rendering/fixture verification. Pinned packages unavailable upstream fail setup.
+The host hook environment is pinned separately in `pre-commit-requirements.txt`.
+Bundled quality runtimes follow the documented
+[version exception](../.agents/rules/architecture.md#versions-and-diagnostics).
 
 ## Reports and troubleshooting
 
@@ -220,28 +186,9 @@ Docker or the Podman machine, set `QUALITY_CONTAINER_RUNTIME`, and rerun setup.
 If the hook cannot find Node or the runtime, fix the committing process's PATH.
 The snapshot mount must be readable by the Linux container. Tool failures are fatal.
 
-Corrections are explicit. Edit the reported line, target or diagram and rerun the
-affected scope. Optional Markdown corrections can be requested explicitly:
-
-```powershell
-$env:QUALITY_CONTAINER_RUNTIME = 'podman'
-podman run --rm --entrypoint /node-deps/node_modules/.bin/markdownlint `
-  -v "${PWD}:/workspace" -w /workspace `
-  ghcr.io/oxsecurity/megalinter-documentation:v10.1.0 `
-  --config .markdownlint.json --fix README.md
-```
-
-To normalize an edited LF text file explicitly without a BOM:
-
-```powershell
-$file = Join-Path $PWD 'README.md'
-$content = [IO.File]::ReadAllText($file).Replace("`r`n", "`n").Replace("`r", "`n")
-[IO.File]::WriteAllText($file, $content, [Text.UTF8Encoding]::new($false))
-```
-
-Review the diff before staging corrections. `git add --renormalize .` explicitly
-normalizes tracked index contents after attribute changes; it does not correct editor
-endings. Do not use fixing whitespace hooks or automatic fix commits in CI.
+Correct the reported source explicitly, review the diff and rerun the affected scope.
+Checks never fix or stage source. `git add --renormalize .` normalizes index bytes
+after attribute changes; editor line endings must still be corrected separately.
 
 ## Require the merge check in GitHub Settings
 
@@ -264,30 +211,16 @@ pending; the ruleset name alone does not demonstrate enforcement.
 
 ## Application checks
 
-The frontend workflow runs frozen pnpm installation, shared OpenAPI/NSwag and
-Paraglide generation, Vitest, explicit TypeScript checking, Vite/Nitro builds and
-Biome lint. TypeScript, TSX and CSS use Biome 2.5.15 in both MegaLinter and staged
-checks; generated clients/translations and route trees are excluded. pnpm owns
-lockfile formatting, and frozen installation verifies its integrity.
-
-The backend workflow runs contract validation/generation, locked restore,
-.NET compilation/xUnit with PostgreSQL Testcontainers, publish and SDK analyzer
-checks. Authored SQL and C# retain their shared local/CI lint rules. Browser smoke
-verification runs separately against a started environment. No placeholder
-application jobs, secret detection or large-file checks are included here.
+[Backend commands](../src/backend/README.md#contract-build-and-tests) own native
+locked restore, MSBuild contract validation/generation, analyzers, isolated database
+tests and publish. [Frontend commands](../src/frontend/README.md#contracts-builds-and-tests)
+own frozen install, standalone tests, explicit TypeScript and Vite/Nitro packaging.
+CSharpier, SQLFluff and Biome share the local/CI rules below; generated output is
+excluded. Browser smoke runs separately against a started environment.
 
 ## Advisory measurements during development
 
-Use the pinned [code health commands](../tools/quality/health.md) to capture saved
-source before and after changes. Duplication comes from jscpd's built-in MCP server;
-health, complexity and supported dead-code findings come from CLI JSON reports.
-Lint saved working-tree source with `node tools/quality/run.mjs full` after meaningful
-changes and before completion, without staging unfinished work.
-
-Code health compares the full target tree with the candidate merge tree in the
-GitHub Actions PR comment alongside MegaLinter results. Complexity hotspots and
-heuristic dead-code findings have separate tables. Numeric values, deltas, colors and
-text make regressions and unavailable evidence visible. These scores do not block
-merging; required behavior can legitimately increase complexity. Regenerate after
-target/head changes, and explain regressions and tradeoffs. Existing local hook
-receipts and required lint checks remain independent.
+[Advisory health](../tools/quality/health.md) owns scope, baseline/comparison and MCP
+commands. Application and tooling results are separate, with a whole-repository
+reference. Scores remain advisory; required lint and verified hook evidence are
+independent. Refresh committed PR evidence whenever the head or base changes.

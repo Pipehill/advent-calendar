@@ -4,7 +4,8 @@ const safe = value => String(value).replace(/[\r\n|`]/g, ' ');
 export function comparable(before, after) {
   if (!before?.available || !after?.available) return 'Missing or failed measurement';
   if (before.schema !== after.schema || before.tool.version !== after.tool.version
-    || before.tool.configHash !== after.tool.configHash || before.input.scope !== after.input.scope) {
+    || before.tool.configHash !== after.tool.configHash || before.input.scope !== after.input.scope
+    || (before.input.group || 'all') !== (after.input.group || 'all')) {
     return 'Tool version, configuration, schema or source scope differs';
   }
   const dimensions = report => report.health.dimensions.filter(item => item.score != null)
@@ -122,6 +123,22 @@ export function renderComparison(comparison, { compact = Boolean(comparison.iden
     if (!compact) output.push(advisory, '');
     return output.join('\n');
   }
+  if (before.groups || after.groups) {
+    const sections = [];
+    for (const [group, label] of [['application', 'Application'], ['tooling', 'Tooling']]) {
+      const left = before.groups?.[group];
+      const right = after.groups?.[group];
+      const valid = left?.input?.group === group && right?.input?.group === group;
+      const report = { available: valid, before: left, after: right, identity,
+        reason: left?.reason || right?.reason || `Missing or mismatched ${group} baseline/current measurement` };
+      sections.push(renderComparison(report, { compact }).replace('## Code health', `## ${label} code health`));
+    }
+    const { groups: beforeGroups, ...referenceBefore } = before;
+    const { groups: afterGroups, ...referenceAfter } = after;
+    sections.push(renderComparison({ ...comparison, before: referenceBefore, after: referenceAfter }, { compact })
+      .replace('## Code health', '## Whole-repository code health (reference)'));
+    return sections.join('\n');
+  }
   if (compact && identity) {
     output.push(`Target commit: ${identity.base}; PR head: ${identity.head}; candidate merge tree: ${identity.candidate}.`, '');
   }
@@ -135,7 +152,7 @@ export function renderComparison(comparison, { compact = Boolean(comparison.iden
   appendRegressions(output, rows, overall);
   output.push(advisory, '', 'Measurement identity:', '',
     `- jscpd ${before.tool.version}; configuration SHA-256: ${before.tool.configHash}.`,
-    `- Scope: ${safe(before.input.scope)}; exclusions: ${before.tool.config.ignore.map(safe).join(', ')}.`,
+    `- Group: ${safe(before.input.group || 'all')}; scope: ${safe(before.input.scope)}; exclusions: ${before.tool.config.ignore.map(safe).join(', ')}.`,
     `- Before source SHA-256: ${before.input.hash}; after: ${after.input.hash}.`);
   if (identity) {
     output.push(`- Target commit: ${identity.base}; PR head: ${identity.head}; candidate merge tree: ${identity.candidate}.`);

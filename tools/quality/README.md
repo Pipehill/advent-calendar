@@ -1,71 +1,32 @@
-# Quality checks
+# Quality tooling
 
-This tool checks repository formatting, filenames, local Markdown links and Mermaid
-diagrams. It runs pinned linters in an isolated Linux container and preserves source
-files and the original Git index. Reports are saved in `quality-reports/<mode>/`.
+Operational commands, checked-file semantics, pinned linter configuration, hook
+evidence and CI reports are documented in [code quality](../../docs/code-quality.md).
+For prerequisite installation/runtime recovery use [developer setup](../development/README.md).
+For baseline/comparison commands, scope and MCP use [advisory health](health.md).
 
-Authored TypeScript, TSX and CSS use Biome 2.5.15 and root `biome.json` in both
-MegaLinter and staged checks. `run.mjs test` verifies invalid/corrected fixtures
-for all three languages with the same rules. Generated clients, translations and
-route trees are excluded. pnpm owns its lockfile formatting; frozen installs
-validate that lockfile rather than applying authored-YAML style rules to it.
-
-Authored C# and project files use CSharpier 1.3.0; SQL uses SQLFluff 4.3.0 with
-the PostgreSQL dialect in `.sqlfluff`. Both run through MegaLinter and the staged
-runner with the same pins/configuration. The pinned SDK is copied into the quality
-image; checks need no network, restore or running API. `run.mjs test` verifies
-invalid and corrected C#/SQL fixtures in a disposable directory. Backend builds
-also enforce recommended .NET analyzers as errors; `tools/backend/check.mjs lint`
-checks SDK formatting and analyzers. Generated code and build outputs are excluded.
-
-Start with [developer setup and doctor](../development/README.md). Run quality
-commands from the repository root with Node, Git and a reachable Linux container
-runtime. Setup saves the runtime path in ignored local settings; an explicit
-`QUALITY_CONTAINER_RUNTIME` takes precedence. CI uses Docker without local settings.
-See [code quality](../../docs/code-quality.md) for rules and troubleshooting.
-See [advisory code health](health.md) for pinned MCP/CLI setup, development baselines,
-whole-codebase PR merge comparisons and measurement limitations.
-
-| Command | Purpose |
+| Responsibility | Owner |
 | --- | --- |
-| `node tools/quality/run.mjs setup` | Prepare the dependency image and remove obsolete unused quality images. |
-| `node tools/quality/run.mjs staged` | Check staged contents before committing. |
-| `node tools/quality/run.mjs full` | Check the complete working tree with MegaLinter and custom checks. |
-| `node tools/quality/run.mjs test` | Run custom checks and focused checker regressions. |
-| `node tools/quality/verify.mjs` | Verify hooks and staging behavior in a disposable clone. |
-| `node tools/quality/pr-report.mjs` | Generate a PR body with local hook evidence matching HEAD. |
-| `node tools/quality/health.mjs baseline` | Capture advisory saved-source measurements before a task. |
-| `node tools/quality/health.mjs compare` | Compare saved source with the preserved baseline. |
-| `node tools/quality/health.mjs pr origin/main HEAD` | Measure target and candidate merge trees. |
-| `node --test tools/quality/ci-comment.test.mjs` | Verify CI comment rendering and API behavior without publishing. |
-| `node tools/quality/run.mjs clean` | Remove all quality images that no container references. |
+| Runtime, image identity, direct Docker/Podman invocation and receipts | `run.mjs`, `local-settings.mjs` |
+| Saved/indexed source, selected files and immutable input identity | `snapshot.mjs` |
+| Offline selected checks, rendering and failure reports | `container.mjs`, `checks.mjs` |
+| Disposable-clone regressions and local QA evidence | `verify.mjs`, `pr-report.mjs` |
+| Combined CI comment and API lifecycle | `ci-comment.mjs` |
+| Pinned platform analyzer, MCP and health reports | `jscpd.mjs`, `install-analysis.mjs`, `mcp-client.mjs`, `health.mjs`, `health-report.mjs` |
+| Offline image dependencies and browser settings | `Dockerfile`, package/requirements manifests, `puppeteer.json` |
 
-| File | Responsibility |
-| --- | --- |
-| `run.mjs` | Prepare snapshots, manage images, start containers and remove temporary inputs. |
-| `snapshot.mjs`, `snapshot.test.mjs` | Copy saved/indexed inputs, select QA scope and verify deletion/preservation behavior. |
-| `container.mjs` | Run checks inside the container and collect reports. |
-| `checks.mjs` | Inspect filenames, text, links and Mermaid fences. |
-| `verify.mjs` | Verify successful and failing cases without changing the original repository. |
-| `pr-report.mjs` | Verify local hook evidence and populate the PR template's Local QA section. |
-| `ci-comment.mjs` | Create or update the CI report comment after isolated quality checks. |
-| `ci-comment.test.mjs` | Verify report outcomes, size limits, comment updates and API failures. |
-| `Dockerfile` | Install the pinned tools, Python packages and Chromium. |
-| `package*.json`, `requirements.txt` | Pin container dependencies. |
-| `pre-commit-requirements.txt` | Pin the host hook dependencies. |
-| `puppeteer.json` | Configure Chromium for diagram rendering. |
+## Image lifecycle
 
-See the [2026-10-11 code health review](code-health-review.md) for the file inventory,
-verified dead-code callers, concrete corrections and measurement tradeoffs.
+The image key hashes only the Dockerfile and container dependency manifests.
+Check scripts/browser settings are mounted read-only from the checked snapshot.
+Runs use `--rm --network=none`, read-only inputs, writable reports, no host socket
+and no credentials. Full mode invokes MegaLinter directly; repository checks still
+run after a MegaLinter failure. Both statuses remain in reports.
 
-The dependency image changes only when the Dockerfile or container dependency files
-change. Check scripts and browser settings are mounted read-only from the snapshot,
-so editing them does not create another image. Existing dependency layers are reused.
+Setup retains working-tree/index dependency images and any image used by running
+or stopped containers. Only unused `localhost/advent-quality:<hash>` tags are removed.
+`node tools/quality/run.mjs clean` removes even the current unused image; run setup
+before checking again. Temporary snapshots/render files are removed; reports remain.
 
-After a successful `setup`, cleanup retains the working-tree and staged dependency
-versions and any image referenced by a running or stopped container. Cleanup only
-removes tags belonging to this tool (`localhost/advent-quality:<hash>`); other images,
-the MegaLinter base and build caches are preserved. Shared layers remain while another
-image needs them. `clean` removes even the current unused dependency image; run `setup`
-before checking again. Temporary snapshots, render files and completed containers are
-removed automatically; reports remain available for diagnosis.
+See [health verification](health-verification.md) for historical measurements and
+[the current review](../development/tooling-review.md) for simplification decisions.

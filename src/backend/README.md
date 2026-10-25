@@ -128,16 +128,26 @@ After setup, use the same commands as GitHub Actions:
 
 ```bash
 npm ci --prefix src/contract
-node tools/backend/check.mjs generate
-node tools/backend/check.mjs build
-node tools/backend/check.mjs test
-node tools/backend/check.mjs publish
-node tools/backend/check.mjs lint
-node tools/backend/check.mjs check
+dotnet tool restore
+dotnet restore src/backend/Calendar.slnx --locked-mode
+dotnet build src/backend/Calendar.slnx --no-restore -c Release
+dotnet test src/backend/Calendar.slnx --no-build -c Release
+dotnet publish src/backend/Calendar.Api --no-build --no-restore -c Release -o src/backend/publish
+dotnet format src/backend/Calendar.slnx --verify-no-changes --no-restore
 ```
 
-`check` validates, generates, restores in locked mode, builds, tests and publishes.
-`lint` checks SDK formatting/analyzers without changing files. Shared repository
+`dotnet build` validates OpenAPI and generates both consumers through
+`src/contract/Contract.proj` before API compilation. Generate without building with
+`dotnet msbuild src/contract/Contract.proj -t:GenerateContract`. The generator is
+restored once during setup, rather than during each generation/build. Commands
+with `--no-build` consume the preceding successful build. Standalone publish/test
+can build with `-p:RestoreLockedMode=true` instead.
+
+When the pinned SDK is private or `DOTNET_EXE` is set, replace the `dotnet` prefix
+with `node tools/development/dotnet.mjs`. This selector forwards native arguments
+and the current working directory; it contains no build workflow. With a matching
+SDK on PATH, the native commands above are identical to CI. `dotnet format` checks
+SDK formatting/analyzers without changing files. Shared repository
 quality checks additionally run CSharpier 1.3.0 and SQLFluff 4.3.0 offline against
 authored code; generated output and build artifacts are excluded.
 

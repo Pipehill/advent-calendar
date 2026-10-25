@@ -26,8 +26,9 @@ jobs:
         run: |
           npm ci --prefix tools/frontend
           npm ci --prefix src/contract
-          node tools/frontend/check.mjs install
+          dotnet tool restore
+          node tools/frontend/pnpm.mjs install --frozen-lockfile
       - name: Generate, test, type check, build and lint
-        run: node tools/frontend/check.mjs check
+        run: node tools/frontend/pnpm.mjs run check
       - name: Verify local launcher
         run: node --test tools/development/run-local.test.mjs

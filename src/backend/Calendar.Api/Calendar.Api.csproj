@@ -12,9 +12,6 @@
         <Compile Include="generated/Contract.cs" />
     </ItemGroup>
     <Target Name="GenerateContract" BeforeTargets="BeforeCompile">
-        <Exec
-            WorkingDirectory="$(MSBuildProjectDirectory)/../../.."
-            Command="dotnet tool run nswag run src/contract/nswag.json"
-        />
+        <MSBuild Projects="../../contract/Contract.proj" Targets="GenerateContract" />
     </Target>
 </Project>

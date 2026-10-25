@@ -29,11 +29,9 @@ export function requireAnalyzer() {
   }
 }
 
-export function launchMcp(directory = root, config = configuration) {
+export function mcpServer(directory = root, config = configuration) {
   requireAnalyzer();
-  return spawn(executable(), [directory, '--config', config, '--mcp'], {
-    cwd: directory, stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  return { command: executable(), args: [directory, '--config', config, '--mcp'], cwd: directory };
 }
 
 // This command forwards stdio without printing readiness text on protocol stdout.

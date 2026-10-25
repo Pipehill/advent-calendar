@@ -96,5 +96,11 @@ selection, frontend builds and browser verification. See
 [backend commands and API examples](src/backend/README.md) for host development,
 tests, configuration, stopping containers and log inspection.
 
+Backend builds use native dotnet commands; MSBuild validates the authored OpenAPI
+contract and generates both clients before compilation. Frontend package scripts
+own tests, TypeScript checking and Vite/Nitro builds. The
+[command table](tools/development/README.md#maintenance-and-verification) explains
+each command and how to use the repository's private SDK and pnpm installations.
+
 [pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
 [megalinter-badge]: https://img.shields.io/badge/MegaLinter-enabled-brightgreen

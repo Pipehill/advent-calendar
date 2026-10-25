@@ -1,5 +1,11 @@
 # Code health verification
 
+## 2026-10-25 plan 00010 tooling simplification
+
+Current measurements, false-positive entry points and platform limitations are in
+the [tooling review](../development/tooling-review.md#measurements).
+Earlier evidence below retains its original scope and dates.
+
 ## 2026-10-25 PR 26 quality image recovery
 
 [CI run 40187781359](https://github.com/Pipehill/advent-calendar/actions/runs/40187781359)

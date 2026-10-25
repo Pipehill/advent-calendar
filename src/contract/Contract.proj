@@ -1,0 +1,18 @@
+<Project DefaultTargets="GenerateContract">
+    <PropertyGroup>
+        <RepositoryRoot>$(MSBuildThisFileDirectory)../../</RepositoryRoot>
+        <DotNetHostPath Condition="'$(DotNetHostPath)' == ''">dotnet</DotNetHostPath>
+    </PropertyGroup>
+    <!-- Always validate before generation: either consumer can have been deleted.
+         The API is the sole solution consumer; MSBuild owns its dependency order. -->
+    <Target Name="GenerateContract">
+        <Exec
+            WorkingDirectory="$(MSBuildThisFileDirectory)"
+            Command="node node_modules/@redocly/cli/bin/cli.js lint openapi.json"
+        />
+        <Exec
+            WorkingDirectory="$(RepositoryRoot)"
+            Command="&quot;$(DotNetHostPath)&quot; tool run nswag run src/contract/nswag.json"
+        />
+    </Target>
+</Project>

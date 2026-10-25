@@ -24,7 +24,7 @@ test('Given a new frontend checkout, When setup prepares tooling, Then private p
 
   // Then the existing global package manager is not replaced and consumers are generated last.
   assert.deepEqual(calls[0].args, ['ci', '--prefix', path.join(root, 'tools/frontend')]);
-  assert.equal(calls[1].args.at(-1), 'install');
+  assert.deepEqual(calls[1].args.slice(-2), ['install', '--frozen-lockfile']);
   assert.equal(calls[2].args.at(-1), 'generate');
 });
 

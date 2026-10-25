@@ -14,7 +14,16 @@ The root `AGENTS.md` is the entry point. Read relevant skills and plans as neede
 Tools that do not automatically read `AGENTS.md` must be directed to it at startup.
 Any tool-specific entry files should link to shared content rather than duplicate rules.
 
-## Implementation rules
+## Workflow navigation
+
+For autonomous task execution, use the relevant plan and shared rules first.
+Setup/doctor and runtime recovery are owned by
+[developer setup](../tools/development/README.md); quality and report commands by
+[code quality](../docs/code-quality.md); measurement scope and MCP by
+[advisory health](../tools/quality/health.md). These command owners avoid copying
+operational instructions into individual plans or verification histories.
+
+## Component rules
 
 Read the rules relevant to the component or boundary being changed. The
 [architecture document](../docs/architecture.md) explains the agreed design;
