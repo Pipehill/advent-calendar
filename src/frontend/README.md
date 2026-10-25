@@ -18,14 +18,40 @@ without a duplicate request. Door contents are omitted from this page's BFF data
 `/logg-inn` accepts username and password through a TanStack Form/Zod form.
 Successful login opens `/min-side`, or `/endre-passord` for a restricted temporary
 session. Own-password change revokes all sessions and requires a fresh login.
-Both protected pages include logout. Forms use maintained shadcn/ui inputs,
+Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
 
 The personal page displays the backend-validated name and a circle with initials.
-Calendar users see the initial calendar placeholder. Calendaradmins see disabled
-calendar/account creation placeholders. Superadmins see only the calendaradmin
-creation placeholder and a read-only paginated list of name, username and role
-for every account. No creation, edit or reset screen is implemented.
+Calendar users see the initial calendar placeholder. Calendaradmins can create
+calendar users and list/reset their assigned ordinary accounts. Superadmins see
+all accounts and can create either assignable role, reset nonsuperadmin passwords,
+enable/disable accounts and change between calendaradmin/calendar-user roles.
+Superadmin targets remain view-only. Lists show name, username, localized role
+and enabled state, with pagination and refresh. Calendar creation remains unavailable.
+
+`/opprett-konto` is a dedicated, session-protected TanStack Form/Zod creation page.
+Superadmins select a responsible calendaradmin for ordinary users; calendaradmin
+responsibility is derived by the backend. Administrator options load across backend
+pages and are revalidated on submission. After creation, the BFF locates the returned
+ID in the authorized ordering so the new row appears even on a different page.
+The success notice and focus ID use request/router-local memory; secrets never
+enter route data, query keys, URLs or browser persistence.
+
+Maintenance forms identify the account and operation before confirmation. Password
+reset and promotion take a different temporary password, expire it after 30 minutes,
+require recipient password change and revoke target sessions. Credentials must be
+handed over privately to identity-verified recipients. Status and role changes also
+revoke target sessions. Enabling never restores revoked sessions, and disabling a
+calendaradmin leaves their users enabled. Responsibility stays fixed across role
+changes; first demotion requires assignment and attached ordinary users block demotion.
+Profile editing, deletion and calendar access are separate work.
+
+Sensitive operations require backend recent password verification. An explicit
+`verificationRequired` error opens a separate acting-administrator password field;
+the next explicit confirmation reauthenticates and submits the operation. Other
+forbidden errors remain access denials. Incorrect verification does not discard an
+otherwise valid login, and successful verification never extends its fixed deadline.
+Mutations refresh CSRF individually, disable pending forms and never retry writes.
 
 The BFF relays only `advent.auth`, `advent.csrf` and `X-CSRF-TOKEN`; backend
 `Set-Cookie` headers remain separate with their original attributes. CSRF tokens
@@ -195,6 +221,9 @@ node --test tools/frontend/browser/authentication.test.mjs
 It uses the selected container runtime/SDK and installed Edge or Playwright
 Chromium. Fixture credentials remain in runner memory; only isolated `browser_*`
 databases are accepted. The suite covers roles, real cookies/CSRF, temporary
-credentials, pagination, logout/replay, revoked-session SSR and the existing eight
-public/calendar smoke tests. Reports/screenshots are kept under
-`quality-reports/plan00011/`. It is separate from normal unit/API tests.
+credentials, creation/maintenance, list isolation, pagination, recent verification,
+logout/replay, revoked-session SSR and the existing eight public/calendar smoke tests.
+Each independent scenario replaces the isolated API process to reset aggregate
+request budgets while preserving database-backed account/session state and the
+production rate-limit settings. Reports/screenshots are kept under
+`quality-reports/plan00013/`. It is separate from normal unit/API tests.

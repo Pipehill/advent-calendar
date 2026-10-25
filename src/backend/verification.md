@@ -1,5 +1,26 @@
 # Backend verification
 
+## 2026-10-25: Plan 00013 verification error contract
+
+The optional authored ProblemDetails `verificationRequired` boolean identifies
+only missing/expired recent administrator verification. The API preserves 403 and
+no-store, and the generated BFF client translates the flag separately from denied
+authority. Existing account permissions, responsibility, credential/session
+operations and migrations remain unchanged.
+
+All **172 PostgreSQL integration tests** passed on Windows/Podman after a Release
+solution build and contract regeneration. Five updated boundary cases then passed:
+creation immediately before 5:00 remains permitted, creation at 5:00 requires
+re-verification without extending session expiry, and ordinary role denials do
+not set the recovery flag. SDK formatting/analyzers passed. Redocly reported only
+the existing four advisory warnings. Production Nitro/browser coverage and the
+application/tooling health regression are recorded in the
+[frontend verification](../frontend/verification.md#2026-10-25-plan-00013-account-administration).
+Logs and TRX files are under `quality-reports/plan00013/`. All disposable test
+containers were removed; existing application volumes/containers and unrelated
+build artifacts were preserved. Inherited native-platform, Docker and production
+hardening limitations below remain applicable.
+
 ## 2026-10-25: Plan 00010 native build commands
 
 Clean generation/build/test/publish and failure evidence are recorded in the

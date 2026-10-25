@@ -146,6 +146,7 @@ app.Use(
                         AccountFailure.InvalidInput => 400,
                         AccountFailure.Unauthenticated => 401,
                         AccountFailure.Forbidden => 403,
+                        AccountFailure.VerificationRequired => 403,
                         AccountFailure.Conflict => 409,
                         AccountFailure.ResourceLimit => 429,
                         _ => 500,
@@ -156,7 +157,8 @@ app.Use(
                         : new Dictionary<string, List<string>>
                         {
                             [exception.Field] = [exception.Message],
-                        }
+                        },
+                    exception.Failure == AccountFailure.VerificationRequired
                 )
                 .ExecuteResultAsync(new ActionContext { HttpContext = context });
         }

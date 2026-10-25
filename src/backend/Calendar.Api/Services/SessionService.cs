@@ -68,7 +68,7 @@ public sealed class SessionService(
             )
         )
             throw new AccountFailureException(
-                AccountFailure.Forbidden,
+                AccountFailure.VerificationRequired,
                 "Recent administrator password verification required"
             );
         return actor;

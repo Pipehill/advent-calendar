@@ -6,7 +6,7 @@ This document describes the agreed design for the advent calendar. The repositor
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
 PostgreSQL migrations, API integration tests and local/CI build commands. The
 Compose stack runs frontend/BFF, backend and database. Backend identity, website
-login, password changes and a protected personal page are implemented. Calendar
+login, password changes, protected personal pages and account administration are implemented. Calendar
 access rules and deployment remain future work. The calendar page displays a
 stored title and 24 static doors through tRPC and the generated backend client,
 with Norwegian/English interface translations. The implemented POST/GET API
@@ -320,9 +320,18 @@ calendar POST/GET API remains anonymous. Frontend login, required password chang
 logout and `/min-side` use backend-validated sessions through the BFF. Every
 account has a required single display name, trimmed to 1-100 Unicode code points,
 independent of its unique username and role. Existing usernames are backfilled.
-The personal page greets that name and displays initials, disabled role-specific
-creation placeholders and, for unrestricted superadmins, a read-only paginated
-account list containing only name, username and role. Calendar authorization and
+The personal page greets that name and displays initials. Unrestricted administrators
+open `/opprett-konto` to create permitted accounts and maintain their authorized
+paginated lists. Superadmins see all accounts and can reset passwords, enable/disable
+and change nonsuperadmin roles; calendaradmins list/reset only assigned ordinary
+accounts. Creation and demotion preserve fixed responsibility. BFF projections include
+only IDs, names, usernames, roles, enabled state and responsibility needed by these
+controls; audit/credential data remains private. The BFF validates sessions and targets
+through the generated API client, and the backend independently rechecks permissions
+at commit. An explicit ProblemDetails `verificationRequired` flag distinguishes expired
+recent verification from other denials; reauthentication retains fixed session expiry.
+All mutations use principal-bound CSRF without automatic retries, and new-account
+navigation locates the returned ID's authorized page. Calendar authorization and
 assignment and production database hardening remain production gates.
 The end-to-end sequence below includes that future calendar authorization.
 
@@ -698,7 +707,7 @@ This selects correlated logs; full distributed tracing infrastructure is deferre
 | --- | --- |
 | Runnable application/setup | Remaining API resources and content models/screens, UUID version/generation location, exact package/tool pins, representative serialization/mapping checks and build/setup maintenance |
 | Backend user management | Identity stores, Argon2id provider/costs and local weak-password source, account/session schema, offline hash-tool packaging and implementation/verification of the agreed security controls |
-| Calendar authorization and frontend/BFF integration | Owner/recipient assignment and any invitation behavior, calendar endpoint enforcement, account screens, allowlisted cookie/CSRF relay and browser/SSR/cache verification; no public registration |
+| Calendar authorization and frontend/BFF integration | Owner/recipient assignment and any invitation behavior, calendar endpoint enforcement and protected calendar browser/SSR/cache verification; account screens and allowlisted cookie/CSRF relay are implemented; no public registration |
 | Build/release automation | Concrete GitHub Actions workflows, reliable prior-release migration baseline and integrity enforcement, artifact packaging |
 | Deployment | Production hosting, HTTPS/TLS termination, secrets, persistent database storage, backups, recovery and restoration checks, durable protected Data Protection key configuration, controlled manual superadmin operator access, database hardening, deployment integration and optional Playwright stage |
 | Observability/operations | Full distributed tracing, collection/storage and visualization of service timings |

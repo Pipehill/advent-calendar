@@ -1078,6 +1078,10 @@
           "errors"
         ],
         "properties": {
+          "verificationRequired": {
+            "type": "boolean",
+            "description": "True only when an otherwise authorized administrator must reauthenticate before retrying a sensitive operation. Other forbidden responses must not be treated as verification expiry."
+          },
           "type": {
             "type": "string"
           },

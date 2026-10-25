@@ -2,6 +2,107 @@
 
 Last updated: 2026-10-25
 
+## 2026-10-25: Plan 00013 account administration
+
+Implemented on `feature/user-administration`, based on synchronized main
+`92e218d53f54261a3e5b69430fce1740182f3106`. Creation uses `/opprett-konto`;
+authorized personal-page lists support reset, status and role maintenance according
+to the existing permission matrix. This supersedes plan 00011's placeholders and
+read-only list in current behavior; its implemented plan remains unchanged.
+
+- All **77 Vitest tests** passed, including runtime Unicode/conditional schemas,
+  direct anonymous/ordinary/restricted denials, calendaradmin escalation/ownership,
+  manual-only superadmin targets, role-aware reset policy, immutable responsibility,
+  later-page administrator options and new-account location, minimal projections,
+  verification-error translation and existing transport/cookie/deadline coverage.
+- All **28 Playwright/Edge production-browser scenarios** passed, plus the **eight
+  public/calendar smoke scenarios** invoked by that suite. Creation covers both
+  superadmin assignable roles and calendaradmin ordinary users, sorting before/after
+  the displayed page, reload persistence and preserved actor identity. Maintenance
+  covers allowed resets/status/roles, target-session revocation, first/subsequent
+  demotion, attached-user conflict and cross-owner denial. The suite also verifies
+  direct/restricted navigation, cancellation, Unicode names/mobile layout, duplicate
+  username field errors, English guidance, empty administrator options, wrong/fresh
+  re-verification with fixed expiry, no-store and protected-cache regression.
+  Three focused browser scenarios then passed on the final build after refining
+  account-validation feedback, including backend common-password rejection,
+  English guidance and repeated/lost-response submission.
+- Pending/lost-response coverage initially found duplicate form submission. The
+  synchronous guard now permits one write even when submission is repeated before
+  pending UI settles. A response lost after commit produces no success notice or
+  automatic retry; a subsequent authorized list reveals the persisted account.
+- Production Vite/Nitro build, explicit TypeScript checks, frontend lint and full
+  MegaLinter/custom repository checks passed. The backend's **172 integration tests**
+  passed. Five sharpened controlled-time/authority cases then passed, distinguishing
+  4:59.999 from 5:00.000 and ordinary forbidden responses from verification expiry.
+- Existing principal-bound CSRF/cookie allowlists and no-store behavior remain
+  enforced through production Nitro. Recipient and acting passwords stay out of
+  lists, URLs, browser storage, response DTOs and SSR/hydration. Test credentials
+  remain in runner memory. Test containers are removed; existing application and
+  external build containers/images are preserved.
+
+The suite replaces its isolated API process between independent scenarios to keep
+aggregate per-peer budgets from coupling tests. Database-backed sessions/lockout
+and production limit settings remain unchanged. No application account seeding, migration,
+dependency change or calendar authorization was introduced. Initial sandbox-only
+Nitro metadata denial was resolved by running the same build outside the sandbox;
+initial burst-rate and pending-submission failures were corrected and rerun.
+
+Artifacts are under ignored `quality-reports/plan00013/`: production build/format
+logs, browser JUnit/screenshots, backend TRX, and MCP schemas/snippet/clone evidence.
+The smoke artifacts remain under `quality-reports/frontend/`. Redocly retains its
+four advisory private-license/localhost/health warnings. Existing Vite-dev language
+behavior, native macOS/Linux and local Docker gaps remain separate follow-ups;
+this evidence is Windows/Podman with production Nitro and local HTTP. Calendar
+authorization/assignment and database hardening remain production gates.
+
+### Plan 00013 advisory health
+
+**Application overall health regresses from 90.8 to 87.5 (-3.3).** Tooling overall
+health improves from 51.5 to 52.0 (+0.5), with complexity and duplication regressions
+in both views. The new BFF independently checks permissions/targets and conditionally
+validates creation, reset, status and role operations; the UI handles verification,
+pending submissions and target-specific feedback. These required branches explain
+the complexity increase. Form payload/validation and responsible selection were
+separated from rendering/transport, reducing the initial form hotspot from 107 to
+65. The final application maximum is the permission-matrix test file at 73.
+The expanded browser lifecycle/cleanup suite reaches 145. No scoring/exclusions
+were changed to improve the report.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Overall health | 90.8 / 87.5 (-3.3) | 51.5 / 52.0 (+0.5) |
+| Complexity score / share | 89.5 / 81.2; 4.8% / 13.8% | 57.8 / 55.9; 45.1% / 47.8% |
+| Maximum file complexity | 60 / 73 | 94 / 145 |
+| Duplication percentage | 0.134163% / 0.329421% | 0% / 0.084710% |
+| Clones / duplicated lines | 1 / 4; 11 / 32 | 0 / 1; 0 / 6 |
+| Dead-code score / share | 79.8 / 85.1; 1.7% / 0.9% | 24.6 / 26.1; 18.9% / 17.9% |
+| Heuristic findings | 2 / 2 | 6 / 6 |
+| Dead-code analysis coverage | 21.0% / 33.0% | 96.1% / 96.0% |
+| Analyzed files / lines | 83 / 91; 8199 / 9714 | 44 / 44; 6698 / 7083 |
+
+MCP clone inspection retained the existing 11-line C# test-header clone. New clones
+are six lines of loading/error presentation, 15 lines of repeated security-test
+assertions and six lines of browser setup. Shared error presentation was extracted;
+the remaining short query-state/test scaffolding stays visible in raw evidence.
+The unchanged two application findings are executable Nitro build/server entry
+points. Tooling entry-point findings are also retained after caller review; lower
+dead-code shares reflect expanded measured source rather than removed findings.
+C# dead-code support remains unavailable, and other unsupported dimensions do not
+prove cleanliness. Scores are rounded, advisory saved-source evidence, separate
+from staged hook receipts and committed PR merge comparisons.
+
+jscpd 5.4.1 uses unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Application source SHA-256 changes from
+`d6a4d476bbebc9988aeb5b136b1e343776fd846a80c4452dc2ad320277e70836`
+to `12ea115329c9828a851ad8847ddb4f23787071d82042bbad522fc4ad96b4fb85`.
+Tooling changes from
+`e0160653aeaa7b75b5b6fb4a05aee64acc44a84996dd14f24c758283c0284614`
+to `ebbab7830a5cd99389ab931aacd84ea49bbf8cd08db99520771fbb9f02bda024`.
+Scope manifests, refreshed MCP/CLI results and the whole-repository reference are
+retained in `quality-reports/health/` under identical application/tooling settings.
+
 ## Plan 00010 command ownership verification
 
 Current build/browser evidence, inherited Vite failures and platform limits are

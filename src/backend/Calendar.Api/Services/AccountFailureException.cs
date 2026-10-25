@@ -5,6 +5,7 @@ public enum AccountFailure
     InvalidInput,
     Unauthenticated,
     Forbidden,
+    VerificationRequired,
     Conflict,
     ResourceLimit,
 }
