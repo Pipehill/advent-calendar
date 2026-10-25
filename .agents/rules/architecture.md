@@ -13,6 +13,14 @@ when changing those boundaries; those files own their respective instructions.
   in `src/frontend`, and authored API contracts/generator settings in `src/contract`
   alongside those application folders. Developer tooling remains under `tools/`.
 
+- Apply controller, service and repository layers consistently to backend features.
+  Keep HTTP/cookie/claims adaptation in controllers and authentication integration,
+  use-case and authorization rules in services, and parameterized SQL/result mapping
+  in repositories. Controllers consume service interfaces; services consume repository
+  interfaces. Identity stores adapt Identity operations to repositories. Keep the
+  database-free account/password rules shared by the API and offline password tool
+  in `Calendar.Security`. Document a concrete reason for any layering exception.
+
 - Use TypeScript, React, TanStack Start, TanStack Router, and TanStack Query for
   the frontend; host the TypeScript BFF in TanStack Start.
 - Keep three long-running containers: frontend/BFF, ASP.NET Core C# backend,

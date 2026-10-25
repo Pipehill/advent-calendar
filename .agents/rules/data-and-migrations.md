@@ -13,6 +13,12 @@ backend startup, and migration release checks. See the
 - Keep schema changes in DbUp SQL migrations; SQL execution through Dapper does
   not replace migration management. Follow [authentication rules](authentication-and-calendar-access.md)
   for shared Identity logic and session validity behavior.
+- Coordinate account, session and password-attempt repositories through one scoped
+  `ISecurityTransaction` for each security decision. Preserve advisory lock `800008`
+  and actor/target/session rechecks within the committing transaction; hash passwords
+  outside it. Repository writes require an active transaction and use its cancellation
+  token. Identity lookups may also read without an active transaction, but must join
+  the shared connection/transaction when one is active.
 
 ## Script packaging and integrity
 

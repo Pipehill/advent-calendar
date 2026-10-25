@@ -1,3 +1,4 @@
+using Calendar.Api.Repositories;
 using Calendar.Security;
 using Microsoft.AspNetCore.Identity;
 
@@ -5,7 +6,7 @@ namespace Calendar.Api.Authentication;
 
 // Writes are available only inside the authorization service's transaction.
 // Identity never bypasses the actor/session/target concurrency boundary.
-public sealed class AccountStore(AuthDatabase database)
+public sealed class AccountStore(IAccountRepository accounts)
     : IUserPasswordStore<Account>,
         IUserRoleStore<Account>
 {
@@ -43,17 +44,12 @@ public sealed class AccountStore(AuthDatabase database)
     }
 
     public Task<Account?> FindByIdAsync(string userId, CancellationToken cancellationToken) =>
-        database.FindAsync("id = @Id", new { Id = Guid.Parse(userId) }, cancellationToken);
+        accounts.FindByIdAsync(Guid.Parse(userId), cancellationToken);
 
     public Task<Account?> FindByNameAsync(
         string normalizedUserName,
         CancellationToken cancellationToken
-    ) =>
-        database.FindAsync(
-            "normalized_user_name = @Name",
-            new { Name = normalizedUserName },
-            cancellationToken
-        );
+    ) => accounts.FindByNormalizedNameAsync(normalizedUserName, cancellationToken);
 
     public Task SetPasswordHashAsync(
         Account user,
@@ -82,36 +78,19 @@ public sealed class AccountStore(AuthDatabase database)
 
     public async Task<IdentityResult> CreateAsync(Account user, CancellationToken cancellationToken)
     {
-        RequireTransaction();
         if (user.Role == AccountRoles.Superadmin)
             throw new InvalidOperationException(
                 "Superadmins require manual database provisioning."
             );
-        await database.ExecuteAsync(
-            """
-            INSERT INTO accounts (id, name, user_name, normalized_user_name, password_hash, account_role,
-                enabled, security_version, must_change_password, temporary_password_expires_at,
-                responsible_administrator_id, created_by_id, created_at)
-            VALUES (@Id, @Name, @UserName, @NormalizedUserName, @PasswordHash, @Role, @Enabled,
-                @SecurityVersion, @MustChangePassword, @TemporaryPasswordExpiresAt,
-                @ResponsibleAdministratorId, @CreatedById, @CreatedAt)
-            """,
-            user
-        );
+        cancellationToken.ThrowIfCancellationRequested();
+        await accounts.InsertAsync(user);
         return IdentityResult.Success;
     }
 
     public async Task<IdentityResult> UpdateAsync(Account user, CancellationToken cancellationToken)
     {
-        RequireTransaction();
-        var changed = await database.ExecuteAsync(
-            """
-            UPDATE accounts SET password_hash = @PasswordHash WHERE id = @Id
-                AND security_version = @SecurityVersion
-            """,
-            user
-        );
-        return changed == 1
+        cancellationToken.ThrowIfCancellationRequested();
+        return await accounts.TryUpdatePasswordHashAsync(user)
             ? IdentityResult.Success
             : IdentityResult.Failed(new IdentityError { Code = "ConcurrencyFailure" });
     }
@@ -137,14 +116,6 @@ public sealed class AccountStore(AuthDatabase database)
         string roleName,
         CancellationToken cancellationToken
     ) => throw new NotSupportedException("Use the authorized bounded SQL account list.");
-
-    private void RequireTransaction()
-    {
-        if (database.Transaction is null)
-            throw new InvalidOperationException(
-                "Account writes require an authorized security transaction."
-            );
-    }
 }
 
 public sealed class AccountValidator : IUserValidator<Account>

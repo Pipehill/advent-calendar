@@ -1,12 +1,14 @@
 using Calendar.Api.Authentication;
 using Calendar.Api.Generated;
+using Calendar.Api.Models;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
-using AccountAuthentication = Calendar.Api.Authentication.AuthenticationService;
+using AccountAuthentication = Calendar.Api.Services.IAuthenticationService;
 
 namespace Calendar.Api.Controllers;
 
@@ -15,7 +17,7 @@ namespace Calendar.Api.Controllers;
 [RequestSizeLimit(16384)]
 public sealed class AuthController(
     AccountAuthentication authentication,
-    SessionService sessions,
+    ISessionService sessions,
     IAntiforgery antiforgery
 ) : AuthControllerBase
 {
@@ -34,14 +36,18 @@ public sealed class AuthController(
             body.Password,
             HttpContext.RequestAborted
         );
-        await SessionService.IssueCookieAsync(HttpContext, current);
+        await SessionAuthentication.IssueCookieAsync(HttpContext, current);
         return Ok(ToSessionDto(current));
     }
 
     [Authorize]
     public override async Task<IActionResult> Reauthenticate(ReauthenticateRequest body)
     {
-        await authentication.ReauthenticateAsync(User, body.Password, HttpContext.RequestAborted);
+        await authentication.ReauthenticateAsync(
+            SessionAuthentication.ReadIdentity(User),
+            body.Password,
+            HttpContext.RequestAborted
+        );
         return NoContent();
     }
 
@@ -49,15 +55,24 @@ public sealed class AuthController(
     public override async Task<ActionResult<SessionDto>> Session()
     {
         var current =
-            await sessions.ReadAsync(User, HttpContext.RequestAborted)
-            ?? throw new AuthFailureException(401, "Authentication required");
+            await sessions.ReadAsync(
+                SessionAuthentication.ReadIdentity(User),
+                HttpContext.RequestAborted
+            )
+            ?? throw new AccountFailureException(
+                AccountFailure.Unauthenticated,
+                "Authentication required"
+            );
         return Ok(ToSessionDto(current));
     }
 
     public override async Task<IActionResult> Logout()
     {
-        await authentication.LogoutAsync(User, HttpContext.RequestAborted);
-        await HttpContext.SignOutAsync(SessionService.Scheme);
+        await authentication.LogoutAsync(
+            SessionAuthentication.ReadIdentity(User),
+            HttpContext.RequestAborted
+        );
+        await HttpContext.SignOutAsync(SessionAuthentication.Scheme);
         return NoContent();
     }
 
@@ -65,12 +80,12 @@ public sealed class AuthController(
     public override async Task<IActionResult> ChangePassword(ChangePasswordRequest body)
     {
         await authentication.ChangePasswordAsync(
-            User,
+            SessionAuthentication.ReadIdentity(User),
             body.CurrentPassword,
             body.NewPassword,
             HttpContext.RequestAborted
         );
-        await HttpContext.SignOutAsync(SessionService.Scheme);
+        await HttpContext.SignOutAsync(SessionAuthentication.Scheme);
         return NoContent();
     }
 

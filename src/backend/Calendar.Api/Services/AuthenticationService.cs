@@ -1,18 +1,21 @@
 using System.Diagnostics;
-using System.Security.Claims;
+using Calendar.Api.Infrastructure;
+using Calendar.Api.Models;
+using Calendar.Api.Repositories;
 using Calendar.Security;
-using Microsoft.AspNetCore.Identity;
 
-namespace Calendar.Api.Authentication;
+namespace Calendar.Api.Services;
 
 public sealed class AuthenticationService(
-    AuthDatabase database,
-    SessionService sessions,
+    ISecurityTransaction transaction,
+    IAccountRepository accounts,
+    ISessionRepository sessionRepository,
+    ISessionService sessions,
+    AccountCredentialService credentials,
     PasswordAttempts attempts,
-    UserManager<Account> manager,
     TimeProvider time,
     ILogger<AuthenticationService> logger
-)
+) : IAuthenticationService
 {
     public async Task<AuthenticatedAccount> LoginAsync(
         string? username,
@@ -30,17 +33,23 @@ public sealed class AuthenticationService(
             if (remaining > TimeSpan.Zero)
                 await Task.Delay(remaining, cancellationToken);
             SecurityLog.Event(logger, "login", null, null, "denied");
-            throw new AuthFailureException(401, "Invalid username or password");
+            throw new AccountFailureException(
+                AccountFailure.Unauthenticated,
+                "Invalid username or password"
+            );
         }
-        return await database.RunAsync(
+        return await transaction.RunAsync(
             async () =>
             {
-                var current = await database.FindAsync("id = @Id", new { verified.Account.Id });
+                var current = await accounts.FindByIdAsync(verified.Account.Id);
                 if (
                     !attempts.Matches(current, verified.Account)
                     || current!.LockedUntil > time.GetUtcNow()
                 )
-                    throw new AuthFailureException(401, "Invalid username or password");
+                    throw new AccountFailureException(
+                        AccountFailure.Unauthenticated,
+                        "Invalid username or password"
+                    );
                 await attempts.ApplyUpgradeAsync(verified);
                 var now = time.GetUtcNow();
                 var expiry = now.Add(
@@ -65,14 +74,7 @@ public sealed class AuthenticationService(
                     Restricted = current.MustChangePassword,
                     VerifiedAt = current.MustChangePassword ? null : now,
                 };
-                await database.ExecuteAsync(
-                    """
-                    INSERT INTO account_sessions (id, account_id, security_version, created_at,
-                        expires_at, verified_at, is_restricted) VALUES (@Id, @AccountId, @SecurityVersion,
-                        @CreatedAt, @ExpiresAt, @VerifiedAt, @Restricted)
-                    """,
-                    session
-                );
+                await sessionRepository.InsertAsync(session);
                 SecurityLog.Event(logger, "login", current.Id, current.Id, "accepted");
                 return new AuthenticatedAccount(current, session);
             },
@@ -81,28 +83,28 @@ public sealed class AuthenticationService(
     }
 
     public async Task ReauthenticateAsync(
-        ClaimsPrincipal principal,
+        SessionIdentity? identity,
         string? password,
         CancellationToken cancellationToken
     )
     {
-        var actor = await database.RunAsync(
-            () => sessions.RequireAsync(principal, administrator: true),
+        var actor = await transaction.RunAsync(
+            () => sessions.RequireAsync(identity, administrator: true),
             cancellationToken
         );
         var verified =
             await attempts.CheckAsync(actor.Account.UserName, password, cancellationToken)
-            ?? throw new AuthFailureException(401, "Password verification failed");
-        await database.RunAsync(
+            ?? throw new AccountFailureException(
+                AccountFailure.Unauthenticated,
+                "Password verification failed"
+            );
+        await transaction.RunAsync(
             async () =>
             {
-                var current = await sessions.RequireAsync(principal, administrator: true);
+                var current = await sessions.RequireAsync(identity, administrator: true);
                 EnsureVerified(current, verified);
                 await attempts.ApplyUpgradeAsync(verified);
-                await database.ExecuteAsync(
-                    "UPDATE account_sessions SET verified_at = @Now WHERE id = @Id",
-                    new { Now = time.GetUtcNow(), current.Session.Id }
-                );
+                await sessionRepository.SetVerifiedAtAsync(current.Session.Id, time.GetUtcNow());
                 SecurityLog.Event(
                     logger,
                     "reauthenticate",
@@ -117,29 +119,36 @@ public sealed class AuthenticationService(
     }
 
     public async Task ChangePasswordAsync(
-        ClaimsPrincipal principal,
+        SessionIdentity? identity,
         string? oldPassword,
         string? newPassword,
         CancellationToken cancellationToken
     )
     {
-        var actor = await database.RunAsync(
-            () => sessions.RequireAsync(principal, unrestricted: false),
+        var actor = await transaction.RunAsync(
+            () => sessions.RequireAsync(identity, unrestricted: false),
             cancellationToken
         );
         var verified =
             await attempts.CheckAsync(actor.Account.UserName, oldPassword, cancellationToken)
-            ?? throw new AuthFailureException(401, "Password verification failed");
-        await ValidatePasswordAsync(actor.Account.Role, newPassword);
+            ?? throw new AccountFailureException(
+                AccountFailure.Unauthenticated,
+                "Password verification failed"
+            );
+        await credentials.ValidatePasswordAsync(actor.Account.Role, newPassword);
         if (oldPassword == newPassword)
-            throw new AuthFailureException(409, "Replacement password must differ", "newPassword");
-        var hash = manager.PasswordHasher.HashPassword(actor.Account, newPassword!);
-        await database.RunAsync(
+            throw new AccountFailureException(
+                AccountFailure.Conflict,
+                "Replacement password must differ",
+                "newPassword"
+            );
+        var hash = credentials.HashPassword(actor.Account, newPassword!);
+        await transaction.RunAsync(
             async () =>
             {
-                var current = await sessions.RequireAsync(principal, unrestricted: false);
+                var current = await sessions.RequireAsync(identity, unrestricted: false);
                 EnsureVerified(current, verified);
-                await ReplacePasswordAsync(current.Account.Id, hash, temporary: false);
+                await credentials.ReplacePasswordAsync(current.Account.Id, hash, temporary: false);
                 SecurityLog.Event(
                     logger,
                     "change-password",
@@ -153,66 +162,17 @@ public sealed class AuthenticationService(
         );
     }
 
-    public Task<bool> LogoutAsync(ClaimsPrincipal principal, CancellationToken cancellationToken) =>
-        database.RunAsync(
+    public Task<bool> LogoutAsync(SessionIdentity? identity, CancellationToken cancellationToken) =>
+        transaction.RunAsync(
             async () =>
             {
                 // Expired/revoked sessions may still clear their browser cookie.
-                if (
-                    Guid.TryParse(principal.FindFirstValue(SessionService.SessionClaim), out var id)
-                )
-                    await database.ExecuteAsync(
-                        "UPDATE account_sessions SET revoked = true WHERE id = @Id",
-                        new { Id = id }
-                    );
+                if (identity is not null)
+                    await sessionRepository.RevokeAsync(identity.SessionId);
                 SecurityLog.Event(logger, "logout", null, null, "accepted");
                 return true;
             },
             cancellationToken
-        );
-
-    public async Task ValidatePasswordAsync(string role, string? password)
-    {
-        foreach (var validator in manager.PasswordValidators)
-        {
-            var result = await validator.ValidateAsync(
-                manager,
-                new Account { Role = role },
-                password
-            );
-            if (!result.Succeeded)
-                throw new AuthFailureException(400, result.Errors.First().Description, "password");
-        }
-    }
-
-    public async Task ReplacePasswordAsync(Guid id, string hash, bool temporary)
-    {
-        await database.ExecuteAsync(
-            """
-            UPDATE accounts SET password_hash = @Hash, security_version = @Version,
-                must_change_password = @Temporary, temporary_password_expires_at = @Deadline,
-                locked_until = NULL WHERE id = @Id
-            """,
-            new
-            {
-                Id = id,
-                Hash = hash,
-                Version = Guid.NewGuid(),
-                Temporary = temporary,
-                Deadline = temporary ? time.GetUtcNow().AddMinutes(30) : (DateTimeOffset?)null,
-            }
-        );
-        await database.ExecuteAsync(
-            "DELETE FROM password_failures WHERE account_id = @Id",
-            new { Id = id }
-        );
-        await RevokeAsync(id);
-    }
-
-    public Task<int> RevokeAsync(Guid id) =>
-        database.ExecuteAsync(
-            "UPDATE account_sessions SET revoked = true WHERE account_id = @Id",
-            new { Id = id }
         );
 
     private void EnsureVerified(AuthenticatedAccount current, VerifiedPassword verified)
@@ -221,8 +181,8 @@ public sealed class AuthenticationService(
             !attempts.Matches(current.Account, verified.Account)
             || current.Account.LockedUntil > time.GetUtcNow()
         )
-            throw new AuthFailureException(
-                409,
+            throw new AccountFailureException(
+                AccountFailure.Conflict,
                 "Account changed; verify the current password again"
             );
     }

@@ -7,6 +7,28 @@ The website integrates sign-in, password changes, logout and the personal page
 through its tRPC BFF. Calendar POST/GET remain anonymous. Calendar authorization
 and database hardening are required before production.
 
+## Code boundaries
+
+Authentication and user controllers consume service interfaces, as calendar
+controllers do. `Services/` owns account operations, authorization, password-attempt
+policy and session validity. It accepts account/session IDs rather than HTTP
+principals. `Repositories/` owns all account, session and password-failure SQL;
+`AccountStore` is the ASP.NET Core Identity adapter to `IAccountRepository`.
+
+One scoped `SecurityTransaction` implements `ISecurityTransaction` and supplies
+the same connection, PostgreSQL advisory lock `800008`, transaction and cancellation
+token to every participating repository. Services wrap final authorization rechecks
+and related writes in that transaction. A failure rolls back credentials, password
+failures and session revocation together. Hashing stays outside the short lock.
+Writes fail without an active transaction. Identity account lookups may read
+standalone, and automatically join the transaction when called inside an operation.
+
+`Authentication/` owns cookie/claims adaptation, cookie validation events, CSRF,
+request filtering, resource limits, host configuration and Identity integration.
+The API maps service failure categories to HTTP status codes and ProblemDetails.
+`Calendar.Security` remains the database-free account/password library shared with
+`Calendar.PasswordTool`; it has no dependency on API hosting or repositories.
+
 ## Direct API exchange
 
 1. Call `GET /auth/csrf` with a cookie jar. Preserve `advent.csrf` and read the

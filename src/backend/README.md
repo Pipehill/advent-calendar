@@ -1,8 +1,10 @@
 # Calendar backend
 
 The initial API creates calendars from a title and retrieves their persisted
-contents. Controllers implement generated contracts, services initialize business
-values, and repositories use Npgsql/Dapper with parameterized SQL. The frontend/BFF
+contents. Calendar and account/authentication controllers implement generated
+contracts and consume service interfaces. Services apply business and authorization
+rules through repositories, which use Npgsql/Dapper with parameterized SQL.
+The frontend/BFF
 already displays persisted calendars. Backend authentication and user management
 are implemented; calendar authorization, editing and scheduled opening remain
 future features. Current

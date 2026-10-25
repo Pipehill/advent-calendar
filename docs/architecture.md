@@ -74,6 +74,25 @@ seeds user accounts.
 The [tRPC integration documentation](https://trpc.io/docs/client/tanstack-react-query/setup)
 describes router-derived client types and TanStack Query option factories.
 
+## Backend layers
+
+Calendar, authentication and account administration use controller, service and
+repository layers inside `Calendar.Api`. Controllers implement the generated HTTP
+contracts and consume service interfaces. Services apply use-case and authorization
+rules through repository interfaces. Repositories own parameterized SQL and mapping.
+Identity's account store adapts its framework interfaces to the account repository.
+
+Security operations coordinate account, session and password-attempt repositories
+through one scoped transaction so authorization checks, credential changes and
+session revocation remain atomic across backend instances. Cookie/claims adaptation
+and HTTP error mapping stay in the API integration. Services receive account/session
+identifiers and return application results or failure categories.
+
+`Calendar.Security` contains the database-free account model, normalization,
+password policy and hashing shared with the offline password tool. It does not
+depend on API hosting or persistence. See [authentication code boundaries](../src/backend/authentication.md#code-boundaries)
+for the concrete services, repositories and transaction behavior.
+
 ## Frontend, rendering, and forms
 
 TanStack Start provides the React frontend and TypeScript BFF, with TanStack

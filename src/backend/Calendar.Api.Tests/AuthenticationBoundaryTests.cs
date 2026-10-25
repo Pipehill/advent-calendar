@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
-using Calendar.Api.Authentication;
 using Calendar.Api.Generated;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
