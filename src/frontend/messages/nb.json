@@ -93,6 +93,7 @@
   "admin_promote_effect": "Handlingen krever et annet midlertidig passord som oppfyller administratorkravene, og avslutter alle mottakerens økter. Ansvaret forblir fast.",
   "admin_demote_effect": "Dette avslutter mottakerens økter. Handlingen blokkeres så lenge vanlige brukere er tilknyttet. Et eksisterende ansvar kan ikke byttes ut.",
   "admin_calendar_unavailable": "Oppretting av kalendere er ikke tilgjengelig ennå.",
+  "calendar_refresh": "Oppdater kalendere",
   "calendar_name": "Kalendernavn",
   "calendar_recipient": "Mottaker",
   "calendar_choose_recipient": "Velg en bruker",

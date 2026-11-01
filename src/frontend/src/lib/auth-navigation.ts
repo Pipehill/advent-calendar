@@ -13,7 +13,7 @@ export async function requireSession(context: RouterContext, restricted = false)
     throw error;
   }
   if (session.mustChangePassword && !restricted) throw redirect({ to: '/change-password' });
-  const scope = `${session.user.username}:${session.expiresAt}`;
+  const scope = session.cacheScope;
   if (context.administration.sessionScope !== scope) {
     context.queryClient.clear();
     context.administration.sessionScope = scope;

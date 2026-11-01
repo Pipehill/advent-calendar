@@ -1,16 +1,18 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-10-25
+Last reviewed: 2026-11-01
 
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
 PostgreSQL migrations, API integration tests and local/CI build commands. The
 Compose stack runs frontend/BFF, backend and database. Backend identity, website
-login, password changes, protected personal pages and account administration are implemented. Calendar
-access rules and deployment remain future work. The calendar page displays a
-stored title and 24 static doors through tRPC and the generated backend client,
-with Norwegian/English interface translations. The implemented POST/GET API
-requires no user context. See [backend workflows](../src/backend/README.md).
+login, password changes, protected personal pages, account administration and
+owner-only calendar preparation are implemented. Calendaradmins create for their
+assigned ordinary users, edit plain-text door titles/messages, persist layouts
+and preview every door through tRPC and the generated backend client, with
+Norwegian/English translations. Calendar API operations require the current
+unrestricted owner session; mutations also require CSRF. Recipient access/opening
+and deployment remain future work. See [backend workflows](../src/backend/README.md).
 
 Application source belongs under root `src/`: the backend is in `src/backend`,
 the authored OpenAPI contract and generator settings in the sibling `src/contract`,
@@ -306,17 +308,20 @@ currently hold the ordinary role. Superadmin can maintain nonsuperadmin accounts
 other-account superadmin maintenance remains manual. Role transitions preserve
 responsibility and cannot bypass reset boundaries or demotion dependencies.
 
-The public landing page remains public. Future calendar access requires login:
+The public landing page remains public. Calendar administration requires login:
 each calendar has one recipient account, and a recipient may access multiple
 assigned calendars. Calendaradmins manage their own calendars, not other
-administrators' calendars merely by role. Assignment and any invitation behavior
+administrators' calendars merely by role. Creation assigns one of the acting
+administrator's existing calendar users. Recipient access/reassignment and any invitation behavior
 are separate calendar work; the former email-registration/invitation-membership
 flow is superseded. User-management superadmin permissions do not define future
 calendar authority.
 
 Backend accounts and authentication are implemented as described in the
-[backend authentication workflow](../src/backend/authentication.md). The current
-calendar POST/GET API remains anonymous. Frontend login, required password change,
+[backend authentication workflow](../src/backend/authentication.md). Calendar
+POST/GET and editing/listing operations are protected in the backend and BFF.
+Only current unrestricted calendaradmin owners have administration/preview
+authority; superadmins and recipients do not gain that authority. Frontend login, required password change,
 logout and `/my-page` use backend-validated sessions through the BFF. Every
 account has a required single display name, trimmed to 1-100 Unicode code points,
 independent of its unique username and role. Existing usernames are backfilled.
@@ -331,9 +336,17 @@ through the generated API client, and the backend independently rechecks permiss
 at commit. An explicit ProblemDetails `verificationRequired` flag distinguishes expired
 recent verification from other denials; reauthentication retains fixed session expiry.
 All mutations use principal-bound CSRF without automatic retries, and new-account
-navigation locates the returned ID's authorized page. Calendar authorization and
-assignment and production database hardening remain production gates.
-The end-to-end sequence below includes that future calendar authorization.
+navigation locates the returned ID's authorized page. Calendar writes use the same
+security transaction/lock as account maintenance and recheck actor/session and
+recipient state at commit, without recent-password verification. New calendars
+store the Europe/Oslo creation year, one of four local backgrounds, 24 numbered
+doors with 0-50/0-5000-code-point titles/messages and a chronological order.
+Random layout selection stores a permutation; reads never reshuffle it. Protected
+SSR/hydration/errors use no-store, query caches separate administration/preview
+and session changes discard protected data. Migration 0004 journaled removal of
+legacy test calendars/doors preserves accounts and sessions. Recipient viewing,
+opening and production database hardening remain production gates.
+The end-to-end sequence below includes the deferred recipient authorization.
 
 ### Credentials and manual provisioning
 

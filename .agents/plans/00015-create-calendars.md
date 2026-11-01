@@ -1,6 +1,6 @@
 # 00015: Create and administer calendars
 
-Status: Not implemented
+Status: Implemented (2026-11-01)
 
 Last updated: 2026-11-01
 
@@ -308,22 +308,59 @@ The following are creative proposals for implementation, not approved final artw
 - [x] Translate background labels, form controls, door editor, layout labels,
   preview indicators, confirmations and error states in `messages/nb.json` and
   `messages/en.json`. Do not bake interface labels into the background images.
-- [ ] Verify keyboard selection, visible focus, accessible labels, usable contrast
+- [x] Verify keyboard selection, visible focus, accessible labels, usable contrast
   and touch controls with the existing compact UI components.
 
 ### 5. Verify and document the implemented result
 
-- [ ] Extend backend integration tests, focused frontend/BFF tests and production
+- [x] Extend backend integration tests, focused frontend/BFF tests and production
   browser scenarios for the requirements below. Adapt the existing calendar smoke
   fixtures: anonymous creation/read must cease to be their successful setup path.
-- [ ] Update backend HTTP examples, project/frontend/backend documentation,
+- [x] Update backend HTTP examples, project/frontend/backend documentation,
   architecture implementation status and current calendar-access rules to describe
   what was actually delivered and the remaining recipient/deployment work.
-- [ ] Run the applicable shared generation, build, test, lint and quality workflow.
+- [x] Run the applicable shared generation, build, test, lint and quality workflow.
   Record actual evidence, remaining findings and limitations without claiming
   deferred recipient behavior or inherited platform gaps have been verified.
-- [ ] Mark this plan and its index implemented only after implementation and
+- [x] Mark this plan and its index implemented only after implementation and
   verification are complete.
+
+Iteration 5 final evidence (2026-11-01): all 211 backend integration tests,
+121 frontend/BFF tests and 58 production browser scenarios passed, together with
+eight public/anonymous-denial smoke scenarios. An additional focused 375px
+touch/keyboard run in Pacific/Honolulu preserved the stored year. Type checking,
+production Vite/Nitro build, SDK formatting and full saved-source quality passed.
+Clean regeneration of both ignored contracts produced identical SHA-256 hashes.
+Current documentation and HTTP examples describe owner administration and the
+remaining recipient/production gates; owning verification files retain details.
+
+Integrated verification corrected distinct calendar/account refresh labels and
+transported plain route failure codes through SSR. Browser fixtures now wait for
+language navigation and preview mounting, select titles including their displayed
+year, and avoid a previously reset account for unrelated role checks. The BFF
+binds protected browser queries to a non-credential fingerprint of the validated
+opaque authentication cookie, distinguishing equal-expiry sessions without
+exposing the ticket. Scope changes and owner denials remove protected query data.
+The unused static Card component was removed after verifying it had no callers.
+
+Final advisory application health improves 86.8 to 88.9 (+2.1), while tooling
+declines 52.3 to 48.0 (-4.3). Application duplication grows from 32 lines / 4
+clones (0.318566%) to 117 / 12 (0.950370%); tooling grows from 6 / 1 (0.081444%)
+to 12 / 2 (0.157604%). Explicit form/security/test boilerplate is retained for
+readability. Tooling's new unused-module finding is a confirmed heuristic false
+positive: the browser suite imports and executes the calendar scenario module.
+Maximum application complexity stays 75; tooling rises 226 to 227. Detailed
+scope, configuration/source identities and limitations are in health verification.
+The final MCP refresh reports 129 duplicated lines / 14 clones (0.647428%) over
+the repository reference; no scoring settings/exclusions changed.
+
+Disposable containers/processes, including four left by interrupted backend runs,
+were cleaned up. Existing application containers/images and database volumes
+were preserved. Recipient lists/viewing/opening, production database hardening,
+inherited Vite-dev language behavior, native-platform/Docker evidence and physical
+device/manual screen-reader coverage remain outside this completed increment.
+The verified iteration commits are preserved on `feature/create-calendars` for
+publication as a draft PR targeting `main`.
 
 ## Verification
 

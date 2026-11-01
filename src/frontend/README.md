@@ -5,13 +5,26 @@ Norwegian Christmas illustration, Norwegian/English text, and a login link at th
 top right. It renders without reading calendar data. The illustration is served locally; see its
 [generation record](illustration.md).
 
-The page at `/calendars/<id>` shows a stored title and 24 static numbered doors.
-Create a calendar through `POST /calendars` on the backend and open
-`/calendars/<id>` using the returned ID. Startup does not create sample calendars.
+Calendaradmins create calendars at `/create-calendar`, administer their own
+calendars at `/calendars/<id>` and preview every door at `/calendar-preview/<id>`.
+`/my-page` includes the owner-scoped paginated calendar list. Creation selects an
+assigned ordinary user and one of four [local illustrated backgrounds](calendar-backgrounds.md).
+The backend stores the current Europe/Oslo year, exactly 24 empty doors and a
+chronological order. Explicit Save actions persist plain-text door titles (50
+Unicode code points) and messages (5000), preserving line breaks. Choosing Random
+persists a new permutation; reads/refresh/preview never reshuffle doors.
+Startup does not create sample calendars.
 The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
-server code. The initial calendar is server-rendered and its query cache hydrates
-without a duplicate request. Door contents are omitted from this page's BFF data.
+server code. Owner-authorized content is server-rendered and hydrated only for
+the unrestricted owner. Administration and preview use separate query keys;
+session changes clear protected query data. After backend validation the BFF
+supplies a SHA-256 fingerprint of the opaque authentication cookie as a
+non-credential cache scope; even simultaneous same-account sessions with equal
+expiry remain distinct without exposing the HttpOnly ticket. Calendar routes disable prefetch and
+reload current session/ownership rather than reuse another user's route output.
+Protected SSR, hydration transport and errors use no-store. Recipients and
+superadmins receive no calendar administration/preview access in this increment.
 
 ## Sign-in and personal pages
 
@@ -27,7 +40,8 @@ calendar users and list/reset their assigned ordinary accounts. Superadmins see
 all accounts and can create either assignable role, reset nonsuperadmin passwords,
 enable/disable accounts and change between calendaradmin/calendar-user roles.
 Superadmin targets remain view-only. Lists show name, username, localized role
-and enabled state, with pagination and refresh. Calendar creation remains unavailable.
+and enabled state, with pagination and refresh. Calendaradmins also see their own
+calendars with a link to create another; recipient lists/opening remain deferred.
 
 Compact session actions sit beside the signed-in name, and account creation sits
 beside the list heading. Eligible rows expose a keyboard-accessible three-dot
@@ -50,7 +64,7 @@ handed over privately to identity-verified recipients. Status and role changes a
 revoke target sessions. Enabling never restores revoked sessions, and disabling a
 calendaradmin leaves their users enabled. Responsibility stays fixed across role
 changes; first demotion requires assignment and attached ordinary users block demotion.
-Profile editing, deletion and calendar access are separate work.
+Profile editing, deletion and recipient calendar access are separate work.
 
 Sensitive operations require backend recent password verification. An explicit
 `verificationRequired` error opens a separate acting-administrator password field;
@@ -199,12 +213,11 @@ node tools/frontend/smoke.mjs
 This Playwright smoke workflow uses Node's test runner separately from Vitest/API
 integration tests and runs against an already started environment. Eight named
 scenarios each get a fresh browser context, with page/hydration/asset checks and
-cleanup after every test. It verifies the landing page,
-login navigation, exact welcome text, mobile layout, stored calendars, SSR
-hydration, actual browser/tRPC communication, language selection, translated
-errors, unchanged user-authored titles, static doors and a narrow layout.
-It creates its own calendar fixtures through the existing API, including two
-distinct calendars whose IDs are recorded in `calendars.json`. Test results are
+cleanup after every test. It verifies the landing page, login navigation, exact
+welcome text, mobile layout, language selection, protected calendar redirects
+and direct anonymous API/BFF denial. It never creates anonymous calendar fixtures.
+The isolated production suite below verifies positive owner calendar behavior.
+Test results are
 saved in `smoke.xml` (JUnit), and screenshots are saved under ignored
 `quality-reports/frontend/`. A failed test or browser startup exits nonzero.
 
@@ -228,8 +241,10 @@ It uses the selected container runtime/SDK and installed Edge or Playwright
 Chromium. Fixture credentials remain in runner memory; only isolated `browser_*`
 databases are accepted. The suite covers roles, real cookies/CSRF, temporary
 credentials, creation/maintenance, list isolation, pagination, recent verification,
-logout/replay, revoked-session SSR and the existing eight public/calendar smoke tests.
+logout/replay, revoked-session SSR, all calendar backgrounds, door saves, stable
+layouts, full owner preview, plain-text rendering, translated authored content,
+foreign-owner denial, mobile touch/keyboard controls and eight public/denial smoke tests.
 Each independent scenario replaces the isolated API process to reset aggregate
 request budgets while preserving database-backed account/session state and the
 production rate-limit settings. Reports/screenshots are kept under
-`quality-reports/plan00014/`. It is separate from normal unit/API tests.
+`quality-reports/plan00015/`. It is separate from normal unit/API tests.

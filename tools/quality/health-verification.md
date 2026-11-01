@@ -184,6 +184,61 @@ binary directly and await its exit before cleanup. Repeated fixtures passed afte
 this correction. Reports preserve the heuristic limitation that this jscpd release
 can misclassify `.mjs` imports and script/container entry points as dead code.
 
+## Plan 00015 comparison (2026-11-01)
+
+The saved-source comparison uses the unchanged jscpd **5.4.1** configuration
+SHA-256 `8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+The baseline is the clean synchronized `78c7b1c` source captured before edits;
+the previous baseline is preserved as `baseline-before-00015-20261101`.
+Application and tooling use the existing disjoint authored-source scopes and
+identical settings. The whole-repository reference and full MCP schemas,
+snippet/refresh/statistics and clone locations remain in raw ignored reports.
+
+**Tooling health declined 52.3 to 48.0 (-4.3)**, despite application health
+improving 86.8 to 88.9 (+2.1). Duplication increased in both scopes and remains
+an explicit tradeoff:
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Duplication percentage | 0.318566% / 0.950370% | 0.081444% / 0.157604% |
+| Percentage-point delta | +0.631803 | +0.076160 |
+| Clones / duplicated lines | 4 / 12; 32 / 117 | 1 / 2; 6 / 12 |
+| Complexity score / share | 79.4 / 82.4; 15.7% / 12.8% | 54.6 / 55.4; 49.8% / 48.3% |
+| Maximum file complexity | 75 / 75 | 226 / 227 |
+| Heuristic findings | 2 / 2 | 6 / 7 |
+| Dead-code analysis coverage | 34.5% / 38.4% | 96.1% / 96.3% |
+| Analyzed files / lines | 93 / 111; 10045 / 12311 | 44 / 45; 7367 / 7614 |
+
+The additional tooling finding marks `calendar-scenarios.mjs` unused at 70%
+confidence. It is explicitly imported and registered by the production browser
+suite; real executions confirm the call path. This is the known `.mjs` import
+heuristic limitation and is retained visibly, without changing analyzer settings.
+The scenario module keeps calendar tests separate while reusing the existing
+isolated stack lifecycle. Its addition increases the heuristic dead-code share
+17.2% to 20.9% and lowers that advisory score. Browser-harness complexity rises
+by one for registration. Required explicit failure mocks contribute six duplicate
+tooling lines. Existing script/container entry-point findings remain unchanged.
+
+Application matches were inspected with MCP `get_file_clones`: explicit form
+validation, structured field errors, duplicate-submission guards, route composition
+and controller security attributes account for the new boilerplate. Retain these
+visible boundaries rather than add generic form/controller machinery solely to
+reduce a score. The newly unused static Card component was removed after confirming
+it had no callers. Backend/API business operations remain in service/repository
+layers. Duplication is below 1% of the application scope, but its absolute increase
+is still recorded rather than described as an improvement.
+
+Application source SHA-256 changes from
+`ec9509726c3e0fbe46c46e5407c6868996aa9b6f3aad4ebce394163b09e89987` to
+`78f50f64cf651a846a5baa0d825d63c2505bf580e2470d1f9bcd7695bf43a7e7`;
+tooling changes from
+`f6f4872417187e7c5356694014dd4136fb0443af0a8ca98c5b0cb5e2813153d8` to
+`c5401077b52681dc37b2e11b9d01567c8ab195a17874d9c0cc8798e01b1c4530`.
+Source identities, raw per-group/reference measurements and reports live under
+`quality-reports/health/`; task-specific evidence uses `quality-reports/plan15-*`.
+Generated files, dependencies and documentation remain outside authored-code
+scoring. Unsupported/partial analysis is not evidence of absence of defects.
+
 ## Pending platform evidence
 
 The owner explicitly deferred native macOS/Linux installation, repeat setup,

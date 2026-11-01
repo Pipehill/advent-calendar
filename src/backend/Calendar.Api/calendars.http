@@ -1,21 +1,54 @@
 @baseUrl = http://localhost:8080
-# Replace with an ID returned by the create request below.
 @calendarId = 00000000-0000-4000-8000-000000000001
+@recipientId = 00000000-0000-4000-8000-000000000002
+# Follow authentication.http with an unrestricted calendaradmin session.
+# Supply the matching HttpOnly advent.auth/advent.csrf cookie pair and fresh token.
+@sessionCookies = advent.auth=replace; advent.csrf=replace
+@csrfToken = replace-with-principal-bound-request-token
 
-### Create: 201, calendar body and Location header
+### Create: 201, persisted 24-door calendar and Location header
 POST {{baseUrl}}/calendars
 Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
 
-{"title":"  My advent calendar  "}
+{"title":"  My advent calendar  ","recipientId":"{{recipientId}}","background":"woodland"}
 
-### Retrieve persisted calendar: 200
+### Owner-only administration / preview: 200 with all content, no-store
 GET {{baseUrl}}/calendars/{{calendarId}}
+Cookie: {{sessionCookies}}
 
-### Invalid title: 400, ProblemDetails with title field errors
+### Own calendar metadata and total count
+GET {{baseUrl}}/calendars?offset=0&limit=20
+Cookie: {{sessionCookies}}
+
+### Explicit save: plain text, title 0-50 and message 0-5000 Unicode code points
+PUT {{baseUrl}}/calendars/{{calendarId}}/doors/24
+Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"title":"A Christmas surprise","text":"First line\nSecond line"}
+
+### Persist a random arrangement once; repeat reads never reshuffle
+PUT {{baseUrl}}/calendars/{{calendarId}}/layout
+Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"layout":"random"}
+
+### Invalid title: 400 with structured title field errors
 POST {{baseUrl}}/calendars
 Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
 
-{"title":"   "}
+{"title":"   ","recipientId":"{{recipientId}}","background":"woodland"}
 
-### Unknown calendar: 404, ProblemDetails
+### Unknown or foreign-owner calendar: 404
 GET {{baseUrl}}/calendars/00000000-0000-4000-8000-000000000000
+Cookie: {{sessionCookies}}
+
+### Anonymous legacy read is denied: 401, no-store
+GET {{baseUrl}}/calendars/{{calendarId}}

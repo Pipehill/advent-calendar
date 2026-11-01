@@ -8,12 +8,13 @@ import { after, afterEach, before, beforeEach, describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../../src/frontend/node_modules/playwright/index.mjs';
 import { readLocalSettings } from '../../quality/local-settings.mjs';
+import { registerCalendarScenarios } from './calendar-scenarios.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
 const runtime = process.env.QUALITY_CONTAINER_RUNTIME || settings.runtime || 'podman';
 const dotnet = process.env.DOTNET_EXE || settings.dotnet || 'dotnet';
-const reports = path.join(root, 'quality-reports/plan00014/browser');
+const reports = path.join(root, 'quality-reports/plan00015/browser');
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
 const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
 const children = [];
@@ -29,7 +30,7 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe('Authentication through production Nitro and isolated PostgreSQL', { timeout: 180000 }, () => {
+describe('Authentication through production Nitro and isolated PostgreSQL', { timeout: 360000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -140,7 +141,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
         assert.equal(await page.locator('h1 b').count(), 0);
       } else if (role === 'calendarAdmin') {
         assert.equal(await page.getByRole('link', { name: 'Lag ny kalenderbruker' }).count(), 1);
-        assert(await page.getByRole('button', { name: 'Lag ny kalender', exact: true }).isDisabled());
+        assert.equal(await page.getByRole('link', { name: 'Lag ny kalender', exact: true }).getAttribute('href'), '/create-calendar');
         assert.equal(await page.getByText('Alle kontoer').count(), 0);
         await page.getByRole('heading', { name: /^Dine kalenderbrukere \(\d+\)$/ }).waitFor();
         await page.getByText(accounts.find(item => item.username === 'browser-user').name, { exact: true }).waitFor();
@@ -931,7 +932,9 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2 av 3');
   });
 
-  test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {
+  registerCalendarScenarios(() => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation }));
+
+  test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
     const env = { ...process.env, FRONTEND_URL: frontendUrl, API_URL: apiUrl };
 

@@ -80,7 +80,7 @@ export const appRouter = t.router({
       callBackend(ctx, async (client, signal) => {
         const session = await client.login(input, signal);
         await client.csrf(signal);
-        return publicSession(session);
+        return publicSession(session, ctx);
       }),
     ),
     changePassword: procedure.input(changePasswordInput).mutation(async ({ ctx, input }) => {

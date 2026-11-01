@@ -37,7 +37,7 @@ export function CalendarList({ context }: { context: RouterContext }) {
         <Button
           size="icon"
           variant="secondary"
-          aria-label={m.admin_refresh()}
+          aria-label={m.calendar_refresh()}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
         >

@@ -78,6 +78,7 @@ test('Given backend cookies on login, When CSRF refresh follows in the same exch
     user: { name: 'Ærlig Ørn 🎄', username: 'julebruker', role: 'superadmin' },
     expiresAt: session().expiresAt,
     mustChangePassword: false,
+    cacheScope: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
   expect(JSON.stringify(result)).not.toContain('token');
 });
@@ -190,6 +191,9 @@ test('Given concurrent users, When their session requests interleave, Then reque
 
   // Then no mutable credential state crosses the request boundary.
   expect(results.map((result) => result.user.name)).toEqual(['advent.auth=one', 'advent.auth=two']);
+  expect(results[0].expiresAt).toBe(results[1].expiresAt);
+  expect(results[0].cacheScope).not.toBe(results[1].cacheScope);
+  expect(results.every((result) => /^[a-f0-9]{64}$/.test(result.cacheScope))).toBe(true);
 });
 
 test('Given anonymous access and backend cookie deletion, When a protected call fails, Then unauthorized and deletion remain available to the response adapter', async () => {

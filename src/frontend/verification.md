@@ -1,6 +1,71 @@
 # Frontend verification
 
-Last updated: 2026-10-25
+Last updated: 2026-11-01
+
+## 2026-11-01: Plan 00015 calendar creation and owner administration
+
+Implemented and verified on Windows/Edge with the production Vite/Nitro build,
+host .NET API and isolated Linux PostgreSQL 18.4 containers. All **121 focused
+frontend/BFF tests** and **58 production browser scenarios** passed, together with
+the separately invoked **eight public/anonymous-denial smoke scenarios**.
+Explicit TypeScript checking, production compilation and saved-source quality
+passed. The backend's 211-test evidence is recorded in its verification document.
+No dependency or prerequisite changed.
+
+Browser coverage includes creation through the dedicated form with every local
+background; persisted ownership/recipient/year and exactly 24 doors; refresh and
+return to the own-calendar list; explicit plain-text door saves and error recovery;
+one write during repeated pending submissions; empty recipient selection; saved
+random/chronological layouts; preview of all 24 doors, including future dates;
+Norwegian/English SSR and unchanged authored Unicode titles/messages/line breaks;
+and plain-text rendering of HTML-like content. Calendar list pagination, empty
+results, failures and retry controls replace stale cards. Unit tests also cover
+recipient loading beyond a full backend account-list page and exact Unicode bounds.
+
+Anonymous/ordinary/superadmin/restricted callers cannot open calendar creation or
+preview. Foreign-owner SSR, BFF reads/updates and direct API reads return no content.
+Successful/error responses are no-store. Preview logout invalidates the backend
+session; cookie replay and later direct navigation expose no protected content.
+The existing account/session/CSRF suite still passes after enabling calendar lists.
+Route errors now transport plain failure codes so localization survives SSR error
+serialization, and calendar refresh has a distinct accessible label from accounts.
+
+The BFF emits a non-credential SHA-256 cache discriminator only after backend
+session validation. Different opaque authentication cookies remain distinct even
+for the same username and expiry; the HttpOnly ticket stays private. Navigation
+clears protected queries when that scope changes. Administration and preview
+queries are distinct, and calendar links disable prefetch. Focused tests verify
+scope replacement, preservation for an unchanged validated session, concurrent
+equal-expiry isolation and removal of protected queries after owner denial.
+
+The 375px touch/keyboard scenario passed again with browser timezone
+`Pacific/Honolulu`, preserving the backend-stored year, all 24 usable doors and
+visible editor focus without horizontal overflow. Desktop preview and narrow
+administration screenshots were inspected. Backend-controlled tests cover the
+Europe/Oslo year boundary; no year selector or browser-derived creation year exists.
+
+Initial integrated tests found the duplicate refresh label and SSR custom-error
+property loss; both were fixed. Other failed cases were fixture dependencies on
+a previously reset user's password, exact title selectors that omitted the visible
+year, and language-navigation waits that raced reload. Those scenarios were
+corrected, passed in focused reruns, then the full suite passed. Nitro required an
+unsandboxed build for the Windows profile symlink (initial EPERM); compilation
+then passed. The now-unused static Card component was removed after a caller search.
+
+Application advisory health improves **86.8 to 88.9**; **tooling declines 52.3 to
+48.0**. Absolute duplication increases in both scopes, and the new executed browser
+module is heuristically marked unused. Metrics, hashes, clone counts, rationale
+and supported/unsupported dimensions are in
+[health verification](../../tools/quality/health-verification.md#plan-00015-comparison-2026-11-01).
+Raw build/test/quality logs use ignored `quality-reports/plan15-*`; production
+screenshots and stack logs use `quality-reports/plan00015/browser/`. Disposable
+test containers/processes were cleaned up; existing application containers/images
+and volumes were preserved.
+
+Recipient lists/viewing/timed opening and production database hardening remain
+deferred. Existing native macOS/Linux, local Docker, physical-device/manual-screen-
+reader and Vite-dev language-switching limitations remain unchanged. Edge touch
+emulation and Linux database containers do not establish those platform results.
 
 ## 2026-10-25: English route names
 

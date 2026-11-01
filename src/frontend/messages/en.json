@@ -93,6 +93,7 @@
   "admin_promote_effect": "Promotion requires a different administrator-compliant temporary password and ends all of the recipient's sessions. Responsibility remains fixed.",
   "admin_demote_effect": "This ends the recipient's sessions. Demotion is blocked while ordinary users are attached. An existing responsibility cannot be replaced.",
   "admin_calendar_unavailable": "Calendar creation is not available yet.",
+  "calendar_refresh": "Refresh calendars",
   "calendar_name": "Calendar name",
   "calendar_recipient": "Recipient",
   "calendar_choose_recipient": "Choose a user",
