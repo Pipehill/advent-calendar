@@ -103,8 +103,11 @@ Implementation iterations (one commit each):
   scenarios for both administrator scopes, languages, desktop/mobile alignment,
   cursors and pagination boundaries. Run unit/API tests, explicit TypeScript,
   production build, browser scenarios, full quality and final advisory comparison.
-  Record the result here and in frontend verification, update the index, and
-  publish the implementation commits in a draft PR.
+  Record the result here and in frontend verification and update the index.
+- [x] Obtain explicit publication permission required by automatic approval
+  review. After its initial rejection, the owner explicitly authorized pushing
+  the completed commits to the public `Pipehill/advent-calendar` repository and
+  creating a draft PR on 2026-11-01. All implementation and verification work is complete.
 
 Follow-up iteration 6: contract generation and backend build passed, as did 82
 frontend/BFF tests and full saved-source quality after correcting C# formatting.
