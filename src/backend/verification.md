@@ -465,6 +465,50 @@ test/TRX, formatting, publish and contract inspection logs are under
 Test containers were disposed; existing application containers and images were
 preserved. Native-platform and Docker limitations below remain unchanged.
 
+## Plan 00015: owner calendar administration (2026-11-01)
+
+On Windows with Node 24.20.0, the pinned .NET SDK and Podman/PostgreSQL 18.4,
+Release compilation and all **211 backend integration tests passed**. The suite
+uses real DbUp migrations and isolated databases. `dotnet format --verify-no-changes`
+also passed. Clean removal/regeneration of both ignored contract outputs produced
+identical SHA-256 hashes to the built inputs; OpenAPI validation retains only the
+four inherited Redocly warnings described below.
+
+Coverage includes owner-derived creation for every background, exactly 24 initially
+empty doors, title trimming/Unicode boundaries, 50/5000-code-point door limits,
+plain text/line breaks, missing/null/NUL/invalid Unicode, stable stored random
+permutations and independently enforced database constraints (including empty,
+duplicate and out-of-range order rejection). UTC instants immediately before/at
+Oslo New Year produce the correct stored year and later reads do not recalculate it.
+Duplicate-door insert failures roll back the entire aggregate. Owner reads across
+application replacement preserve content, settings and sessions.
+
+Direct API coverage rejects anonymous, superadmin, ordinary, restricted, disabled,
+expired and revoked sessions, CSRF-free mutations and foreign ownership/recipients.
+List filtering and totals are SQL-scoped. A held security transaction commits an
+actor disablement or recipient role change before queued creation; creation then
+fails its committing recheck. Calendar operations do not require recent password
+verification or acquire password-hashing work permits.
+
+The populated-upgrade test first applies only migrations 0001-0003, inserts legacy
+calendar/door data alongside an account, credential, session and unrelated table,
+then runs actual migration startup twice. Only the legacy calendar/door data is
+removed and the four-entry journal is stable. Published migrations remain unchanged;
+fresh tests and post-creation restart verify no recurring cleanup or seeding.
+
+Initial full runs stalled in the inherited container-pause outage fixture. The
+test now refuses/terminates connections only to its disposable database and checks
+503 readiness, uninterrupted liveness and restored readiness, without pausing the
+container engine. A new upgrade-test resource filter initially included embedded
+OpenAPI JSON; it now explicitly selects SQL. Both corrected scenarios pass.
+Four containers left by interrupted runs were identified by creation time/test
+labels, stopped and removed. Existing application containers/images and volumes
+were preserved. Logs are under ignored `quality-reports/plan15-*`.
+
+Recipient access/opening and production database hardening remain unimplemented;
+these results establish owner administration only. Platform limitations below
+remain unchanged.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

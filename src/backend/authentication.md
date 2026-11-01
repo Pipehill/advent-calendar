@@ -5,8 +5,12 @@ the three roles `superadmin`, `calendarAdmin` and `calendarUser`. New account
 operations enforce authentication/authorization independently of the website.
 The website integrates sign-in, password changes, logout, the personal page and
 authorized account creation/maintenance
-through its tRPC BFF. Calendar POST/GET remain anonymous. Calendar authorization
-and database hardening are required before production.
+through its tRPC BFF. Calendar creation, listing, editing and preview require the
+current unrestricted calendaradmin owner. All calendar mutations require CSRF;
+successful/error responses are no-store. The service joins actor/session/recipient
+checks and persistence in the shared security transaction (advisory lock 800008),
+without recent-password verification or password-hashing concurrency limits.
+Recipient viewing/opening and database hardening remain required before production.
 
 ## Code boundaries
 

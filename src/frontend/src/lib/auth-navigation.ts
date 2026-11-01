@@ -13,6 +13,17 @@ export async function requireSession(context: RouterContext, restricted = false)
     throw error;
   }
   if (session.mustChangePassword && !restricted) throw redirect({ to: '/change-password' });
+  const scope = session.cacheScope;
+  if (context.administration.sessionScope !== scope) {
+    context.queryClient.clear();
+    context.administration.sessionScope = scope;
+  }
+  return session;
+}
+
+export async function requireCalendarSession(context: RouterContext) {
+  const session = await requireSession(context);
+  if (session.user.role !== 'calendarAdmin') throw redirect({ to: '/my-page' });
   return session;
 }
 

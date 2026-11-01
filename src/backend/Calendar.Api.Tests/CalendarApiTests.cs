@@ -26,14 +26,12 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenPaddedTitleWhenCreatingCalendarThenPersistsInitializedAggregate()
     {
         // Given a running API and a title with surrounding whitespace and Unicode.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
 
         // When the calendar is created and retrieved using its Location header.
-        var response = await client.PostAsJsonAsync(
-            "/calendars",
-            new { title = "  Julekalender æøå 🎄  " }
-        );
+        var response = await calendarContext.CreateAsync(new { title = "  Julekalender æøå 🎄  " });
         var created = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
         var retrieved = await client.GetAsync(response.Headers.Location);
 
@@ -59,20 +57,22 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenEditedDoorTextWhenRetrievingAfterApiRestartThenReturnsPersistedText()
     {
         // Given a stored calendar with door text edited directly in the database.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            "/calendars",
-            new { title = "Stored calendar" }
-        );
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        var response = await calendarContext.CreateAsync(new { title = "Stored calendar" });
         var created = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await using var connection = new NpgsqlConnection(calendarContext.Auth.ConnectionString);
         await connection.ExecuteAsync(
             "UPDATE doors SET content_text = @Text WHERE calendar_id = @Id AND day_number = 2",
             new { Text = "Stored surprise 🎁", created.Id }
         );
-        await using var restarted = fixture.Application();
+        await using var restarted = fixture.Application(
+            connectionString: calendarContext.Auth.ConnectionString,
+            time: calendarContext.Auth.Time
+        );
         using var restartedClient = restarted.CreateClient();
+        await calendarContext.Auth.LoginAsync(calendarContext.Owner, restartedClient);
 
         // When both the current and restarted API retrieve that calendar.
         var stored = (await client.GetFromJsonAsync<CalendarDto>(response.Headers.Location))!;
@@ -91,16 +91,14 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenExistingTitleWhenCreatingAnotherCalendarThenAssignsDistinctId()
     {
         // Given an existing calendar with the requested title.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        var firstResponse = await client.PostAsJsonAsync(
-            "/calendars",
-            new { title = "Same title" }
-        );
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        var firstResponse = await calendarContext.CreateAsync(new { title = "Same title" });
         var first = (await firstResponse.Content.ReadFromJsonAsync<CalendarDto>())!;
 
         // When another calendar is created with that title.
-        var response = await client.PostAsJsonAsync("/calendars", new { title = first.Title });
+        var response = await calendarContext.CreateAsync(new { title = first.Title });
         var second = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
 
         // Then the request succeeds and does not reuse the original calendar ID.
@@ -125,9 +123,10 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     )
     {
         // Given an invalid JSON request and the current persisted calendar count.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        await using var connection = new NpgsqlConnection(calendarContext.Auth.ConnectionString);
         var before = await connection.ExecuteScalarAsync<long>("SELECT count(*) FROM calendars");
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -162,20 +161,21 @@ public sealed class CalendarApiTests(ApiFixture fixture)
         var title = string.Concat(
             Enumerable.Range(0, 100).Select(index => points[index % points.Length].ToString())
         );
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        await using var connection = new NpgsqlConnection(calendarContext.Auth.ConnectionString);
 
         // When both title variants are submitted and the database boundary is checked.
-        var accepted = await client.PostAsJsonAsync("/calendars", new { title = $"  {title}  " });
-        var rejected = await client.PostAsJsonAsync("/calendars", new { title = title + unit });
+        var accepted = await calendarContext.CreateAsync(new { title = $"  {title}  " });
+        var rejected = await calendarContext.CreateAsync(new { title = title + unit });
         var storedLength = await connection.ExecuteScalarAsync<int>(
             "SELECT char_length(@Title)",
             new { Title = title }
         );
         var insertOverlongTitle = () =>
             connection.ExecuteAsync(
-                "INSERT INTO calendars VALUES (@Id, @Title, now(), now())",
+                "INSERT INTO calendars SELECT @Id, @Title, created_at, last_modified_at, owner_id, recipient_id, calendar_year, background, layout, door_order FROM calendars LIMIT 1",
                 new { Id = Guid.NewGuid(), Title = title + unit }
             );
 
@@ -195,8 +195,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenMalformedUuidWhenRetrievingCalendarThenReturnsBadRequestProblem()
     {
         // Given a running API and a route value that is not a UUID.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
 
         // When that route is requested.
         var response = await client.GetAsync("/calendars/not-a-uuid");
@@ -211,8 +212,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenUnknownUuidWhenRetrievingCalendarThenReturnsNotFoundProblem()
     {
         // Given a running API and an ID that has never been stored.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
         var id = Guid.NewGuid();
 
         // When that calendar is requested.
@@ -228,8 +230,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenTraceparentWhenRequestFailsThenProblemContainsIncomingTraceId()
     {
         // Given a request with a known W3C trace context.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             $"/calendars/{Guid.NewGuid():D}"
@@ -253,8 +256,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenConcurrentTraceContextsWhenRequestsFailThenEachProblemPreservesItsOwnTraceId()
     {
         // Given concurrent requests with distinct W3C trace IDs.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
         var traceIds = Enumerable.Range(0, 8).Select(_ => Guid.NewGuid().ToString("N")).ToArray();
 
         // When all requests are processed concurrently.
@@ -281,8 +285,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenTextBodyWhenCreatingCalendarThenReturnsUnsupportedMediaTypeProblem()
     {
         // Given a creation request with a text/plain body instead of JSON.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
         using var content = new StringContent("title");
 
         // When the body is submitted.
@@ -297,29 +302,43 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     )]
     public async Task GivenDuplicateDoorNumbersWhenInsertingCalendarThenRollsBackWholeAggregate()
     {
-        // Given an initialized calendar whose doors violate the unique-number constraint.
-        await using var source = NpgsqlDataSource.Create(fixture.Database.GetConnectionString());
-        await DatabaseStartup.MigrateAsync(
-            fixture.Database.GetConnectionString(),
-            1,
-            CancellationToken.None
+        // Given an owned aggregate whose doors violate the unique-number constraint.
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var response = await calendarContext.CreateAsync(new { title = "Atomic" });
+        var dto = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
+        using var scope = calendarContext.Application.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<ICalendarRepository>();
+        var transaction = scope.ServiceProvider.GetRequiredService<ISecurityTransaction>();
+        var invalid = new CalendarModel(
+            Guid.NewGuid(),
+            "Atomic",
+            dto.CreatedAt,
+            dto.CreatedAt,
+            [new DoorModel(1, "", "a"), new DoorModel(1, "", "duplicate")],
+            dto.OwnerId,
+            dto.RecipientId,
+            dto.Year,
+            "woodland",
+            "chronological",
+            dto.DoorOrder.ToArray()
         );
-        var repository = new CalendarRepository(source);
-        var service = new CalendarService(repository, TimeProvider.System);
-        var invalid = service.Initialize("Atomic") with
-        {
-            Doors = [new DoorModel(1, "a"), new DoorModel(1, "duplicate")],
-        };
 
-        // When insertion of that aggregate is attempted.
-        var insertInvalidCalendar = () => repository.InsertAsync(invalid, CancellationToken.None);
+        // When insertion is attempted within the shared transaction.
+        var insertInvalidCalendar = () =>
+            transaction.RunAsync(
+                async () =>
+                {
+                    await repository.InsertAsync(invalid);
+                    return true;
+                },
+                CancellationToken.None
+            );
 
-        // Then the database rejects the doors and also rolls back the calendar row.
+        // Then the failed aggregate is rolled back completely.
         await Assert.ThrowsAsync<PostgresException>(insertInvalidCalendar);
-        await using var connection = await source.OpenConnectionAsync();
         Assert.Equal(
             0,
-            await connection.ExecuteScalarAsync<int>(
+            await calendarContext.Auth.ScalarAsync<int>(
                 "SELECT count(*)::int FROM calendars WHERE id = @Id",
                 new { invalid.Id }
             )
@@ -334,14 +353,12 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenOutOfRangeDoorNumberWhenInsertingDoorThenDatabaseRejectsIt(int number)
     {
         // Given a persisted calendar and a door number outside 1-24.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            "/calendars",
-            new { title = "Door constraints" }
-        );
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        var response = await calendarContext.CreateAsync(new { title = "Door constraints" });
         var calendar = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await using var connection = new NpgsqlConnection(calendarContext.Auth.ConnectionString);
 
         // When an out-of-range door is inserted directly.
         var insertDoor = () =>
@@ -361,14 +378,12 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenStoredDoorWhenSettingTextToNullThenDatabaseRejectsIt()
     {
         // Given a persisted calendar containing non-null door text.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            "/calendars",
-            new { title = "Text constraints" }
-        );
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
+        var response = await calendarContext.CreateAsync(new { title = "Text constraints" });
         var calendar = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await using var connection = new NpgsqlConnection(calendarContext.Auth.ConnectionString);
 
         // When null text is written directly to its doors.
         var clearText = () =>
@@ -387,31 +402,27 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     )]
     public async Task GivenEditedCalendarWhenRestartingThenPreservesSavedContent()
     {
-        // Given a calendar created through the API whose first door has been edited.
-        CalendarDto created;
-        await using (var app = fixture.Application("Development"))
-        {
-            using var client = app.CreateClient();
-            var response = await client.PostAsJsonAsync(
-                "/calendars",
-                new { title = "My calendar" }
-            );
-            created = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
-        }
-        await using var connection = new NpgsqlConnection(fixture.Database.GetConnectionString());
-        await connection.ExecuteAsync(
+        // Given an owned calendar with a saved edit.
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var response = await calendarContext.CreateAsync(new { title = "My calendar" });
+        var created = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
+        await calendarContext.Auth.ExecuteAsync(
             "UPDATE doors SET content_text = 'preserved' WHERE calendar_id = @Id AND day_number = 1",
             new { created.Id }
         );
 
-        // When the application restarts and the calendar is retrieved.
-        await using var restarted = fixture.Application("Development");
+        // When another application instance retrieves it with the persisted session.
+        await using var restarted = fixture.Application(
+            connectionString: calendarContext.Auth.ConnectionString,
+            time: calendarContext.Auth.Time
+        );
         using var restartedClient = restarted.CreateClient();
+        await calendarContext.Auth.LoginAsync(calendarContext.Owner, restartedClient);
         var calendar = (
             await restartedClient.GetFromJsonAsync<CalendarDto>($"/calendars/{created.Id}")
         )!;
 
-        // Then the calendar retains its title and saved door text.
+        // Then migration restart preserves all saved data.
         Assert.Equal(created.Title, calendar.Title);
         Assert.Equal("preserved", calendar.Doors[0].Text);
         Assert.Equal(24, calendar.Doors.Count);
@@ -431,14 +442,19 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     )
     {
         // Given an initialized API using the generated controller contracts.
-        await using var app = fixture.Application();
-        using var client = app.CreateClient();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
+        var client = calendarContext.Client;
 
         // When MVC exposes its concrete route endpoints and action metadata.
         var endpoints = app.Services.GetRequiredService<EndpointDataSource>().Endpoints;
         var endpoint = Assert.Single(
             endpoints.OfType<RouteEndpoint>(),
-            candidate => candidate.RoutePattern.RawText == route
+            candidate =>
+                candidate.RoutePattern.RawText == route
+                && candidate
+                    .Metadata.GetMetadata<HttpMethodMetadata>()!
+                    .HttpMethods.Contains(method)
         );
         var action = endpoint.Metadata.GetMetadata<ControllerActionDescriptor>();
 
@@ -457,15 +473,26 @@ public sealed class CalendarApiTests(ApiFixture fixture)
     public async Task GivenHealthyDatabaseWhenOutageRecoversThenLivenessStaysOkAndReadinessRecovers()
     {
         // Given a running API connected to its isolated PostgreSQL container.
-        await using var app = fixture.Application();
+        await using var calendarContext = await CalendarTestContext.CreateAsync(fixture);
+        var app = calendarContext.Application;
         using var client = app.CreateClient();
         using var initialLive = await client.GetAsync("/health/live");
         using var initialReady = await client.GetAsync("/health/ready");
         HttpResponseMessage outageLive;
         HttpResponseMessage outageReady;
 
-        // When PostgreSQL is suspended and resumed without replacing its published port.
-        await fixture.Database.PauseAsync();
+        // When this database refuses connections and existing connections are terminated.
+        // Keep the container API responsive so recovery cannot depend on a paused engine.
+        await using var admin = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        var database = new NpgsqlConnectionStringBuilder(
+            calendarContext.Auth.ConnectionString
+        ).Database!;
+        var quotedDatabase = new NpgsqlCommandBuilder().QuoteIdentifier(database);
+        await admin.ExecuteAsync($"ALTER DATABASE {quotedDatabase} ALLOW_CONNECTIONS false");
+        await admin.ExecuteAsync(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @Database",
+            new { Database = database }
+        );
         try
         {
             outageLive = await client.GetAsync("/health/live");
@@ -473,7 +500,7 @@ public sealed class CalendarApiTests(ApiFixture fixture)
         }
         finally
         {
-            await fixture.Database.UnpauseAsync();
+            await admin.ExecuteAsync($"ALTER DATABASE {quotedDatabase} ALLOW_CONNECTIONS true");
         }
         using var recoveredReady = await WaitForReadinessAsync(client);
 

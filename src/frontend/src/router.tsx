@@ -41,6 +41,9 @@ export function getRouter() {
         resetAccount: caller.accounts.resetPassword,
         changeAccountStatus: caller.accounts.changeStatus,
         changeAccountRole: caller.accounts.changeRole,
+        createCalendar: caller.calendar.create,
+        saveDoor: caller.calendar.saveDoor,
+        saveLayout: caller.calendar.saveLayout,
       };
     })
     .client(browserAuthClient)();
@@ -54,7 +57,7 @@ export function getRouter() {
 }
 
 export type RouterContext = {
-  administration: { createdId?: string };
+  administration: { createdId?: string; sessionScope?: string };
   auth: ReturnType<typeof browserAuthClient>;
   queryClient: QueryClient;
   trpc: ReturnType<typeof createTRPCOptionsProxy<AppRouter>>;

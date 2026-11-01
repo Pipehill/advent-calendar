@@ -33,5 +33,9 @@ export function browserAuthClient() {
       client.accounts.changeStatus.mutate(input),
     changeAccountRole: (input: Inputs['accounts']['changeRole']) =>
       client.accounts.changeRole.mutate(input),
+    createCalendar: (input: Inputs['calendar']['create']) => client.calendar.create.mutate(input),
+    saveDoor: (input: Inputs['calendar']['saveDoor']) => client.calendar.saveDoor.mutate(input),
+    saveLayout: (input: Inputs['calendar']['saveLayout']) =>
+      client.calendar.saveLayout.mutate(input),
   };
 }

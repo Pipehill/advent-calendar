@@ -1,9 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { CalendarPlus } from 'lucide-react';
 import { AccountList } from '../components/account-list';
 import { AuthRouteError } from '../components/auth-feedback';
+import { CalendarList } from '../components/calendar-list';
 import { SessionControls } from '../components/session-controls';
-import { Button } from '../components/ui/button';
 import * as m from '../generated/paraglide/messages.js';
 import { requireSession } from '../lib/auth-navigation';
 
@@ -55,13 +54,7 @@ function PersonalPage() {
       {user.role === 'calendarUser' ? (
         <p className="mt-10 text-stone-600">{m.no_calendars()}</p>
       ) : user.role === 'calendarAdmin' ? (
-        <section className="mt-10" aria-label={m.future_actions()}>
-          <Button size="compact" variant="secondary" disabled>
-            <CalendarPlus aria-hidden="true" />
-            {m.create_calendar()}
-          </Button>
-          <p className="mt-3 text-sm text-stone-600">{m.admin_calendar_unavailable()}</p>
-        </section>
+        <CalendarList context={context} />
       ) : null}
       {user.role !== 'calendarUser' && <AccountList context={context} actorRole={user.role} />}
     </div>

@@ -1,17 +1,18 @@
 # Calendar backend
 
-The initial API creates calendars from a title and retrieves their persisted
-contents. Calendar and account/authentication controllers implement generated
+The protected API creates owned calendars for assigned recipients, lists the
+owner's calendars and saves numbered door content and persisted layouts.
+Calendar and account/authentication controllers implement generated
 contracts and consume service interfaces. Services apply business and authorization
 rules through repositories, which use Npgsql/Dapper with parameterized SQL.
 The frontend/BFF
-already displays persisted calendars. Backend authentication and user management
-are implemented; calendar authorization, editing and scheduled opening remain
-future features. Current
-calendar endpoints are anonymous. See the agreed
+implements creation, administration and full owner preview. Backend authentication,
+user management and owner-only calendar administration are implemented. Recipient
+viewing and scheduled opening remain future features. All calendar endpoints
+require an unrestricted current calendaradmin session. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
-Calendar authorization and
-production database hardening must be completed and verified before production.
+Recipient authorization/opening and production database hardening remain
+production gates.
 See [backend authentication](authentication.md) for the protected API, manual
 superadmin provisioning, temporary-password handover, session lifecycle and key
 configuration. The frontend/BFF implements login, password changes, logout and
@@ -78,7 +79,11 @@ supply their connection string. The Compose file is exclusively for local
 development and selects `Development`.
 
 Startup applies migrations without creating calendars or sample data. Create
-calendars through `POST /calendars` and use the returned ID to retrieve them.
+calendars through the protected `POST /calendars` and use the returned ID for
+owner administration. Migration 0004 removes only the legacy ownerless test
+calendars/doors once, then adds required ownership, recipient, stored year,
+background and layout/order constraints. Accounts, credentials, sessions and
+unrelated data survive. Journaled repeat startup preserves new calendars.
 Startup, migrations, setup and deployment must never seed user accounts.
 The superadmin provisioning path is an intentional
 manual database operation using an offline password-hash tool that cannot connect
@@ -98,30 +103,35 @@ remains 200 and readiness returns 503. Readiness never precedes migration succes
 Both routes allow anonymous access and return `text/plain`: `Healthy` on success,
 or `Unhealthy` for failed readiness. The OpenAPI `health` group generates
 `HealthControllerBase`, implemented by `HealthController`; the `calendars` group
-and `CalendarsController` own only calendar creation and retrieval. The frontend
+and `CalendarsController` own calendar creation, retrieval, listing and updates. The frontend
 retains a single generated `CalendarClient` for all API groups.
 
 ## Manual API examples
 
 Open [calendars.http](Calendar.Api/calendars.http) in an HTTP-capable editor.
-Change `baseUrl` and copy an ID returned by POST into `calendarId`.
-The file covers creation (201 with `Location`), retrieval (200), an
-invalid title (400), and an unknown UUID (404). Malformed UUIDs return 400.
+Use an unrestricted calendaradmin cookie, its principal-bound CSRF token and an
+assigned calendar-user UUID from the authenticated account workflow. The file
+covers creation (201 with `Location`), owner read/list, door/layout saves,
+validation and unknown IDs. Missing/revoked sessions return 401, excluded roles
+403 and unknown/foreign calendars 404. All protected successes/errors use no-store.
 
-```bash
-curl -i -H 'Content-Type: application/json' \
-  -d '{"title":"  My calendar  "}' http://localhost:8080/calendars
-curl -i 'http://localhost:8080/calendars/<id-returned-by-post>'
-```
+Creation accepts `title`, `recipientId` and `background` (`woodland`, `sleigh`,
+`playtime`, `aurora`). Ownership comes from the session. The service stores the
+current Europe/Oslo year and exactly 24 doors; reads never recalculate the year.
+Calendar titles trim surrounding Unicode whitespace before the 1-100-code-point
+limit. Door titles allow 0-50 and messages 0-5000 code points without trimming;
+empty fields support preparation. Missing/null/NUL/invalid Unicode and unknown
+properties are rejected. Plain text and line breaks are preserved.
 
-Only `title` is accepted. It is trimmed before the 1-100 Unicode code point limit;
-Norwegian letters and simple emoji count as one, combining marks and compound
-emoji components separately. Null/missing/blank/overlong titles and unknown input
-properties return ProblemDetails with structured errors and a request trace ID.
-NUL is rejected because PostgreSQL text cannot store it. Service-generated UUIDs
-are v4; the 24 doors are numbered 1-24 and have non-null empty text. Timestamps
-are identical UTC instants, normalized to PostgreSQL microsecond precision before
-both persistence and the creation response. GET returns stored text and timestamps.
+`PUT /calendars/{id}/doors/{number}` accepts `title` and `text` and preserves other
+doors/settings. `PUT /calendars/{id}/layout` accepts `chronological` or `random`;
+the latter generates and stores a permutation once per explicit selection.
+Reads and preview reuse it. `GET /calendars?offset=0&limit=20` returns ownership-
+scoped metadata and total count. The full GET response is an owner-only
+administration/preview contract, never a recipient payload. Services recheck
+actor/session, ownership and recipient role/responsibility under security lock
+800008 in the committing transaction shared with account maintenance. No recent
+password check applies to calendar operations. Writes never retry automatically.
 
 ## Contract, build and tests
 

@@ -5,7 +5,26 @@ public sealed record CalendarModel(
     string Title,
     DateTimeOffset CreatedAt,
     DateTimeOffset LastModifiedAt,
-    IReadOnlyList<DoorModel> Doors
+    IReadOnlyList<DoorModel> Doors,
+    Guid OwnerId,
+    Guid RecipientId,
+    int Year,
+    string Background,
+    string Layout,
+    int[] DoorOrder
 );
 
-public sealed record DoorModel(int Number, string Text);
+public sealed record DoorModel(int Number, string Title, string Text);
+
+public sealed record CalendarPage(IReadOnlyList<CalendarSummary> Calendars, int TotalCount);
+
+public sealed class CalendarSummary
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public Guid RecipientId { get; init; }
+    public int Year { get; init; }
+    public string Background { get; init; } = string.Empty;
+    public DateTime CreatedAt { get; init; }
+    public DateTime LastModifiedAt { get; init; }
+}

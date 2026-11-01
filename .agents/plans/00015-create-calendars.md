@@ -1,8 +1,10 @@
 # 00015: Create and administer calendars
 
-Status: Not implemented
+Status: Implemented (2026-11-01)
 
 Last updated: 2026-11-01
+
+Implementation type: feature
 
 ## Overview
 
@@ -114,7 +116,8 @@ None.
 - The owner confirmed existing calendars are disposable test data and authorized
   deleting them at the transition. Scope the one-time migration cleanup to the
   legacy calendars and their doors; do not reset the database or delete accounts.
-- This is planning work only. Implementation type has not been selected.
+- On 2026-11-01 the owner selected `feature` for implementation. Implementation
+  starts from synchronized `main` at `78c7b1c` on `feature/create-calendars`.
 - `src/frontend/src/routes/my-page.tsx` currently has a disabled calendar-creation
   button for `calendarAdmin` and an empty-calendar placeholder for `calendarUser`.
   Account lists and session controls are already implemented.
@@ -147,79 +150,145 @@ None.
 
 ### 1. Establish the agreed scope and contracts
 
+Implementation iterations (one commit each):
+
+1. Specify and generate protected contracts and add migration 0004. Verify
+   OpenAPI generation; consumer compilation depends on iteration 2.
+2. Implement transaction-scoped backend administration and integration coverage.
+   Verify backend build/tests, saved-source lint and duplication feedback.
+3. Produce four local background assets and their thumbnails/provenance.
+   Inspect all artwork and verify asset identifiers and dimensions.
+4. Implement validated BFF operations and localized creation, administration,
+   preview and own-list UI. Verify focused tests, type checking and build.
+5. Complete security, migration and production-browser verification, update
+   owning documentation, run quality/health comparison and publish a draft PR.
+
+Contract and persistence decisions:
+
+- Retain protected `POST /calendars` and owner-only `GET /calendars/{id}`;
+  add paginated `GET /calendars`, `PUT /calendars/{id}/doors/{number}` and
+  `PUT /calendars/{id}/layout`. These are administrator contracts only.
+- Creation accepts `title`, `recipientId` and `background` (`woodland`, `sleigh`,
+  `playtime`, `aurora`); owner and Europe/Oslo year are server-derived.
+- Calendar responses include owner/recipient UUIDs, year, background, layout,
+  persisted `doorOrder`, timestamps and 24 numbered doors with `title`/`text`.
+  Lists contain metadata only, a total count and bounded offset/limit pagination.
+- Door updates require non-null `title`/`text` (0-50/0-5000 code points).
+  Layout updates accept `chronological` or `random`; selection persists a new
+  permutation. Reads never generate order. Missing/null/unknown fields and
+  invalid Unicode/NUL are rejected at the respective boundaries.
+- All calendar operations require an unrestricted current `calendarAdmin`
+  session. Service checks and writes share security transaction lock 800008 with
+  account maintenance. Cross-owner access returns 404; other roles receive 403.
+  No recent-password check applies. Mutations require CSRF; responses use no-store.
+- Journaled transactional migration 0004 deletes only legacy calendars (cascading
+  doors), then adds required references, year/background/layout/order and content
+  constraints. Accounts and sessions are preserved; published scripts stay intact.
+
 - [x] Resolve the planning questions and record the owner's decisions in the
   requirements and implementation details.
 - [x] Track creation, administration and the own-calendar list in this plan and
   TODO; keep recipient lists/viewing/opening as a separate TODO follow-up.
-- [ ] Specify exact request/response schemas, validation, ownership constraints
+- [x] Specify exact request/response schemas, validation, ownership constraints
   and the authorized legacy-data cleanup before changing the API or database.
+
+Iteration 1 evidence: authored OpenAPI validation and both generators passed
+(four inherited Redocly warnings). Full saved-source quality passed after SQL
+formatting fixes. MCP refresh reports no SQL clones; repository duplication is
+38 lines / 5 clones (0.21783%). Backend consumer compilation and real migration
+execution depend on iteration 2; no successful runtime check is claimed yet.
 
 ### 2. Extend persistence and the authored API
 
-- [ ] Add calendar owner and recipient account references, stored year,
+- [x] Add calendar owner and recipient account references, stored year,
   background selection and layout state. Add initially empty door content titles
   alongside messages. Store and validate a random permutation of doors 1-24;
   persist it when selecting random layout and reuse it on reads without
   renumbering doors or moving their contents to different dates.
-- [ ] Add database constraints for supported values, required new-calendar data,
+- [x] Add database constraints for supported values, required new-calendar data,
   door bounds, content lengths and the persisted permutation. Use the new DbUp
   migration to delete legacy calendars/doors before enforcing required ownership
   and recipient data. Keep this cleanup journaled and transactional; do not add a
   recurring startup cleanup. Verify populated upgrades and fresh installations.
-- [ ] Extend OpenAPI for protected creation and administration reads, door updates,
+- [x] Extend OpenAPI for protected creation and administration reads, door updates,
   layout updates and an owner-scoped paginated calendar list. Keep preview/administration
   responses separate from the future recipient contract. Define authentication,
   antiforgery, validation, forbidden/not-found and other applicable errors.
-- [ ] Define door titles as non-null strings of 0-50 Unicode code points and
+- [x] Define door titles as non-null strings of 0-50 Unicode code points and
   messages as non-null strings of 0-5000. Reject missing/null fields, NUL and
   invalid Unicode at the relevant boundaries. Preserve plain text and message
   line breaks; do not introduce rich-text/HTML content.
-- [ ] Regenerate C# DTOs/controller bases and the TypeScript client from the
+- [x] Regenerate C# DTOs/controller bases and the TypeScript client from the
   authored contract before updating consumers; keep generated files untracked.
-- [ ] Extend the hand-written controller, service and repository interfaces and
+- [x] Extend the hand-written controller, service and repository interfaces and
   implementations. Keep authorization and calendar business rules in services,
   with parameterized persistence and atomic writes in repositories.
-- [ ] Recheck actor session/status/role, ownership and recipient eligibility in
+- [x] Recheck actor session/status/role, ownership and recipient eligibility in
   committing transactions. Coordinate with existing account/security transactions
   so concurrent role/status changes cannot produce unauthorized committed writes.
   Do not add calendar operations to the existing recent-password-verification
   requirement for account/credential maintenance without an agreed requirement.
-- [ ] Persist updates and modification timestamps consistently. Preserve other
+- [x] Persist updates and modification timestamps consistently. Preserve other
   doors and settings when saving one door or changing a layout. Report failed
   writes accurately and leave stored data intact after rollback.
 
 ### 3. Add the protected BFF and frontend flow
 
-- [ ] Add shared calendar-input validation and focused server helpers alongside
+Iteration 2 evidence: Release build and all 211 PostgreSQL-backed backend tests
+passed, including populated transition/fresh migrations, journal restart, rollback,
+Oslo year boundary, Unicode limits, role/session/CSRF denial, SQL ownership and
+concurrent actor/recipient changes. Full saved-source quality passed. Initial
+runs were interrupted after the container-pause outage fixture stalled; the test
+now denies/terminates connections only to its disposable database and verifies
+recovery without pausing the container. The legacy-upgrade test filter was fixed
+to exclude the embedded OpenAPI resource. No runtime application behavior was
+changed for those fixture repairs. MCP reports 59 duplicated lines / 7 clones
+(0.32041% repository); added matches are controller security setup and test setup.
+Intermediate application health improved 86.8 to 87.7; absolute duplication rose
+32 to 53 application lines (4 to 6 clones). Keep explicit security attributes and
+scenario setup for clarity; final measurements follow the frontend iteration.
+
+- [x] Add shared calendar-input validation and focused server helpers alongside
   the existing auth/account modules. Extend `server/trpc.ts` and the browser
   mutation client with typed creation, editing, layout and preview operations.
-- [ ] Reuse `callBackend`, session inspection, the designated auth/CSRF cookie
+- [x] Reuse `callBackend`, session inspection, the designated auth/CSRF cookie
   allowlist, principal-bound CSRF refresh, structured errors, cancellation and
   total deadlines. Keep mutation retries disabled.
-- [ ] Replace the disabled creation action with navigation to a dedicated English
+- [x] Replace the disabled creation action with navigation to a dedicated English
   route, following existing route conventions. Add owner-protected administration
   and preview routes keyed by calendar UUID and support direct navigation/refresh.
-- [ ] Build the creation form with name, eligible recipient and illustrated
+- [x] Build the creation form with name, eligible recipient and illustrated
   background choices. Show name/username when necessary to distinguish recipients;
   include pending, empty and recoverable failure states for recipient loading.
-- [ ] Navigate using the successfully persisted calendar ID. Display exactly 24
+- [x] Navigate using the successfully persisted calendar ID. Display exactly 24
   selectable doors on administration, the title/message editor and layout controls,
   plus personal-page, preview and logout actions.
-- [ ] Share calendar rendering between preview and subsequent recipient work
+- [x] Share calendar rendering between preview and subsequent recipient work
   where appropriate, while keeping privileged queries and content isolated.
   In this increment only the owner can open all door contents in preview.
-- [ ] Reflect successful saves in administrator and preview query data so the
+- [x] Reflect successful saves in administrator and preview query data so the
   owner sees the persisted result. Save door edits through an explicit Save
   action, show pending/success/error feedback and retain unsaved values on failure.
-- [ ] Add the owner-scoped personal-page calendar list with links to administration,
+- [x] Add the owner-scoped personal-page calendar list with links to administration,
   pagination and loading/empty/error states. Refresh it after creation so the
   calendar is visible on return. Keep this separate from the existing account
   list and do not add a superadmin or recipient calendar list.
-- [ ] Extend session checks and no-store coverage to calendar routes and API/BFF
+- [x] Extend session checks and no-store coverage to calendar routes and API/BFF
   responses. Prevent route prefetch, SSR/hydration and browser history/session
   changes from reusing another account's protected calendar data.
 
 ### 4. Produce the background choices and localized interface
+
+Iterations 3-4 evidence: four inspected 1536 x 1024 JPEG backgrounds and 384 x 256
+thumbnails are local with stable identifiers and documented provenance. Frontend
+creation is `/create-calendar`, administration retains `/calendars/$id`, and the
+separate owner preview is `/calendar-preview/$id`. All 117 frontend/BFF tests,
+explicit TypeScript checking, production Vite/Nitro build and full saved-source
+quality passed. Nitro needed an unsandboxed build to inspect the Windows profile
+symlink; the first sandboxed attempt failed with EPERM and was rerun successfully.
+Production browser/keyboard/touch verification follows in iteration 5. MCP reports
+132 duplicated lines / 14 clones (0.67395% repository), mainly explicit form/route
+security and test setup; inspect final health after integrated verification.
 
 The following are creative proposals for implementation, not approved final artwork:
 
@@ -230,31 +299,68 @@ The following are creative proposals for implementation, not approved final artw
 | Small children | Soft shapes, cheerful animals and a simple bright Christmas scene |
 | Older children | A more atmospheric winter landscape with northern lights and adventure details |
 
-- [ ] Produce three or four distinct usable images covering all four directions.
+- [x] Produce three or four distinct usable images covering all four directions.
   Keep door labels and content legible across backgrounds, narrow screens and
   wider previews. Supply useful thumbnails and suitable full-calendar assets.
-- [ ] Store assets locally under the frontend public assets with stable selection
+- [x] Store assets locally under the frontend public assets with stable selection
   identifiers and document their provenance as appropriate. Avoid user-entered
   remote image URLs or uploads in the specified background-choice flow.
-- [ ] Translate background labels, form controls, door editor, layout labels,
+- [x] Translate background labels, form controls, door editor, layout labels,
   preview indicators, confirmations and error states in `messages/nb.json` and
   `messages/en.json`. Do not bake interface labels into the background images.
-- [ ] Verify keyboard selection, visible focus, accessible labels, usable contrast
+- [x] Verify keyboard selection, visible focus, accessible labels, usable contrast
   and touch controls with the existing compact UI components.
 
 ### 5. Verify and document the implemented result
 
-- [ ] Extend backend integration tests, focused frontend/BFF tests and production
+- [x] Extend backend integration tests, focused frontend/BFF tests and production
   browser scenarios for the requirements below. Adapt the existing calendar smoke
   fixtures: anonymous creation/read must cease to be their successful setup path.
-- [ ] Update backend HTTP examples, project/frontend/backend documentation,
+- [x] Update backend HTTP examples, project/frontend/backend documentation,
   architecture implementation status and current calendar-access rules to describe
   what was actually delivered and the remaining recipient/deployment work.
-- [ ] Run the applicable shared generation, build, test, lint and quality workflow.
+- [x] Run the applicable shared generation, build, test, lint and quality workflow.
   Record actual evidence, remaining findings and limitations without claiming
   deferred recipient behavior or inherited platform gaps have been verified.
-- [ ] Mark this plan and its index implemented only after implementation and
+- [x] Mark this plan and its index implemented only after implementation and
   verification are complete.
+
+Iteration 5 final evidence (2026-11-01): all 211 backend integration tests,
+121 frontend/BFF tests and 58 production browser scenarios passed, together with
+eight public/anonymous-denial smoke scenarios. An additional focused 375px
+touch/keyboard run in Pacific/Honolulu preserved the stored year. Type checking,
+production Vite/Nitro build, SDK formatting and full saved-source quality passed.
+Clean regeneration of both ignored contracts produced identical SHA-256 hashes.
+Current documentation and HTTP examples describe owner administration and the
+remaining recipient/production gates; owning verification files retain details.
+
+Integrated verification corrected distinct calendar/account refresh labels and
+transported plain route failure codes through SSR. Browser fixtures now wait for
+language navigation and preview mounting, select titles including their displayed
+year, and avoid a previously reset account for unrelated role checks. The BFF
+binds protected browser queries to a non-credential fingerprint of the validated
+opaque authentication cookie, distinguishing equal-expiry sessions without
+exposing the ticket. Scope changes and owner denials remove protected query data.
+The unused static Card component was removed after verifying it had no callers.
+
+Final advisory application health improves 86.8 to 88.9 (+2.1), while tooling
+declines 52.3 to 48.0 (-4.3). Application duplication grows from 32 lines / 4
+clones (0.318566%) to 117 / 12 (0.950370%); tooling grows from 6 / 1 (0.081444%)
+to 12 / 2 (0.157604%). Explicit form/security/test boilerplate is retained for
+readability. Tooling's new unused-module finding is a confirmed heuristic false
+positive: the browser suite imports and executes the calendar scenario module.
+Maximum application complexity stays 75; tooling rises 226 to 227. Detailed
+scope, configuration/source identities and limitations are in health verification.
+The final MCP refresh reports 129 duplicated lines / 14 clones (0.647428%) over
+the repository reference; no scoring settings/exclusions changed.
+
+Disposable containers/processes, including four left by interrupted backend runs,
+were cleaned up. Existing application containers/images and database volumes
+were preserved. Recipient lists/viewing/opening, production database hardening,
+inherited Vite-dev language behavior, native-platform/Docker evidence and physical
+device/manual screen-reader coverage remain outside this completed increment.
+The verified iteration commits are preserved on `feature/create-calendars` for
+publication as a draft PR targeting `main`.
 
 ## Verification
 

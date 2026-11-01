@@ -8,6 +8,7 @@ public enum AccountFailure
     VerificationRequired,
     Conflict,
     ResourceLimit,
+    NotFound,
 }
 
 public sealed class AccountFailureException(

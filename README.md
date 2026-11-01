@@ -7,8 +7,9 @@ A planned online advent calendar for invited users, including children. This
 repository includes a runnable backend and a frontend showing stored calendar
 titles and 24 numbered doors, with PostgreSQL persistence. The interface supports
 Norwegian by default and English selection; user-authored content stays as written.
-Backend accounts, website login, personal pages and account administration are
-implemented. Calendar access control, opening doors and deployment are planned.
+Backend accounts, website login, personal pages, account administration and
+owner-protected calendar preparation are implemented. Recipient viewing, timed
+opening and deployment remain planned.
 
 Accounts use a username and password, with no public registration. Through the
 website or backend API, superadmins create calendar administrators and ordinary users;
@@ -20,12 +21,13 @@ Administrators can reset permitted accounts' passwords. Superadmins can also
 enable/disable nonsuperadmin accounts and change their assignable roles, preserving
 fixed responsibility. These actions require recent administrator password verification.
 
-Calendar use will require login. Each calendar will have one recipient account,
+Calendar administration requires login. Each calendar has one recipient account,
 and a recipient may access multiple assigned calendars. Calendar administrators
-will manage their own calendars, preview and edit every door before and during
-the calendar period, and move content between doors that have not yet reached
-their scheduled opening time. Calendar assignment and any invitation flow remain
-future work.
+manage their own calendars and preview/edit every door before and during
+the calendar period. They create calendars for assigned users with the current
+Europe/Oslo year, choose one of four original backgrounds, and save door titles,
+messages and chronological/random arrangements. Random arrangements remain stable
+across visits. Recipient access, content moves and invitation behavior remain future work.
 
 Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
 so children can open them in the morning. Earlier doors will remain available
@@ -82,17 +84,22 @@ The launcher prints `http://localhost:3000` for the landing page and
 `http://localhost:8080` for the API after readiness succeeds. Ctrl+C stops Vite;
 backend/database stay running and preserve calendars. Stop all containers with
 `podman compose stop` or `docker compose stop`. The frontend root welcomes
-visitors with a Norwegian Christmas illustration and a disabled login button.
-Use `/calendars/<id>` to display a calendar directly.
-The current calendar API is anonymous. Calendar authorization,
-frontend/BFF security integration and production database hardening must be
-completed and verified before production use.
+visitors with a Norwegian Christmas illustration and a login link.
+Calendar administrators use `/my-page` to list their own calendars and open
+`/create-calendar`. `/calendars/<id>` administers an owned calendar and
+`/calendar-preview/<id>` previews all 24 doors. Both require the current owner's
+unrestricted session; superadmins and recipients have no calendar authority yet.
+Recipient access/opening and production database hardening remain production gates.
 See [backend authentication](src/backend/authentication.md) for the direct API
 exchange and intentional manual superadmin provisioning.
-Create with
-`POST /calendars` and JSON `{"title":"My calendar"}`; retrieve the returned ID
-with `GET /calendars/{id}`. Creation returns 24 numbered doors with empty text.
+The protected API accepts `POST /calendars` with title, recipient UUID and a
+background identifier, using the authenticated owner and CSRF token. Creation
+persists exactly 24 empty doors before navigation. See the backend HTTP examples.
 Startup does not create calendars or other sample data.
+
+Migration 0004 removes the ownerless legacy test calendars and their doors once,
+then enforces the protected calendar model. It preserves accounts, credentials,
+sessions and unrelated data; subsequent startup preserves newly created calendars.
 
 See [frontend workflows](src/frontend/README.md) for host development, language
 selection, frontend builds and browser verification. See

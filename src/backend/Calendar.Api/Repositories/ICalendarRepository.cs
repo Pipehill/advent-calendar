@@ -4,6 +4,9 @@ namespace Calendar.Api.Repositories;
 
 public interface ICalendarRepository
 {
-    Task InsertAsync(CalendarModel calendar, CancellationToken cancellationToken);
-    Task<CalendarModel?> GetAsync(Guid id, CancellationToken cancellationToken);
+    Task InsertAsync(CalendarModel calendar);
+    Task<CalendarModel?> GetAsync(Guid id, Guid ownerId);
+    Task<CalendarPage> ListAsync(Guid ownerId, int offset, int limit);
+    Task SaveDoorAsync(Guid id, int number, string title, string text, DateTimeOffset modified);
+    Task SaveLayoutAsync(Guid id, string layout, int[] order, DateTimeOffset modified);
 }

@@ -12,7 +12,9 @@ The owner confirmed on 2026-10-18 that
 [plan 00008](../plans/00008-backend-user-management.md) supersedes the earlier
 email-registration, invitation-membership and owner-provisioning-CLI decisions.
 These rules reflect that account model. Backend authentication and user management
-are implemented; current calendar POST/GET endpoints remain anonymous. See the
+are implemented, together with owner-protected calendar administration in plan
+00015. Calendar POST/GET, list and update endpoints require the current unrestricted
+calendaradmin owner; the old anonymous paths are closed. See the
 [backend authentication workflow](../../src/backend/authentication.md).
 
 Plan 00008 covers backend accounts, authentication, contracts, persistence and
@@ -20,10 +22,12 @@ verification. Plan 00011 adds frontend/BFF login, password change, logout and
 protected personal pages with a read-only superadmin account list.
 Plan 00013 extends those pages with dedicated account creation, scoped administrator
 lists, password reset, status/role maintenance and recoverable recent verification.
-Calendar authorization/assignment and
+Recipient calendar authorization/opening and
 [database hardening in plan 00009](../plans/00009-database-hardening.md) must be
-completed and verified before production. The calendar rules below remain
-requirements for that follow-up; do not claim them as delivered by plan 00008.
+completed and verified before production. Recipient opening, reassignment and
+content-move rules below remain requirements for that follow-up. Plan 00015
+delivers owner creation, preparation and preview; do not attribute calendar
+behavior to plan 00008.
 
 ## Accounts and permissions
 
@@ -180,20 +184,34 @@ requirements for that follow-up; do not claim them as delivered by plan 00008.
 
 ## Calendar access boundary
 
-- Keep the landing page public and require authentication for future calendar use.
+- Keep the landing page public and require authentication for calendar use.
   Each calendar has one recipient account; a recipient can access multiple assigned
-  calendars. Existing-user assignment, assignment/reassignment, invitation behavior
-  and calendar creation/read authorization belong to a separate calendar task.
+  calendars. Creation assigns one existing `calendarUser` under the acting
+  calendaradmin's fixed responsibility. Recipient viewing/opening, reassignment
+  and invitation behavior remain separate work.
   Do not retain the former public email-registration/invitation-membership flow
   as an approved design or assume an invitation grants identity/admin privileges.
 - Let calendaradmins manage calendars they own. Enforce ownership and assigned
   recipient access in the backend; administrator role alone must not grant access
   to another administrator's calendar. The superadmin permission grant in plan
   00008 applies to implemented user management, not unspecified calendar authority.
-- In plan 00008, preserve the current calendar API behavior and frontend/BFF source.
-  Do not add a blanket authentication policy to those deferred routes or describe
-  them as protected. Complete access enforcement and browser/cache verification
-  in the follow-up tasks before production.
+- Plan 00015 closes anonymous creation/read and adds owner-only list/edit/preview.
+  Calendar users, superadmins and restricted sessions have no calendar authority
+  in this increment. Recheck current actor/session, ownership and recipient
+  eligibility in the committing security transaction under lock 800008. Calendar
+  mutations use CSRF and all protected responses/errors use no-store; keep them
+  outside password-hashing concurrency limits and recent-password verification.
+- Store the creation year from Europe/Oslo and one of the four local background
+  identifiers. Create exactly 24 numbered doors, with initially empty non-null
+  titles/messages. Titles allow 0-50 and messages 0-5000 Unicode code points;
+  reject missing/null/NUL/invalid Unicode and preserve plain text and line breaks.
+  Save explicitly. Layout selection persists chronological or random order as a
+  permutation of 1-24 without changing door numbers/content/dates; reads never shuffle.
+- Use separate owner administration/preview query keys, backend-validated guards
+  on direct navigation/refresh and no route prefetch. Clear protected browser query
+  data when the session changes. Bind the browser scope to the BFF fingerprint of
+  the validated opaque authentication cookie, rather than username/expiry alone.
+  Never expose the ticket itself. Do not use owner preview as a recipient view.
 
 ## Calendar opening and administrator editing
 

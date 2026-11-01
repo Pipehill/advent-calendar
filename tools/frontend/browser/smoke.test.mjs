@@ -75,119 +75,56 @@ describe('Frontend browser smoke', { timeout: 120000 }, () => {
     await page.screenshot({ path: path.join(reports, 'landing-mobile.png'), fullPage: true });
   });
 
-  test('Given a persisted calendar, When its URL is opened directly, Then stored ordered doors hydrate without a duplicate read', async () => {
-    // Given a calendar created by this suite and no selected language.
-    const { page, frontendUrl, apiUrl, requests, reports } = fixture;
-    const stored = await (await fetch(`${apiUrl}/calendars/${fixture.calendar.id}`)).json();
 
-    // When the calendar is opened directly and hydrates.
-    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`, { waitUntil: 'networkidle' });
+  for (const route of ['/create-calendar', '/calendars/00000000-0000-4000-8000-000000000001', '/calendar-preview/00000000-0000-4000-8000-000000000001']) {
+    test('Given an anonymous visitor, When protected route ' + route + ' loads, Then login replaces calendar content without protected hydration', async () => {
+      // Given no authentication cookies and a protected calendar route.
+      const { page, frontendUrl } = fixture;
 
-    // Then stored data is rendered without browser reads or hydration errors.
-    assert.equal(new URL(page.url()).pathname, `/calendars/${fixture.calendar.id}`);
-    assert.equal(await page.locator('h1').textContent(), stored.title);
-    assert.deepEqual(await page.locator('ol li').allTextContents(), stored.doors.map(door => String(door.number)));
-    assert.equal(await page.locator('html').getAttribute('lang'), 'nb');
-    assert(!requests.some(url => url.includes('/api/trpc/')));
-    await page.screenshot({ path: path.join(reports, 'calendar-desktop.png'), fullPage: true });
-  });
+      // When the route is opened directly and refreshed.
+      const response = await page.goto(frontendUrl + route, { waitUntil: 'networkidle' });
+      await page.reload({ waitUntil: 'networkidle' });
 
-  test('Given a stored calendar title, When English is selected and refreshed, Then the interface changes while the title stays unchanged', async () => {
-    // Given the Norwegian calendar and its original stored title.
-    const { page, frontendUrl, apiUrl } = fixture;
-    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`);
-    const original = await page.locator('h1').textContent();
+      // Then no calendar title, door content or creation form is exposed.
+      assert.equal(new URL(page.url()).pathname, '/login');
+      assert.match(response.headers()['cache-control'], /no-store/);
+      assert.equal(await page.locator('ol button, #calendar-title, #door-text').count(), 0);
+    });
+  }
 
-    // When the user selects English and refreshes.
-    await selectLanguage(page, 'en');
-    await page.reload({ waitUntil: 'networkidle' });
-    const stored = await (await fetch(`${apiUrl}/calendars/${fixture.calendar.id}`)).json();
+  test('Given an anonymous client, When legacy API and owner BFF paths are called, Then each returns protected denial', async () => {
+    // Given no session on the direct API or BFF.
+    const { apiUrl, frontendUrl } = fixture;
+    const id = '00000000-0000-4000-8000-000000000001';
 
-    // Then selected language survives SSR and the stored title is unchanged.
-    assert.equal(await page.locator('html').getAttribute('lang'), 'en');
-    assert.equal(await page.getByRole('combobox').getAttribute('aria-label'), 'Language');
-    assert.equal(await page.locator('h1').textContent(), original);
-    assert.equal(stored.title, original);
-  });
+    // When legacy creation/read and privileged preview are attempted.
+    const responses = await Promise.all([
+      fetch(apiUrl + '/calendars', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Denied' }) }),
+      fetch(apiUrl + '/calendars/' + id),
+      fetch(frontendUrl + '/api/trpc/calendar.preview?input=' + encodeURIComponent(JSON.stringify({ id })))
+    ]);
 
-  test('Given two persisted calendars, When their URLs and a browser query are used, Then the BFF returns each stored calendar without door text', async () => {
-    // Given distinct calendars created through the existing API.
-    const { page, frontendUrl, apiUrl, requests, reports } = fixture;
-    const calendars = [];
-    for (const title of ['Smoke test: Ærlig jul 🎄', 'Smoke test: Another calendar']) {
-      const response = await fetch(`${apiUrl}/calendars`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
-      });
-      assert.equal(response.status, 201);
-      calendars.push(await response.json());
+    // Then the previous anonymous bypass is closed, including error caching.
+    for (const response of responses) {
+      assert.equal(response.status, 401);
+      assert.match(response.headers.get('cache-control'), /no-store/);
     }
-    fs.writeFileSync(path.join(reports, 'calendars.json'), JSON.stringify(calendars, null, 2) + '\n');
-
-    for (const calendar of calendars) {
-      // When each stored calendar URL is loaded.
-      await page.goto(`${frontendUrl}/calendars/${calendar.id}`, { waitUntil: 'networkidle' });
-
-      // Then the correct stored title is displayed.
-      assert.equal(await page.locator('h1').textContent(), calendar.title);
-    }
-
-    // When a browser read is made through tRPC.
-    const read = await page.evaluate(async id => {
-      const input = encodeURIComponent(JSON.stringify({ id }));
-      const response = await fetch(`/api/trpc/calendar.get?input=${input}`);
-      return { status: response.status, body: await response.json() };
-    }, calendars[1].id);
-
-    // Then the response omits door contents and the browser only calls the BFF.
-    assert.equal(read.status, 200);
-    assert.equal(read.body.result.data.title, calendars[1].title);
-    assert(read.body.result.data.doors.every(door => !('text' in door)));
-    assert(requests.some(url => url.includes('/api/trpc/calendar.get')));
-    assert(!requests.some(url => url.startsWith(apiUrl)));
   });
 
-  test('Given invalid and missing calendars, When English and Norwegian are selected, Then errors use translated interface text', async () => {
-    // Given an English reader and malformed or unknown calendar IDs.
+  test('Given a mobile anonymous visitor, When a protected preview loads, Then the login page fits without door content', async () => {
+    // Given a narrow mobile viewport and no session.
     const { page, frontendUrl } = fixture;
-    await page.goto(frontendUrl);
-    await selectLanguage(page, 'en');
-    const cases = [
-      ['bad-id', 'The calendar address is invalid.'],
-      ['00000000-0000-4000-8000-000000000000', 'We could not find this calendar.'],
-    ];
-
-    for (const [id, message] of cases) {
-      // When the invalid or missing calendar is requested.
-      await page.goto(`${frontendUrl}/calendars/${id}`, { waitUntil: 'networkidle' });
-
-      // Then a translated error describes the failure.
-      assert.equal(await page.getByRole('alert').locator('p').textContent(), message);
-    }
-
-    // When the missing-calendar page is switched to Norwegian.
-    await selectLanguage(page, 'nb');
-
-    // Then the same error is translated without exposing backend prose.
-    assert.equal(await page.getByRole('alert').locator('p').textContent(), 'Vi fant ikke denne kalenderen.');
-  });
-
-  test('Given a mobile calendar reader, When a persisted calendar loads, Then all 24 static doors fit without horizontal overflow', async () => {
-    // Given a narrow mobile viewport.
-    const { page, frontendUrl, reports } = fixture;
     await page.setViewportSize({ width: 375, height: 812 });
 
-    // When the test calendar loads.
-    await page.goto(`${frontendUrl}/calendars/${fixture.calendar.id}`, { waitUntil: 'networkidle' });
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+    // When direct preview navigation is attempted.
+    await page.goto(frontendUrl + '/calendar-preview/00000000-0000-4000-8000-000000000001', { waitUntil: 'networkidle' });
 
-    // Then all doors fit without interactive door controls.
-    assert.equal(await page.locator('ol li').count(), 24);
-    assert.equal(await page.locator('ol button, ol a').count(), 0);
-    assert.equal(overflow, false);
-    await page.screenshot({ path: path.join(reports, 'calendar-mobile.png'), fullPage: true });
+    // Then login is accessible without horizontal overflow or protected controls.
+    assert.equal(new URL(page.url()).pathname, '/login');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await page.locator('ol button').count(), 0);
   });
+
 });
 
 // Each test gets a fresh browser context so locale cookies and requests cannot leak.
@@ -201,13 +138,6 @@ function browserFixture() {
 
   before(async () => {
     fs.mkdirSync(fixture.reports, { recursive: true });
-    const response = await fetch(`${fixture.apiUrl}/calendars`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Browser test calendar' }),
-    });
-    assert.equal(response.status, 201);
-    fixture.calendar = await response.json();
     browser = await chromium.launch({
       headless: true,
       channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined),
