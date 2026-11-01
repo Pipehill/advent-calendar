@@ -178,17 +178,17 @@ Current repository facts:
 
 ### 4. Apply form treatment and localized accessible labels
 
-- [ ] Update `src/frontend/src/components/account-form.tsx` with compact
+- [x] Update `src/frontend/src/components/account-form.tsx` with compact
   icon-and-text confirm/save and cancel controls. Keep submission and verification
   logic intact, including synchronous duplicate-submission protection.
-- [ ] Apply the matching compact retry treatment to list error feedback through
+- [x] Apply the matching compact retry treatment to list error feedback through
   `src/frontend/src/components/auth-feedback.tsx`, keeping shared consumers
   functional. Keep localized loading/success/error messages visible.
-- [ ] Maintain labels in `src/frontend/messages/nb.json` and `en.json`, reusing
+- [x] Maintain labels in `src/frontend/messages/nb.json` and `en.json`, reusing
   existing refresh, previous/next, and action messages. Add a target-specific
   account-actions label for the three-dot trigger. Generate Paraglide output
   through the existing workflow.
-- [ ] Review shared controls on ordinary-user personal pages, login, own-password
+- [x] Review shared controls on ordinary-user personal pages, login, own-password
   change, and creation pages for regressions. The account-form scope does not
   require redesigning credential forms or changing application routes.
 
@@ -232,6 +232,12 @@ versus baseline 87.5; additional focus guards and responsive controls explain
 the complexity tradeoff, with unchanged clone counts/lines and heuristic findings.
 Localized trigger messages moved forward from step 4 because the menu requires
 them to remain accessible in every intermediate commit.
+
+Step 4: 77 unit tests, TypeScript, Biome and full repository quality passed.
+Only account form controls and shared retry presentation changed; form validation,
+recent verification and the synchronous duplicate-submit guard remain intact.
+Default Button consumers retain their original size. The complete browser run
+in step 5 checks shared consumers, both catalogs and session/layout regressions.
 
 - **Visual layout:** compare the administrator page before/after on desktop and
   narrow mobile widths in Norwegian and English. Confirm smaller, quieter

@@ -1,3 +1,4 @@
+import { RotateCw } from 'lucide-react';
 import * as m from '../generated/paraglide/messages.js';
 import { errorCode } from './error-state';
 import { Button } from './ui/button';
@@ -6,7 +7,10 @@ export function RequestFailure({ error, retry }: { error: unknown; retry: () => 
   return (
     <div role="alert">
       <p>{authError(error)}</p>
-      <Button onClick={retry}>{m.retry_label()}</Button>
+      <Button size="compact" variant="secondary" onClick={retry}>
+        <RotateCw aria-hidden="true" />
+        {m.retry_label()}
+      </Button>
     </div>
   );
 }
