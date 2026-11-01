@@ -80,9 +80,11 @@ Additional requirements:
 
 1. Every enabled button and account-menu item shows a pointer cursor on hover;
    disabled controls retain their disabled treatment.
-2. Right-align every account value in consistent columns across rows, including
+2. Left-align every account value in consistent columns across rows, including
    long names and usernames, with role/type and enabled status in separate columns.
    Preserve usable narrow layouts and the existing action menus and focus behavior.
+   The owner corrected the initial right-alignment request to left alignment
+   during implementation on 2026-11-01.
 3. Display the authorized total beside the list heading, for example
    `Alle kontoer (6)`. Calendaradmins see only their assigned ordinary-user count.
 4. Show both current and total pages, localized as `Side 1 av 2` / `Page 1 of 2`.
@@ -91,12 +93,12 @@ Additional requirements:
 
 Implementation iterations (one commit each):
 
-- [ ] 6. Add an authorized `totalCount` to the authored user-list contract,
+- [x] 6. Add an authorized `totalCount` to the authored user-list contract,
   repository/service/controller and BFF. Reuse the SQL authorization predicate;
   do not scan every account merely to count. Derive `hasMore` from the count.
   Verify scoped, empty, partial, full and exact-boundary pagination in existing
   backend integration and BFF tests; regenerate contracts and run saved-source quality.
-- [ ] 7. Apply shared pointer styling, four aligned account-value columns,
+- [x] 7. Apply shared pointer styling, four aligned account-value columns,
   heading totals and translated page totals. Extend existing production browser
   scenarios for both administrator scopes, languages, desktop/mobile alignment,
   cursors and pagination boundaries. Run unit/API tests, explicit TypeScript,
@@ -106,12 +108,25 @@ Implementation iterations (one commit each):
 
 Follow-up iteration 6: contract generation and backend build passed, as did 82
 frontend/BFF tests and full saved-source quality after correcting C# formatting.
-The full backend integration suite is still running; its result is required
-before follow-up completion. MCP snippet inspection found no clones. Interim
+All 178 backend integration tests subsequently passed. MCP snippet inspection
+found no clones for the count implementation. Interim
 application health remains 86.9, tooling 52.3; application complexity changes
-79.6 to 79.5 (maximum 73 to 75) for the additional total-count service flow.
+79.6 to 79.5 (maximum 73 to 75) for the additional count/pagination coverage.
 Application clones/duplicated lines remain 4/32, tooling 1/6. The previous
 baseline is archived as `baseline-before-00014-adjustments-20261101`.
+
+Follow-up iteration 7: all 43 production browser scenarios and the eight public/
+calendar smoke scenarios passed with left-aligned columns. Both administrator
+roles, Norwegian/English and 1280px/320px layouts verify actual column edges,
+separate role/status cells, pointer cursors and authorized heading/page totals.
+Empty lists show `(0)` and page 1 of 1. The empty/error scenario initially tried
+to click a now-disabled previous-page button; using refresh for the error request
+corrected the test, and the complete rerun passed. Screenshots were inspected.
+All 82 unit tests, explicit TypeScript, production packaging, Biome and full
+quality passed. Application health declines 86.9 to 86.8 (-0.1), tooling remains
+52.3 with increased browser-test complexity; clone and heuristic finding counts
+are unchanged. Detailed metrics, identities and inherited limits are in
+[frontend verification](../../src/frontend/verification.md#2026-11-01-administrator-list-corrections-plan-00014-follow-up).
 
 ## Implementation details and work order
 

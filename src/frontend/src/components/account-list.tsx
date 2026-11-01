@@ -62,6 +62,7 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
           className="mr-auto min-w-0 break-anywhere font-serif text-2xl"
         >
           {actorRole === 'superadmin' ? m.accounts_title() : m.admin_assigned_accounts()}
+          {query.data && ` (${query.data.totalCount})`}
         </h2>
         {(actorRole === 'superadmin' || actorRole === 'calendarAdmin') && (
           <Link to="/create-account" className={buttonStyles({ size: 'compact' })}>
@@ -129,14 +130,15 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
           {query.data.users.map((user) => (
             <li
               key={user.id}
-              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 p-4"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.25rem] items-start gap-3 p-4 pointer-coarse:grid-cols-[minmax(0,1fr)_2.75rem]"
               data-account-id={user.id}
             >
-              <div className="grid min-w-0 gap-1 sm:grid-cols-3 sm:gap-4">
+              <div className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-1 text-left sm:grid-cols-4">
                 <span className="break-anywhere font-semibold">{user.name}</span>
                 <span className="break-anywhere text-stone-600">{user.username}</span>
-                <span>
-                  {roleLabel(user.role)} · {user.enabled ? m.admin_enabled() : m.admin_disabled()}
+                <span className="break-anywhere">{roleLabel(user.role)}</span>
+                <span className="break-anywhere">
+                  {user.enabled ? m.admin_enabled() : m.admin_disabled()}
                 </span>
               </div>
               <AccountActions
@@ -175,7 +177,11 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
           <ArrowLeft aria-hidden="true" />
         </Button>
         <span aria-live="polite">
-          {m.page_number({ number: String((query.data?.offset ?? offset) / limit + 1) })}
+          {query.data &&
+            m.page_number({
+              number: String(Math.floor(query.data.offset / limit) + 1),
+              total: String(Math.max(1, Math.ceil(query.data.totalCount / limit))),
+            })}
         </span>
         <Button
           size="icon"

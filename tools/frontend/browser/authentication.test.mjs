@@ -142,7 +142,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
         assert.equal(await page.getByRole('link', { name: 'Lag ny kalenderbruker' }).count(), 1);
         assert(await page.getByRole('button', { name: 'Lag ny kalender', exact: true }).isDisabled());
         assert.equal(await page.getByText('Alle kontoer').count(), 0);
-        await page.getByText('Dine kalenderbrukere', { exact: true }).waitFor();
+        await page.getByRole('heading', { name: /^Dine kalenderbrukere \(\d+\)$/ }).waitFor();
         await page.getByText(accounts.find(item => item.username === 'browser-user').name, { exact: true }).waitFor();
         assert.equal(await page.getByText('Annen Bruker', { exact: true }).count(), 0);
       } else {
@@ -153,7 +153,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
           assert.equal(await page.getByText(other.name, { exact: true }).count(), 1);
         }
         await page.getByRole('button', { name: 'Neste', exact: true }).click();
-        await page.getByText('Side 2', { exact: true }).waitFor();
+        await page.getByText(/^Side 2 av \d+$/).waitFor();
         await page.getByText('Pagination 51', { exact: true }).waitFor();
         assert.equal(await page.locator('li').count(), accounts.length + 51 - 50);
       }
@@ -309,7 +309,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     // Given an authorized list already viewed in this browser context.
     const superadmin = accounts.find(item => item.username === 'browser-superadmin');
     await signIn(superadmin);
-    await page.getByText('Alle kontoer', { exact: true }).waitFor();
+    await page.getByRole('heading', { name: /^Alle kontoer \(\d+\)$/ }).waitFor();
 
     // When logout is followed by an ordinary user's fresh login in the same context.
     await page.getByRole('button', { name: 'Logg ut', exact: true }).click();
@@ -319,7 +319,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     const response = await page.reload({ waitUntil: 'networkidle' });
 
     // Then neither browser queries, rendered personal UI nor SSR hydration retain the previous list.
-    assert.equal(await page.getByText('Alle kontoer', { exact: true }).count(), 0);
+    assert.equal(await page.getByRole('heading', { name: /^Alle kontoer \(\d+\)$/ }).count(), 0);
     assert.equal(await page.locator('li').count(), 0);
     assert(!(await response.text()).includes(superadmin.name));
   });
@@ -331,7 +331,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     const pending = new Promise(resolve => { release = resolve; });
     await page.route('**/api/trpc/accounts.list**', async route => {
       await pending;
-      await route.fulfill({ json: { result: { data: { users: [], hasMore: false } } } });
+      await route.fulfill({ json: { result: { data: { users: [], offset: 0, totalCount: 0, hasMore: false } } } });
     });
 
     // When a new page is waiting and then returns an empty result.
@@ -340,9 +340,13 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('li').count(), 0);
     release();
     await page.getByText('Ingen kontoer å vise.', { exact: true }).waitFor();
+    assert.equal(await page.locator('#accounts-heading').textContent(), 'Alle kontoer (0)');
+    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 1 av 1');
+    assert.equal(await page.getByRole('button', { name: 'Forrige', exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole('button', { name: 'Neste', exact: true }).isDisabled(), true);
     await page.unroute('**/api/trpc/accounts.list**');
     await page.route('**/api/trpc/accounts.list**', route => route.fulfill({ status: 503, json: { error: { message: 'SERVICE_UNAVAILABLE', code: -32603, data: { code: 'SERVICE_UNAVAILABLE', httpStatus: 503 } } } }));
-    await page.getByRole('button', { name: 'Forrige', exact: true }).click();
+    await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).click();
 
     // Then failures remain accessible and do not display data from the previous successful page.
     await page.getByRole('alert').filter({ hasText: 'Innloggingstjenesten er utilgjengelig' }).waitFor();
@@ -389,9 +393,9 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
       await page.getByText(input.name, { exact: true }).waitFor();
       assert.equal(await page.locator(`[data-account-id="${account.id}"] button`).evaluate(element => element === document.activeElement), true);
       const session = await context.request.get(`${frontendUrl}/api/trpc/auth.session`);
-      const pageNumber = await page.getByText(/^Side \d+$/).textContent();
+      const pageNumber = await page.getByText(/^Side \d+ av \d+$/).textContent();
       await page.reload({ waitUntil: 'networkidle' });
-      if (pageNumber !== 'Side 1') {
+      if (!pageNumber.startsWith('Side 1 av ')) {
         await page.getByRole('button', { name: 'Neste', exact: true }).click();
       }
 
@@ -744,6 +748,8 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
           const personalHeader = page.locator('.protected-content > header');
           const creation = accountHeader.getByRole('link', { name: creationLabels[locale], exact: true });
           await creation.waitFor();
+          const listResponse = await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`);
+          const accountPage = (await listResponse.json()).result.data;
 
           // When the row menu opens at a viewport edge and is dismissed outside.
           await trigger.scrollIntoViewIfNeeded();
@@ -754,6 +760,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
           assert(bounds.x >= 0 && bounds.x + bounds.width <= width);
           assert(bounds.y >= 0 && bounds.y + bounds.height <= 812);
           assert.equal(await page.getByRole('menuitem', { name: locale === 'nb' ? 'Tilbakestill passord' : 'Reset password', exact: true }).count(), 1);
+          assert.equal(await page.getByRole('menuitem').first().evaluate(element => getComputedStyle(element).cursor), 'pointer');
           await page.screenshot({ path: path.join(reports, `menu-${actor.role}-${locale}-${width}.png`), fullPage: true });
           await page.mouse.click(2, 2);
           await menu.waitFor({ state: 'hidden' });
@@ -761,6 +768,29 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
           assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
 
           // Then navigation stays recognizable, localized and contained on desktop/mobile.
+          const titles = {
+            nb: { superadmin: 'Alle kontoer', calendarAdmin: 'Dine kalenderbrukere' },
+            en: { superadmin: 'All accounts', calendarAdmin: 'Your calendar users' },
+          };
+          assert.equal(await accountHeader.getByRole('heading').textContent(), `${titles[locale][actor.role]} (${accountPage.totalCount})`);
+          const totalPages = Math.max(1, Math.ceil(accountPage.totalCount / 50));
+          assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), locale === 'nb' ? `Side 1 av ${totalPages}` : `Page 1 of ${totalPages}`);
+          const controls = await page.locator('button:enabled, a[href]').evaluateAll(elements => elements.map(element => getComputedStyle(element).cursor));
+          assert(controls.every(cursor => cursor === 'pointer'), 'Every enabled button and navigation link has a pointer cursor');
+          const columns = await page.locator('[data-account-id] > div').evaluateAll(rows => rows.map(row => [...row.children].map(cell => ({
+            left: cell.getBoundingClientRect().left,
+            top: cell.getBoundingClientRect().top,
+            alignment: getComputedStyle(cell).textAlign,
+          }))));
+          assert(columns.length > 0);
+          for (const cells of columns) {
+            assert.equal(cells.length, 4, 'Name, username, role and enabled status occupy separate cells');
+            for (let index = 0; index < 4; index += 1) {
+              assert.equal(cells[index].alignment, 'left');
+              assert(Math.abs(cells[index].left - columns[0][index].left) < 1, 'Column edges align across every row, including rows without menus');
+            }
+            if (width >= 640) assert.equal(cells[2].top, cells[3].top, 'Role and status have separate columns on the same row');
+          }
           assert.equal(await personalHeader.getByRole('button', { name: locale === 'nb' ? 'Logg ut' : 'Log out', exact: true }).count(), 1);
           assert.equal(await personalHeader.getByRole('link', { name: locale === 'nb' ? 'Bytt passord' : 'Change password', exact: true }).count(), 1);
           assert.equal(await page.getByText(account.name, { exact: true }).count(), 1);
@@ -871,7 +901,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
       const offset = JSON.parse(new URL(route.request().url()).searchParams.get('input')).offset;
       calls.push(offset);
       if (calls.length === 1) await pending;
-      await route.fulfill({ json: { result: { data: { users: [], offset, hasMore: offset < 100 } } } });
+      await route.fulfill({ json: { result: { data: { users: [], offset, totalCount: 150, hasMore: offset < 100 } } } });
     });
     const previous = page.getByRole('button', { name: 'Forrige', exact: true });
     const next = page.getByRole('button', { name: 'Neste', exact: true });
@@ -885,20 +915,20 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await next.isDisabled(), true);
     assert.equal(await refresh.isDisabled(), true);
     release();
-    await page.getByText('Side 2', { exact: true }).waitFor();
+    await page.getByText(/^Side 2 av \d+$/).waitFor();
     assert.equal(await previous.isEnabled(), true);
     assert.equal(await next.isEnabled(), true);
     await next.click();
-    await page.getByText('Side 3', { exact: true }).waitFor();
+    await page.getByText('Side 3 av 3', { exact: true }).waitFor();
     assert.equal(await next.isDisabled(), true);
     await refresh.click();
     await page.getByText('Ingen kontoer å vise.', { exact: true }).waitFor();
     await previous.click();
-    await page.getByText('Side 2', { exact: true }).waitFor();
+    await page.getByText(/^Side 2 av \d+$/).waitFor();
 
     // Then refetch retains offset and visible page announcements track navigation.
     assert.deepEqual(calls, [50, 100, 100, 50]);
-    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2');
+    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2 av 3');
   });
 
   test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {

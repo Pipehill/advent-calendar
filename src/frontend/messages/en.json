@@ -50,7 +50,7 @@
   "pagination_label": "Account pages",
   "previous_page": "Previous",
   "next_page": "Next",
-  "page_number": "Page {number}",
+  "page_number": "Page {number} of {total}",
   "role_superadmin": "Superadministrator",
   "role_admin": "Calendar administrator",
   "role_user": "Calendar user",

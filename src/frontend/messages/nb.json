@@ -50,7 +50,7 @@
   "pagination_label": "Kontosider",
   "previous_page": "Forrige",
   "next_page": "Neste",
-  "page_number": "Side {number}",
+  "page_number": "Side {number} av {total}",
   "role_superadmin": "Superadministrator",
   "role_admin": "Kalenderadministrator",
   "role_user": "Kalenderbruker",

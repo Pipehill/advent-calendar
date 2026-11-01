@@ -37,7 +37,7 @@ export function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={twMerge(
-        'relative flex min-h-9 cursor-default items-center gap-2 rounded-lg px-3 py-2 text-sm break-anywhere outline-none select-none focus:bg-emerald-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-800 data-[disabled]:pointer-events-none data-[disabled]:opacity-70 pointer-coarse:min-h-11 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+        'relative flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm break-anywhere outline-none select-none focus:bg-emerald-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-800 data-[disabled]:pointer-events-none data-[disabled]:opacity-70 pointer-coarse:min-h-11 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
         className,
       )}
       {...props}

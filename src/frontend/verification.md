@@ -603,3 +603,74 @@ quality-tool entry points; caller review retains them. Dead-code coverage is
 partial, unsupported dimensions remain unavailable, and rounded scores do not
 establish correctness. Working-tree reports remain separate from hook receipts
 and the committed PR merge comparison.
+
+## 2026-11-01: Administrator list corrections (plan 00014 follow-up)
+
+The owner authorized updating plan 00014 and corrected the requested alignment
+to **left alignment** during implementation. Account names, usernames, roles and
+enabled states now occupy four consistently aligned desktop columns, with two
+columns on narrow screens. Reserving the action-control column keeps account
+values aligned even when a superadmin row has no menu. Shared enabled buttons,
+styled links and menu items use a pointer cursor; disabled buttons retain their
+disabled cursor and behavior.
+
+List headings include the authorized account total in parentheses. Pagination
+shows `Side 1 av 2` / `Page 1 of 2`, including page 1 of 1 for an empty list.
+The authored OpenAPI user-list response now requires `totalCount`; the repository
+reuses the same SQL authorization predicate for page and count queries, the
+service keeps both within its protected transaction, and the BFF derives
+`hasMore` from the total. Calendaradmin counts exclude unrelated accounts.
+Full pages at exact multiples of the limit no longer enable a phantom next page.
+
+On Windows/Podman/Edge, all **178 backend integration tests** and **82 frontend/BFF
+tests** passed, including scoped and empty counts, offsets beyond the last row,
+partial/full pages and exact page-size boundaries. Contract/Paraglide generation,
+explicit TypeScript, production Vite/Nitro packaging and Biome passed. Nitro again
+required filesystem access outside the sandbox for its parent-directory readlink.
+No dependency, schema migration, authorization or credential-flow changes were made.
+
+All **43 production browser scenarios** and **eight public/calendar smoke
+scenarios** passed with the corrected left alignment. Both administrator roles
+were checked in Norwegian/English at 1280px and 320px, measuring shared column
+edges, separate role/status cells, enabled-control/menu cursors and heading/page
+totals against authorized API data. Empty lists show `(0)` and page 1 of 1 with
+both navigation buttons disabled. Desktop/mobile screenshots were inspected.
+The eight localized layout scenarios also passed on the final test source after
+simplifying their expected heading lookup.
+The initial empty/error scenario attempted a now-disabled previous-page button;
+using refresh for the error request fixed that test, and the full rerun passed.
+Full saved-source quality passed. Disposable containers are automatically removed;
+existing development services, images and volumes are preserved.
+
+### Follow-up advisory health
+
+Application health **declines from 86.9 to 86.8 (-0.1)**. Tooling remains **52.3**,
+with a complexity regression. Count coordination, pagination coverage and actual
+browser measurements of alignment/cursors add the relevant branches. The browser
+scenarios reuse the existing fixture and test combinations. Absolute duplication
+and heuristic finding counts remain unchanged; no scoring/exclusion changes were made.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Complexity score / share | 79.6 / 79.4; 15.6% / 15.7% | 54.7 / 54.6; 49.6% / 49.8% |
+| Maximum file complexity | 73 / 75 | 215 / 226 |
+| Duplication percentage | 0.321964% / 0.318566% | 0.081777% / 0.081444% |
+| Clones / duplicated lines | 4 / 4; 32 / 32 | 1 / 1; 6 / 6 |
+| Heuristic findings | 2 / 2 | 6 / 6 |
+| Dead-code analysis coverage | 34.5% / 34.5% | 96.1% / 96.1% |
+| Analyzed files / lines | 93 / 93; 9939 / 10045 | 44 / 44; 7337 / 7367 |
+
+jscpd **5.4.1** retains configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+The follow-up baseline is saved source at
+`1ead425fd422119caff873c51c57e20a77f7221c`; the previous baseline is preserved as
+`baseline-before-00014-adjustments-20261101`. Application source SHA-256 changes
+from `f55ab430c2bf811859632aed7f1564d98173079890a5779cf00b756d81975bd9`
+to `ec9509726c3e0fbe46c46e5407c6868996aa9b6f3aad4ebce394163b09e89987`;
+tooling changes from `47cbb1b18a4e161826f62cc4f544923ae36afa1a17564584c7538b317e44bb9b`
+to `f6f4872417187e7c5356694014dd4136fb0443af0a8ca98c5b0cb5e2813153d8`.
+Raw identities, whole-repository reference, MCP schemas/refresh/statistics and
+logs are retained under ignored `quality-reports/health/` and
+`quality-reports/plan00014/adjustments-*`. Lower duplication shares reflect larger
+denominators. Analysis remains partial and heuristic; the inherited dependency,
+platform, physical-device and manual-screen-reader limitations above still apply.
