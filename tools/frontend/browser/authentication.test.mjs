@@ -387,6 +387,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
       // When the account is created through real browser/BFF/API transport.
       const account = await createAccount(actor, input);
       await page.getByText(input.name, { exact: true }).waitFor();
+      assert.equal(await page.locator(`[data-account-id="${account.id}"] button`).evaluate(element => element === document.activeElement), true);
       const session = await context.request.get(`${frontendUrl}/api/trpc/auth.session`);
       const pageNumber = await page.getByText(/^Side \d+$/).textContent();
       await page.reload({ waitUntil: 'networkidle' });
@@ -723,6 +724,183 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('#accounts-heading').evaluate(element => element === document.activeElement), true);
   });
 
+  for (const [actorUsername, creationLabels] of [
+    ['browser-admin', { nb: 'Lag ny kalenderbruker', en: 'Create calendar user' }],
+    ['browser-superadmin', { nb: 'Opprett konto', en: 'Create account' }],
+  ]) {
+    for (const locale of ['nb', 'en']) {
+      for (const width of [1280, 320]) {
+        test(`Given ${actorUsername} with ${locale} controls at ${width}px, When headers and menus are used, Then labels wrap within the viewport and outside dismissal returns focus`, async () => {
+          // Given a localized production page with a long, unchanged user-authored name.
+          const actor = accounts.find(item => item.username === actorUsername);
+          await signIn(actor);
+          await page.getByRole('combobox').selectOption(locale);
+          await page.waitForLoadState('networkidle');
+          await page.setViewportSize({ width, height: 812 });
+          const account = accounts.find(item => item.username === 'browser-user');
+          const label = locale === 'nb' ? `Handlinger for ${account.name} (${account.username})` : `Actions for ${account.name} (${account.username})`;
+          const trigger = page.getByRole('button', { name: label, exact: true });
+          const accountHeader = page.locator('section[aria-labelledby=accounts-heading] > header');
+          const personalHeader = page.locator('.protected-content > header');
+          const creation = accountHeader.getByRole('link', { name: creationLabels[locale], exact: true });
+          await creation.waitFor();
+
+          // When the row menu opens at a viewport edge and is dismissed outside.
+          await trigger.scrollIntoViewIfNeeded();
+          await trigger.click();
+          const menu = page.getByRole('menu');
+          await menu.waitFor();
+          const bounds = await menu.boundingBox();
+          assert(bounds.x >= 0 && bounds.x + bounds.width <= width);
+          assert(bounds.y >= 0 && bounds.y + bounds.height <= 812);
+          assert.equal(await page.getByRole('menuitem', { name: locale === 'nb' ? 'Tilbakestill passord' : 'Reset password', exact: true }).count(), 1);
+          await page.screenshot({ path: path.join(reports, `menu-${actor.role}-${locale}-${width}.png`), fullPage: true });
+          await page.mouse.click(2, 2);
+          await menu.waitFor({ state: 'hidden' });
+          await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+          assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+
+          // Then navigation stays recognizable, localized and contained on desktop/mobile.
+          assert.equal(await personalHeader.getByRole('button', { name: locale === 'nb' ? 'Logg ut' : 'Log out', exact: true }).count(), 1);
+          assert.equal(await personalHeader.getByRole('link', { name: locale === 'nb' ? 'Bytt passord' : 'Change password', exact: true }).count(), 1);
+          assert.equal(await page.getByText(account.name, { exact: true }).count(), 1);
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+          const refresh = accountHeader.getByRole('button', { name: locale === 'nb' ? 'Oppdater kontoer' : 'Refresh accounts', exact: true });
+          assert.equal(await refresh.textContent(), '');
+          await page.screenshot({ path: path.join(reports, `headers-${actor.role}-${locale}-${width}.png`), fullPage: true });
+          await personalHeader.getByRole('link').click();
+          await page.waitForURL('**/change-password');
+          assert.equal(await page.getByRole('button', { name: locale === 'nb' ? 'Logg ut' : 'Log out', exact: true }).count(), 1);
+        });
+      }
+  }
+  }
+
+  test('Given touch input and a long account name, When a menu item is tapped and canceled, Then usable targets open the same confirmation without overflow', async () => {
+    // Given a coarse-pointer browser at a narrow mobile width.
+    await context.close();
+    context = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true, isMobile: true });
+    page = await context.newPage();
+    page.on('pageerror', error => errors.push(error.message));
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    const trigger = page.locator(`[data-account-id="${account.id}"]`).getByRole('button');
+
+    // When the touch menu opens near the bottom edge and its role item is selected.
+    await trigger.scrollIntoViewIfNeeded();
+    const target = await trigger.boundingBox();
+    assert(target.width >= 44 && target.height >= 44);
+    await trigger.tap();
+    const menu = await page.getByRole('menu').boundingBox();
+    assert(menu.x >= 0 && menu.x + menu.width <= 320 && menu.y >= 0 && menu.y + menu.height <= 700);
+    const item = page.getByRole('menuitem', { name: 'Gjør til kalenderadministrator', exact: true });
+    assert((await item.boundingBox()).height >= 44);
+    await item.tap();
+    await page.waitForFunction(() => document.activeElement?.id === 'account-action-heading');
+    await page.getByRole('button', { name: 'Avbryt', exact: true }).tap();
+
+    // Then the same confirmation and focus lifecycle work without horizontal scrolling.
+    assert.equal(await page.locator('#account-action-heading').count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+  });
+
+  test('Given header logout, When a pending request fails and is retried, Then feedback stays localized and the session remains usable until success', async () => {
+    // Given an administrator and a held logout response.
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/auth.logout', async route => {
+      await pending;
+      await route.fulfill({ status: 503, json: { error: { message: 'SERVICE_UNAVAILABLE', code: -32603, data: { code: 'SERVICE_UNAVAILABLE', httpStatus: 503 } } } });
+    });
+
+    // When logout is pending, fails, then succeeds on an explicit retry.
+    const header = page.locator('.protected-content > header');
+    await header.getByRole('button', { name: 'Logg ut', exact: true }).click();
+    await header.getByRole('button', { name: 'Vennligst vent …', exact: true }).waitFor();
+    assert.equal(await header.getByRole('button').isDisabled(), true);
+    release();
+    await header.getByRole('alert').waitFor();
+    assert.equal((await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 200);
+    await page.unroute('**/api/trpc/auth.logout');
+    await header.getByRole('button', { name: 'Logg ut', exact: true }).click();
+    await page.waitForURL(frontendUrl + '/');
+
+    // Then successful logout removes the session and protected account content.
+    assert.equal((await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
+    assert.equal(await page.locator('[data-account-id]').count(), 0);
+  });
+
+  test('Given a returning tab, When its session has been revoked, Then visibility revalidation removes personal output', async () => {
+    // Given one authenticated administrator and an externally revoked session.
+    const actor = accounts.find(item => item.username === 'browser-admin');
+    await signIn(actor);
+    command(dotnet, [fixtureDll, 'revoke', actor.username], environment);
+
+    // When the existing page becomes visible again.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForURL('**/login');
+
+    // Then the header's single session-controls instance revalidates and clears personal content.
+    assert.equal(await page.locator('[data-account-id]').count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Logg ut', exact: true }).count(), 0);
+  });
+
+  test('Given a personal page session deadline, When browser time reaches expiry, Then the header session timer discards protected content', async () => {
+    // Given a real administrator session with the browser clock controlled before mounting.
+    await page.clock.install();
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+
+    // When the fixed eight-hour client deadline passes without tab activity.
+    await page.clock.fastForward(8 * 60 * 60 * 1000 + 1000);
+    await page.waitForURL('**/login');
+
+    // Then client-side expiry clears protected route data and the sole session header.
+    assert.equal(await page.locator('.protected-content').count(), 0);
+    assert.equal(await page.getByRole('heading', { name: 'Logg inn', exact: true }).count(), 1);
+  });
+
+  test('Given three account pages, When refresh and navigation are requested, Then icon controls preserve pending guards and first middle last boundaries', async () => {
+    // Given a first page and controlled subsequent responses with bounded pagination metadata.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const calls = [];
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/accounts.list**', async route => {
+      const offset = JSON.parse(new URL(route.request().url()).searchParams.get('input')).offset;
+      calls.push(offset);
+      if (calls.length === 1) await pending;
+      await route.fulfill({ json: { result: { data: { users: [], offset, hasMore: offset < 100 } } } });
+    });
+    const previous = page.getByRole('button', { name: 'Forrige', exact: true });
+    const next = page.getByRole('button', { name: 'Neste', exact: true });
+    const refresh = page.getByRole('button', { name: 'Oppdater kontoer', exact: true });
+    assert.equal(await previous.isDisabled(), true);
+
+    // When navigation waits, reaches the middle and last pages, and refreshes the last page.
+    await next.click();
+    await page.getByRole('status').filter({ hasText: 'Henter kontoer' }).waitFor();
+    assert.equal(await previous.isDisabled(), true);
+    assert.equal(await next.isDisabled(), true);
+    assert.equal(await refresh.isDisabled(), true);
+    release();
+    await page.getByText('Side 2', { exact: true }).waitFor();
+    assert.equal(await previous.isEnabled(), true);
+    assert.equal(await next.isEnabled(), true);
+    await next.click();
+    await page.getByText('Side 3', { exact: true }).waitFor();
+    assert.equal(await next.isDisabled(), true);
+    await refresh.click();
+    await page.getByText('Ingen kontoer å vise.', { exact: true }).waitFor();
+    await previous.click();
+    await page.getByText('Side 2', { exact: true }).waitFor();
+
+    // Then refetch retains offset and visible page announcements track navigation.
+    assert.deepEqual(calls, [50, 100, 100, 50]);
+    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2');
+  });
+
   test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
     const env = { ...process.env, FRONTEND_URL: frontendUrl, API_URL: apiUrl };
@@ -782,6 +960,7 @@ async function maintain(account, action, password, responsibleId) {
   await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
   await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).waitFor({ state: 'visible' });
   await page.waitForLoadState('networkidle');
+  assert.equal(await page.locator(`[data-account-id="${account.id}"] button`).evaluate(element => element === document.activeElement), true);
 }
 
 async function openAccountAction(account, action) {

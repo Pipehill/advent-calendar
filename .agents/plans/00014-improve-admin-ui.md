@@ -1,6 +1,6 @@
 # 00014: Improve the administrator UI
 
-Status: Not implemented
+Status: Implemented (2026-11-01)
 
 Last updated: 2026-11-01
 
@@ -194,9 +194,9 @@ Current repository facts:
 
 ### 5. Verify and record the result
 
-- [ ] Complete the verification below and record implementation evidence in
+- [x] Complete the verification below and record implementation evidence in
   `src/frontend/verification.md` following the existing project workflow.
-- [ ] Update this plan and its index to implemented only after the planned
+- [x] Update this plan and its index to implemented only after the planned
   behavior and required verification are complete.
 
 ## Verification
@@ -238,6 +238,28 @@ Only account form controls and shared retry presentation changed; form validatio
 recent verification and the synchronous duplicate-submit guard remain intact.
 Default Button consumers retain their original size. The complete browser run
 in step 5 checks shared consumers, both catalogs and session/layout regressions.
+
+Step 5: all 77 frontend/BFF tests, 43 production browser scenarios and the eight
+public/calendar smoke scenarios passed, alongside explicit TypeScript, contract/
+translation generation, production packaging, frozen installation, Biome and
+final full repository quality. Four maintenance scenarios additionally verify
+focus after successful saves on the final test inputs. Both administrator roles
+were checked in both languages at 1280px and 320px; keyboard and emulated touch
+operation passed, including menu/form focus, outside dismissal, missing-target
+fallback, pending/error guards, session expiry and returning-tab revalidation.
+Test databases and quality containers were removed; the existing development
+services/volumes/images and external build containers remain unchanged.
+
+The required dependency audit found two inherited Seroval advisories. The final
+verification iteration updates only its compatible transitive lockfile resolution
+to 1.7.5; the production audit is clear. Six high, five moderate and five low
+build-dependency findings remain recorded. Application health declines 87.5 to
+86.9 (-0.6); tooling improves 52.0 to 52.3 (+0.3), with increased browser-suite
+complexity. Absolute duplication and heuristic finding counts are unchanged.
+The focus/control branches and expanded production scenarios justify the
+complexity tradeoff; no scoring/exclusion changes were made. Full identities,
+metrics, SSR packaging repair and platform/manual-testing limits are recorded in
+[frontend verification](../../src/frontend/verification.md#2026-11-01-compact-administrator-controls-plan-00014).
 
 - **Visual layout:** compare the administrator page before/after on desktop and
   narrow mobile widths in Norwegian and English. Confirm smaller, quieter
