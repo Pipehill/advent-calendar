@@ -149,6 +149,7 @@ app.Use(
                         AccountFailure.VerificationRequired => 403,
                         AccountFailure.Conflict => 409,
                         AccountFailure.ResourceLimit => 429,
+                        AccountFailure.NotFound => 404,
                         _ => 500,
                     },
                     exception.Message,

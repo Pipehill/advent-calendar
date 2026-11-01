@@ -11,6 +11,92 @@ namespace Calendar.Api.Tests;
 public sealed class MigrationTests(ApiFixture fixture)
 {
     [Fact(
+        DisplayName = "Given legacy calendars and existing security data, When migration 0004 runs twice, Then only legacy calendar data is removed and the journal is stable"
+    )]
+    public async Task LegacyCalendarTransitionPreservesSecurityData()
+    {
+        // Given a separate database with only the three published migrations.
+        var name = "legacy_" + Guid.NewGuid().ToString("N");
+        await using var admin = new NpgsqlConnection(fixture.Database.GetConnectionString());
+        await admin.ExecuteAsync($"CREATE DATABASE {name}");
+        var connectionString = new NpgsqlConnectionStringBuilder(
+            fixture.Database.GetConnectionString()
+        )
+        {
+            Database = name,
+        }.ConnectionString;
+        var upgrade = DeployChanges
+            .To.PostgresqlDatabase(connectionString)
+            .WithScriptsEmbeddedInAssembly(
+                typeof(DatabaseStartup).Assembly,
+                resource =>
+                    resource.EndsWith(".sql", StringComparison.Ordinal)
+                    && !resource.Contains("0004", StringComparison.Ordinal)
+            )
+            .WithTransactionPerScript()
+            .Build()
+            .PerformUpgrade();
+        Assert.True(upgrade.Successful, upgrade.Error?.Message);
+        await using var connection = new NpgsqlConnection(connectionString);
+        var accountId = Guid.NewGuid();
+        await connection.ExecuteAsync(
+            """
+            INSERT INTO accounts (id, name, user_name, normalized_user_name, password_hash, account_role, security_version, created_at)
+            VALUES (@Id, 'Existing', 'existing', 'EXISTING', 'unchanged-hash', 'superadmin', @Version, now());
+            INSERT INTO account_sessions (id, account_id, security_version, created_at, expires_at, is_restricted)
+            VALUES (@Session, @Id, @Version, now(), now() + interval '1 day', false);
+            INSERT INTO calendars VALUES (@Calendar, 'Legacy', now(), now());
+            INSERT INTO doors VALUES (@Calendar, 1, 'Legacy message');
+            CREATE TABLE unrelated_transition_data (value TEXT);
+            INSERT INTO unrelated_transition_data VALUES ('preserve');
+            """,
+            new
+            {
+                Id = accountId,
+                Version = Guid.NewGuid(),
+                Session = Guid.NewGuid(),
+                Calendar = Guid.NewGuid(),
+            }
+        );
+
+        // When actual startup applies the transition and is repeated through the journal.
+        await DatabaseStartup.MigrateAsync(connectionString, 1, CancellationToken.None);
+        await DatabaseStartup.MigrateAsync(connectionString, 1, CancellationToken.None);
+
+        // Then only disposable calendars/doors are removed; security and unrelated data survive.
+        Assert.Equal(
+            0,
+            await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM calendars")
+        );
+        Assert.Equal(
+            0,
+            await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM doors")
+        );
+        Assert.Equal(
+            "unchanged-hash",
+            await connection.ExecuteScalarAsync<string>(
+                "SELECT password_hash FROM accounts WHERE id = @Id",
+                new { Id = accountId }
+            )
+        );
+        Assert.Equal(
+            1,
+            await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM account_sessions")
+        );
+        Assert.Equal(
+            "preserve",
+            await connection.ExecuteScalarAsync<string>(
+                "SELECT value FROM unrelated_transition_data"
+            )
+        );
+        Assert.Equal(
+            4,
+            await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM schemaversions")
+        );
+        NpgsqlConnection.ClearPool(connection);
+    }
+
+    [Fact(
         DisplayName = "Given the API assembly, When embedded SQL resources are read, Then the numbered calendar migration has its stable identity"
     )]
     public void GivenApiAssemblyWhenReadingSqlResourcesThenContainsNumberedCalendarMigration()
@@ -30,6 +116,7 @@ public sealed class MigrationTests(ApiFixture fixture)
                 "Calendar.Api.Migrations.0001_create_calendars.sql",
                 "Calendar.Api.Migrations.0002_create_accounts.sql",
                 "Calendar.Api.Migrations.0003_add_account_name.sql",
+                "Calendar.Api.Migrations.0004_protect_calendars.sql",
             ],
             scripts.Order()
         );

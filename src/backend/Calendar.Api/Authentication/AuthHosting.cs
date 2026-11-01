@@ -149,7 +149,9 @@ public static class AuthHosting
     }
 
     public static bool IsAccountPath(PathString path) =>
-        path.StartsWithSegments("/auth") || path.StartsWithSegments("/users");
+        path.StartsWithSegments("/auth")
+        || path.StartsWithSegments("/users")
+        || path.StartsWithSegments("/calendars");
 
     public static void UseAccountResponseProtection(this WebApplication app)
     {
@@ -223,7 +225,10 @@ public sealed class AccountResourceBudget : IDisposable
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        if (!AuthHosting.IsAccountPath(context.Request.Path))
+        if (
+            !context.Request.Path.StartsWithSegments("/auth")
+            && !context.Request.Path.StartsWithSegments("/users")
+        )
         {
             await next(context);
             return;

@@ -4,11 +4,11 @@ DELETE FROM calendars;
 
 CREATE FUNCTION valid_door_order(door_order INTEGER[]) RETURNS BOOLEAN
 LANGUAGE sql IMMUTABLE STRICT AS $$
-    SELECT array_ndims(door_order) = 1
+    SELECT coalesce(array_ndims(door_order) = 1
         AND array_lower(door_order, 1) = 1
         AND array_length(door_order, 1) = 24
         AND (SELECT array_agg(day ORDER BY day) FROM unnest(door_order) AS day)
-            = ARRAY(SELECT generate_series(1, 24));
+            = ARRAY(SELECT generate_series(1, 24)), false);
 $$;
 
 ALTER TABLE calendars

@@ -200,39 +200,53 @@ execution depend on iteration 2; no successful runtime check is claimed yet.
 
 ### 2. Extend persistence and the authored API
 
-- [ ] Add calendar owner and recipient account references, stored year,
+- [x] Add calendar owner and recipient account references, stored year,
   background selection and layout state. Add initially empty door content titles
   alongside messages. Store and validate a random permutation of doors 1-24;
   persist it when selecting random layout and reuse it on reads without
   renumbering doors or moving their contents to different dates.
-- [ ] Add database constraints for supported values, required new-calendar data,
+- [x] Add database constraints for supported values, required new-calendar data,
   door bounds, content lengths and the persisted permutation. Use the new DbUp
   migration to delete legacy calendars/doors before enforcing required ownership
   and recipient data. Keep this cleanup journaled and transactional; do not add a
   recurring startup cleanup. Verify populated upgrades and fresh installations.
-- [ ] Extend OpenAPI for protected creation and administration reads, door updates,
+- [x] Extend OpenAPI for protected creation and administration reads, door updates,
   layout updates and an owner-scoped paginated calendar list. Keep preview/administration
   responses separate from the future recipient contract. Define authentication,
   antiforgery, validation, forbidden/not-found and other applicable errors.
-- [ ] Define door titles as non-null strings of 0-50 Unicode code points and
+- [x] Define door titles as non-null strings of 0-50 Unicode code points and
   messages as non-null strings of 0-5000. Reject missing/null fields, NUL and
   invalid Unicode at the relevant boundaries. Preserve plain text and message
   line breaks; do not introduce rich-text/HTML content.
-- [ ] Regenerate C# DTOs/controller bases and the TypeScript client from the
+- [x] Regenerate C# DTOs/controller bases and the TypeScript client from the
   authored contract before updating consumers; keep generated files untracked.
-- [ ] Extend the hand-written controller, service and repository interfaces and
+- [x] Extend the hand-written controller, service and repository interfaces and
   implementations. Keep authorization and calendar business rules in services,
   with parameterized persistence and atomic writes in repositories.
-- [ ] Recheck actor session/status/role, ownership and recipient eligibility in
+- [x] Recheck actor session/status/role, ownership and recipient eligibility in
   committing transactions. Coordinate with existing account/security transactions
   so concurrent role/status changes cannot produce unauthorized committed writes.
   Do not add calendar operations to the existing recent-password-verification
   requirement for account/credential maintenance without an agreed requirement.
-- [ ] Persist updates and modification timestamps consistently. Preserve other
+- [x] Persist updates and modification timestamps consistently. Preserve other
   doors and settings when saving one door or changing a layout. Report failed
   writes accurately and leave stored data intact after rollback.
 
 ### 3. Add the protected BFF and frontend flow
+
+Iteration 2 evidence: Release build and all 211 PostgreSQL-backed backend tests
+passed, including populated transition/fresh migrations, journal restart, rollback,
+Oslo year boundary, Unicode limits, role/session/CSRF denial, SQL ownership and
+concurrent actor/recipient changes. Full saved-source quality passed. Initial
+runs were interrupted after the container-pause outage fixture stalled; the test
+now denies/terminates connections only to its disposable database and verifies
+recovery without pausing the container. The legacy-upgrade test filter was fixed
+to exclude the embedded OpenAPI resource. No runtime application behavior was
+changed for those fixture repairs. MCP reports 59 duplicated lines / 7 clones
+(0.32041% repository); added matches are controller security setup and test setup.
+Intermediate application health improved 86.8 to 87.7; absolute duplication rose
+32 to 53 application lines (4 to 6 clones). Keep explicit security attributes and
+scenario setup for clarity; final measurements follow the frontend iteration.
 
 - [ ] Add shared calendar-input validation and focused server helpers alongside
   the existing auth/account modules. Extend `server/trpc.ts` and the browser

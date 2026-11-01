@@ -1,99 +1,51 @@
-using Calendar.Api.Models;
-using Calendar.Api.Repositories;
-using Calendar.Api.Services;
+using System.Globalization;
+using System.Net.Http.Json;
+using Calendar.Api.Generated;
 using Xunit;
 
 namespace Calendar.Api.Tests;
 
-public sealed class ServiceTests
+[Collection("PostgreSQL")]
+public sealed class ServiceTests(ApiFixture fixture)
 {
-    [Fact(
-        DisplayName = "Given a fixed UTC clock, When a calendar is created, Then both timestamps use one clock reading"
+    [Theory(
+        DisplayName = "Given UTC instants around Oslo New Year, When calendars are created, Then the stored year follows Europe Oslo and reads preserve it"
     )]
-    public async Task GivenControlledClockWhenCreatingCalendarThenReadsTimeOnceForBothTimestamps()
+    [InlineData("2026-12-31T22:59:59Z", 2026)]
+    [InlineData("2026-12-31T23:00:00Z", 2027)]
+    public async Task GivenYearBoundaryWhenCreatingThenPersistsOsloYear(string instant, int year)
     {
-        // Given a service with a clock fixed to a known UTC instant.
-        var clock = new ControlledClock
-        {
-            Now = DateTimeOffset.Parse(
-                "2026-12-01T10:00:00Z",
-                System.Globalization.CultureInfo.InvariantCulture
-            ),
-        };
-        var repository = new MemoryRepository();
-        var service = new CalendarService(repository, clock);
+        // Given an authenticated owner and a controlled clock near Oslo New Year.
+        await using var context = await CalendarTestContext.CreateAsync(fixture);
+        context.Auth.Time.Advance(
+            DateTimeOffset.Parse(instant, CultureInfo.InvariantCulture)
+                - context.Auth.Time.GetUtcNow()
+        );
+        await context.Auth.LoginAsync(context.Owner);
+        var csrf = (await context.Client.GetFromJsonAsync<CsrfDto>("/auth/csrf"))!;
+        context.Client.DefaultRequestHeaders.Remove(csrf.HeaderName);
+        context.Client.DefaultRequestHeaders.Add(csrf.HeaderName, csrf.RequestToken);
 
-        // When a calendar is created.
-        var calendar = await service.CreateAsync(" First ", CancellationToken.None);
+        // When two calendars are created and one is read after the clock advances.
+        var response = await context.CreateAsync(new { title = " First " });
+        var first = (await response.Content.ReadFromJsonAsync<CalendarDto>())!;
+        context.Auth.Time.Advance(TimeSpan.FromMinutes(10));
+        var second = (
+            await (
+                await context.CreateAsync(new { title = "First" })
+            ).Content.ReadFromJsonAsync<CalendarDto>()
+        )!;
+        var retrieved = (
+            await context.Client.GetFromJsonAsync<CalendarDto>($"/calendars/{first.Id}")
+        )!;
 
-        // Then both timestamps use the same single clock reading.
-        Assert.Equal(clock.Now, calendar.CreatedAt);
-        Assert.Equal(calendar.CreatedAt, calendar.LastModifiedAt);
-        Assert.Equal(1, clock.Reads);
-    }
-
-    [Fact(
-        DisplayName = "Given an existing calendar and an advanced clock, When another calendar is created, Then it has a new ID and the later timestamp"
-    )]
-    public async Task GivenLaterClockTimeWhenCreatingAnotherCalendarThenUsesNewTimeAndUniqueId()
-    {
-        // Given a calendar created before the clock advances.
-        var clock = new ControlledClock();
-        var service = new CalendarService(new MemoryRepository(), clock);
-        var first = await service.CreateAsync("First", CancellationToken.None);
-        clock.Now = clock.Now.AddMinutes(10);
-
-        // When another calendar is created with the same title.
-        var second = await service.CreateAsync("First", CancellationToken.None);
-
-        // Then its ID is distinct and its timestamp reflects the advanced clock.
-        Assert.Equal(clock.Now, second.CreatedAt);
+        // Then timestamps, title, UUID and stored business year retain their semantics.
+        Assert.Equal(year, first.Year);
+        Assert.Equal(first.CreatedAt, first.LastModifiedAt);
+        Assert.Equal("First", first.Title);
         Assert.NotEqual(first.Id, second.Id);
-        Assert.Equal(2, clock.Reads);
-    }
-
-    [Fact(
-        DisplayName = "Given a stored calendar, When it is retrieved by ID, Then the original values are returned without reading the clock again"
-    )]
-    public async Task GivenStoredCalendarWhenRetrievingByIdThenReturnsOriginalCalendar()
-    {
-        // Given a calendar stored before the clock advances.
-        var clock = new ControlledClock();
-        var service = new CalendarService(new MemoryRepository(), clock);
-        var stored = await service.CreateAsync("First", CancellationToken.None);
-        clock.Now = clock.Now.AddMinutes(10);
-
-        // When that calendar is retrieved.
-        var retrieved = await service.GetAsync(stored.Id, CancellationToken.None);
-
-        // Then retrieval returns the stored values without reading the clock again.
-        Assert.Equal(stored, retrieved);
-        Assert.Equal(1, clock.Reads);
-    }
-
-    private sealed class ControlledClock : TimeProvider
-    {
-        public DateTimeOffset Now { get; set; }
-        public int Reads { get; private set; }
-
-        public override DateTimeOffset GetUtcNow()
-        {
-            Reads++;
-            return Now;
-        }
-    }
-
-    private sealed class MemoryRepository : ICalendarRepository
-    {
-        private readonly Dictionary<Guid, CalendarModel> calendars = [];
-
-        public Task InsertAsync(CalendarModel calendar, CancellationToken cancellationToken)
-        {
-            calendars.Add(calendar.Id, calendar);
-            return Task.CompletedTask;
-        }
-
-        public Task<CalendarModel?> GetAsync(Guid id, CancellationToken cancellationToken) =>
-            Task.FromResult(calendars.GetValueOrDefault(id));
+        Assert.Equal(context.Auth.Time.GetUtcNow(), second.CreatedAt);
+        Assert.Equal(first.CreatedAt, retrieved.CreatedAt);
+        Assert.Equal(year, retrieved.Year);
     }
 }
