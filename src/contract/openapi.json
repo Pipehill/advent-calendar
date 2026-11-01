@@ -1368,9 +1368,16 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "users"
+          "users",
+          "totalCount"
         ],
         "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "description": "Total accounts visible to the authorized caller, before pagination."
+          },
           "users": {
             "type": "array",
             "maxItems": 100,

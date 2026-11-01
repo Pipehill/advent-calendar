@@ -40,13 +40,19 @@ public sealed class UsersController(IUserAdministrationService administration) :
         int? limit = 50
     )
     {
-        var users = await administration.ListAsync(
+        var page = await administration.ListAsync(
             SessionAuthentication.ReadIdentity(User),
             offset ?? 0,
             limit ?? 50,
             HttpContext.RequestAborted
         );
-        return Ok(new UserListDto { Users = users.Select(AuthController.ToUserDto).ToList() });
+        return Ok(
+            new UserListDto
+            {
+                Users = page.Users.Select(AuthController.ToUserDto).ToList(),
+                TotalCount = page.TotalCount,
+            }
+        );
     }
 
     public override async Task<IActionResult> ResetPassword(ResetPasswordRequest body, Guid id)

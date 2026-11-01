@@ -70,6 +70,49 @@ record and retain its existing account behavior and permission boundaries.
 
 None.
 
+## Owner-requested follow-up (2026-11-01)
+
+The owner explicitly requested updating this implemented plan and implementing
+these presentation corrections on the existing `refactor/improve-admin-ui` branch.
+The original implementation date and evidence below remain historical records.
+
+Additional requirements:
+
+1. Every enabled button and account-menu item shows a pointer cursor on hover;
+   disabled controls retain their disabled treatment.
+2. Right-align every account value in consistent columns across rows, including
+   long names and usernames, with role/type and enabled status in separate columns.
+   Preserve usable narrow layouts and the existing action menus and focus behavior.
+3. Display the authorized total beside the list heading, for example
+   `Alle kontoer (6)`. Calendaradmins see only their assigned ordinary-user count.
+4. Show both current and total pages, localized as `Side 1 av 2` / `Page 1 of 2`.
+   Empty lists show page 1 of 1; exact page-size multiples have no phantom page.
+   Preserve navigation/loading/error guards and newly created-account focus.
+
+Implementation iterations (one commit each):
+
+- [ ] 6. Add an authorized `totalCount` to the authored user-list contract,
+  repository/service/controller and BFF. Reuse the SQL authorization predicate;
+  do not scan every account merely to count. Derive `hasMore` from the count.
+  Verify scoped, empty, partial, full and exact-boundary pagination in existing
+  backend integration and BFF tests; regenerate contracts and run saved-source quality.
+- [ ] 7. Apply shared pointer styling, four aligned account-value columns,
+  heading totals and translated page totals. Extend existing production browser
+  scenarios for both administrator scopes, languages, desktop/mobile alignment,
+  cursors and pagination boundaries. Run unit/API tests, explicit TypeScript,
+  production build, browser scenarios, full quality and final advisory comparison.
+  Record the result here and in frontend verification, update the index, and
+  publish the implementation commits in a draft PR.
+
+Follow-up iteration 6: contract generation and backend build passed, as did 82
+frontend/BFF tests and full saved-source quality after correcting C# formatting.
+The full backend integration suite is still running; its result is required
+before follow-up completion. MCP snippet inspection found no clones. Interim
+application health remains 86.9, tooling 52.3; application complexity changes
+79.6 to 79.5 (maximum 73 to 75) for the additional total-count service flow.
+Application clones/duplicated lines remain 4/32, tooling 1/6. The previous
+baseline is archived as `baseline-before-00014-adjustments-20261101`.
+
 ## Implementation details and work order
 
 The owner selected `refactor` on 2026-11-01 because this work changes the
