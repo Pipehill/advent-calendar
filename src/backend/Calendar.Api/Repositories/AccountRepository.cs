@@ -5,6 +5,10 @@ namespace Calendar.Api.Repositories;
 
 public sealed class AccountRepository(SecurityTransaction transaction) : IAccountRepository
 {
+    private const string AuthorizedAccounts = """
+        FROM accounts WHERE @Superadmin OR (account_role = 'calendarUser' AND responsible_administrator_id = @ActorId)
+        """;
+
     private const string AccountColumns = """
         SELECT id, name, user_name AS UserName, normalized_user_name AS NormalizedUserName,
             password_hash AS PasswordHash, account_role AS Role, enabled, security_version AS SecurityVersion,
@@ -74,9 +78,10 @@ public sealed class AccountRepository(SecurityTransaction transaction) : IAccoun
             SELECT id, name, user_name AS UserName, account_role AS Role, enabled,
                 responsible_administrator_id AS ResponsibleAdministratorId,
                 created_by_id AS CreatedById, created_at AS CreatedAt
-            FROM accounts WHERE @Superadmin OR (account_role = 'calendarUser' AND responsible_administrator_id = @ActorId)
-            ORDER BY normalized_user_name, id LIMIT @Limit OFFSET @Offset
-            """,
+            """
+                + " "
+                + AuthorizedAccounts
+                + " ORDER BY normalized_user_name, id LIMIT @Limit OFFSET @Offset",
             new
             {
                 Superadmin = allAccounts,
@@ -84,6 +89,12 @@ public sealed class AccountRepository(SecurityTransaction transaction) : IAccoun
                 Limit = limit,
                 Offset = offset,
             }
+        );
+
+    public Task<int> CountAsync(bool allAccounts, Guid actorId) =>
+        transaction.ScalarAsync<int>(
+            "SELECT COUNT(*) " + AuthorizedAccounts,
+            new { Superadmin = allAccounts, ActorId = actorId }
         );
 
     public Task SetEnabledAsync(Guid id, bool enabled, Guid securityVersion) =>

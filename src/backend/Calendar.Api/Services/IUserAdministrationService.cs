@@ -14,7 +14,7 @@ public interface IUserAdministrationService
         Guid? responsible,
         CancellationToken cancellationToken
     );
-    Task<IEnumerable<Account>> ListAsync(
+    Task<AccountPage> ListAsync(
         SessionIdentity? identity,
         int offset,
         int limit,

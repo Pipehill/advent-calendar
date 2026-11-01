@@ -39,7 +39,7 @@ function CreateAccountPage() {
           await navigate({ to: '/my-page' });
         }}
       />
-      <SessionControls context={context} expiresAt={session.expiresAt} />
+      <SessionControls context={context} expiresAt={session.expiresAt} className="mt-8" />
     </section>
   );
 }

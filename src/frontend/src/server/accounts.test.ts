@@ -34,6 +34,32 @@ const context = () =>
   );
 afterEach(() => vi.restoreAllMocks());
 
+test.each([
+  { totalCount: 0, offset: 0, pageSize: 0, hasMore: false },
+  { totalCount: 49, offset: 0, pageSize: 49, hasMore: false },
+  { totalCount: 50, offset: 0, pageSize: 50, hasMore: false },
+  { totalCount: 51, offset: 0, pageSize: 50, hasMore: true },
+  { totalCount: 100, offset: 50, pageSize: 50, hasMore: false },
+])(
+  'Given an authorized total $totalCount at offset $offset, When a page is listed, Then hasMore is $hasMore without a phantom page',
+  async ({ totalCount, offset, pageSize, hasMore }) => {
+    // Given backend metadata and its authorized total, independently of the page size.
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json(session()))
+      .mockResolvedValueOnce(
+        Response.json({ users: Array.from({ length: pageSize }, () => user()), totalCount }),
+      );
+
+    // When the BFF returns the requested page.
+    const result = await appRouter.createCaller(context()).accounts.list({ offset, limit: 50 });
+
+    // Then exact page-size multiples do not enable a nonexistent next page.
+    expect(result.totalCount).toBe(totalCount);
+    expect(result.hasMore).toBe(hasMore);
+    expect(result.users).toHaveLength(pageSize);
+  },
+);
+
 function maintenance(caller: ReturnType<typeof appRouter.createCaller>, operation: string) {
   if (operation === 'reset') return caller.accounts.resetPassword({ id: targetId, password });
   if (operation === 'status') return caller.accounts.changeStatus({ id: targetId, enabled: false });
@@ -339,7 +365,7 @@ test('Given a newly created account outside the displayed page, When the authori
     if (parsed.pathname === '/auth/session') return Response.json(session());
     const offset = Number(parsed.searchParams.get('offset'));
     const limit = Number(parsed.searchParams.get('limit'));
-    return Response.json({ users: users.slice(offset, offset + limit) });
+    return Response.json({ users: users.slice(offset, offset + limit), totalCount: users.length });
   });
 
   // When a current first-page request focuses the successfully returned ID.

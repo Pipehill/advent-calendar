@@ -131,7 +131,7 @@ test('Given a superadmin, When later account pages are requested, Then bounded p
   const request = vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(Response.json(session()))
-    .mockResolvedValueOnce(Response.json({ users: [session().user] }));
+    .mockResolvedValueOnce(Response.json({ users: [session().user], totalCount: 51 }));
 
   // When an authorized caller requests the next page.
   const result = await appRouter.createCaller(context()).accounts.list({ offset: 50, limit: 50 });
@@ -150,6 +150,7 @@ test('Given a superadmin, When later account pages are requested, Then bounded p
       },
     ],
     hasMore: false,
+    totalCount: 51,
     offset: 50,
   });
 });

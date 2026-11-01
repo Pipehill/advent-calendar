@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { ArrowLeft, ArrowRight, RefreshCw, UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import type { AccountAction } from '../lib/account-form-values';
 import { leaveSession } from '../lib/auth-navigation';
 import type { RouterContext } from '../router';
 import type { AccountMetadata } from '../server/accounts';
+import { AccountActions, accountActionLabel } from './account-actions';
 import { AccountForm } from './account-form';
 import { RequestFailure } from './auth-feedback';
 import { errorCode } from './error-state';
-import { Button } from './ui/button';
+import { Button, buttonStyles } from './ui/button';
 
 export function roleLabel(role: string) {
   if (role === 'superadmin') return m.role_superadmin();
@@ -22,6 +25,9 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
   const [success, setSuccess] = useState(context.administration.createdId ? m.admin_created() : '');
   const [selected, setSelected] = useState<{ action: AccountAction; target: AccountMetadata }>();
   const heading = useRef<HTMLHeadingElement>(null);
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const rowControls = useRef(new Map<string, HTMLButtonElement>());
+  const [focusAfterLoad, setFocusAfterLoad] = useState(context.administration.createdId);
   const limit = 50;
   const query = useQuery({
     ...context.trpc.accounts.list.queryOptions({ offset, limit, ...(focusId ? { focusId } : {}) }),
@@ -36,26 +42,49 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
     if (selected) heading.current?.focus();
   }, [selected]);
   useEffect(() => {
+    if (focusAfterLoad && !selected && !query.isFetching) {
+      // Mutations may remove the target from this authorized page.
+      (rowControls.current.get(focusAfterLoad) ?? listHeading.current)?.focus();
+      setFocusAfterLoad(undefined);
+    }
+  }, [focusAfterLoad, selected, query.isFetching]);
+  useEffect(() => {
     if (query.error && ['UNAUTHORIZED', 'FORBIDDEN'].includes(errorCode(query.error)))
       leaveSession(context, '/login');
   }, [query.error, context]);
   return (
     <section className="mt-10" aria-labelledby="accounts-heading">
-      <h2 id="accounts-heading" className="mb-4 font-serif text-2xl">
-        {actorRole === 'superadmin' ? m.accounts_title() : m.admin_assigned_accounts()}
-      </h2>
+      <header className="mb-4 flex flex-wrap items-center gap-3">
+        <h2
+          id="accounts-heading"
+          ref={listHeading}
+          tabIndex={-1}
+          className="mr-auto min-w-0 break-anywhere font-serif text-2xl"
+        >
+          {actorRole === 'superadmin' ? m.accounts_title() : m.admin_assigned_accounts()}
+          {query.data && ` (${query.data.totalCount})`}
+        </h2>
+        {(actorRole === 'superadmin' || actorRole === 'calendarAdmin') && (
+          <Link to="/create-account" className={buttonStyles({ size: 'compact' })}>
+            <UserPlus aria-hidden="true" />
+            {actorRole === 'superadmin' ? m.admin_create_account() : m.create_user()}
+          </Link>
+        )}
+        <Button
+          size="icon"
+          variant="secondary"
+          aria-label={m.admin_refresh()}
+          disabled={query.isFetching || !!selected}
+          onClick={() => void query.refetch()}
+        >
+          <RefreshCw aria-hidden="true" />
+        </Button>
+      </header>
       {success && (
         <p role="status" className="mb-4">
           {success}
         </p>
       )}
-      <Button
-        className="mb-4"
-        disabled={query.isFetching || !!selected}
-        onClick={() => void query.refetch()}
-      >
-        {m.admin_refresh()}
-      </Button>
       {selected && (
         <section
           className="mb-6 rounded-2xl border border-stone-300 bg-white p-5"
@@ -67,7 +96,7 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
             tabIndex={-1}
             className="mb-4 break-anywhere text-xl font-semibold"
           >
-            {actionLabel(selected.action, selected.target)}: {selected.target.name} (
+            {accountActionLabel(selected.action, selected.target)}: {selected.target.name} (
             {selected.target.username})
           </h3>
           <AccountForm
@@ -76,14 +105,18 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
             actorRole={actorRole}
             action={selected.action}
             target={selected.target}
-            onCancel={() => setSelected(undefined)}
-            onSuccess={async () => {
+            onCancel={() => {
+              setFocusAfterLoad(selected.target.id);
               setSelected(undefined);
+            }}
+            onSuccess={async () => {
               setSuccess(m.admin_saved());
               await context.queryClient.invalidateQueries({
                 queryKey: context.trpc.accounts.administrators.queryKey(),
               });
               await query.refetch();
+              setFocusAfterLoad(selected.target.id);
+              setSelected(undefined);
             }}
           />
         </section>
@@ -97,34 +130,31 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
           {query.data.users.map((user) => (
             <li
               key={user.id}
-              className="grid min-w-0 gap-2 p-4 sm:grid-cols-3 sm:gap-4"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.25rem] items-start gap-3 p-4 pointer-coarse:grid-cols-[minmax(0,1fr)_2.75rem]"
               data-account-id={user.id}
             >
-              <span className="break-anywhere font-semibold">{user.name}</span>
-              <span className="break-anywhere text-stone-600">{user.username}</span>
-              <span>
-                {roleLabel(user.role)} · {user.enabled ? m.admin_enabled() : m.admin_disabled()}
-              </span>
-              {user.role !== 'superadmin' && (
-                <div className="flex flex-wrap gap-2 sm:col-span-3">
-                  {(actorRole === 'superadmin'
-                    ? (['reset', 'status', 'role'] as const)
-                    : (['reset'] as const)
-                  ).map((action) => (
-                    <Button
-                      key={action}
-                      disabled={!!selected}
-                      aria-label={`${actionLabel(action, user)}: ${user.username}`}
-                      onClick={() => {
-                        setSuccess('');
-                        setSelected({ action, target: user });
-                      }}
-                    >
-                      {actionLabel(action, user)}
-                    </Button>
-                  ))}
-                </div>
-              )}
+              <div className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-1 text-left sm:grid-cols-4">
+                <span className="break-anywhere font-semibold">{user.name}</span>
+                <span className="break-anywhere text-stone-600">{user.username}</span>
+                <span className="break-anywhere">{roleLabel(user.role)}</span>
+                <span className="break-anywhere">
+                  {user.enabled ? m.admin_enabled() : m.admin_disabled()}
+                </span>
+              </div>
+              <AccountActions
+                target={user}
+                actorRole={actorRole}
+                disabled={!!selected}
+                triggerRef={(element) => {
+                  if (element) rowControls.current.set(user.id, element);
+                  else rowControls.current.delete(user.id);
+                }}
+                onFormFocus={() => heading.current?.focus()}
+                onSelect={(action) => {
+                  setSuccess('');
+                  setSelected({ action, target: user });
+                }}
+              />
             </li>
           ))}
         </ul>
@@ -133,18 +163,30 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
       )}
       <nav className="mt-4 flex flex-wrap items-center gap-4" aria-label={m.pagination_label()}>
         <Button
-          disabled={(query.data?.offset ?? offset) === 0 || query.isFetching || !!selected}
+          size="icon"
+          variant="secondary"
+          aria-label={m.previous_page()}
+          disabled={
+            (query.data?.offset ?? offset) === 0 || query.isFetching || !!query.error || !!selected
+          }
           onClick={() => {
             setOffset(Math.max(0, (query.data?.offset ?? offset) - limit));
             setFocusId(undefined);
           }}
         >
-          {m.previous_page()}
+          <ArrowLeft aria-hidden="true" />
         </Button>
         <span aria-live="polite">
-          {m.page_number({ number: String((query.data?.offset ?? offset) / limit + 1) })}
+          {query.data &&
+            m.page_number({
+              number: String(Math.floor(query.data.offset / limit) + 1),
+              total: String(Math.max(1, Math.ceil(query.data.totalCount / limit))),
+            })}
         </span>
         <Button
+          size="icon"
+          variant="secondary"
+          aria-label={m.next_page()}
           disabled={
             !query.data?.hasMore ||
             query.isFetching ||
@@ -157,15 +199,9 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
             setFocusId(undefined);
           }}
         >
-          {m.next_page()}
+          <ArrowRight aria-hidden="true" />
         </Button>
       </nav>
     </section>
   );
-}
-
-function actionLabel(action: AccountAction, target: AccountMetadata) {
-  if (action === 'reset') return m.admin_reset();
-  if (action === 'status') return target.enabled ? m.admin_disable() : m.admin_enable();
-  return target.role === 'calendarUser' ? m.admin_promote() : m.admin_demote();
 }

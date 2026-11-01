@@ -489,3 +489,188 @@ Nitro build/server entry points, retained after caller review. Unsupported
 dimensions remain unavailable; heuristic findings and rounded scores do not prove
 correctness. These are saved-source comparisons, separate from staged receipts
 and committed PR merge evidence.
+
+## 2026-11-01: Compact administrator controls (plan 00014)
+
+The personal header now groups compact password/logout actions beside the name.
+Account creation sits beside the account-list heading, refresh/pagination use
+named secondary icon buttons, and eligible rows expose a three-dot action menu.
+Account forms retain explicit confirmation and credential handling, with compact
+primary save and secondary cancel controls. The calendaradmin's unavailable
+calendar action and explanation remain separate. Ordinary users and superadmin
+targets retain their existing permission boundaries and routes.
+
+Verification on Windows, Node 24.20.0, .NET SDK 10.0.401, Edge and Podman:
+
+- **77 frontend/BFF unit tests** passed. Explicit TypeScript, contract/Paraglide
+  generation, production Vite/Nitro packaging, Biome and frozen installation passed.
+  Full repository quality passed at each iteration and on the final saved inputs.
+- **43 production browser scenarios** passed against a disposable PostgreSQL
+  database and separately started API/Nitro processes. The suite also passed all
+  **eight public/calendar smoke scenarios**. No page or hydration errors occurred.
+  The final focus assertion after maintenance saves was additionally checked
+  through reset, promotion/demotion, enable/disable, assigned-only reset and first
+  demotion scenarios.
+- Menus support Enter/Space/ArrowDown opening, Home/End and arrow navigation,
+  Escape/outside dismissal, account-specific accessible names, and focus transfer
+  into the existing form. Cancellation and successful saves return focus to the
+  row; an absent refreshed target falls back to the account heading. Opening and
+  canceling all three actions issued zero account writes. Eligible actions and
+  their state-dependent labels were verified for both administrator roles.
+- Creation from a later list page locates and focuses the created account. Tests
+  retain validation, recent-verification recovery, duplicate-submission protection,
+  real credential/session revocation, error handling and no automatic write retry.
+  Refresh and first/middle/last navigation retain pending/error/boundary guards,
+  localized accessible names and visible polite page announcements.
+- Both administrator roles were checked at **1280px and 320px** in Norwegian and
+  English. Screenshots were inspected against retained before images. Long
+  markup-like names remain plain text, menu labels wrap, and menus stay within
+  the viewport. Emulated touch checks confirm 44px controls/items, tap selection,
+  cancel/focus return and no horizontal overflow. Keyboard focus is visible;
+  icons are decorative and foreground/focus colors retain strong contrast.
+- Header logout pending/failure/retry, own-password navigation, client session
+  expiry, returning-tab revalidation, restricted credentials, ordinary-user pages,
+  creation/password-page session consumers and public/calendar SSR were verified.
+  A controlled browser clock checks the client timer; backend deadline security
+  remains covered by the existing backend suite, which this UI task did not rerun.
+
+Lucide React **1.66.0** and Radix Dropdown Menu **2.2.1** are pinned and declare
+React 19 peer compatibility. The maintained dropdown is adapted from
+[shadcn/ui](https://ui.shadcn.com/docs/components/radix/dropdown-menu); Radix owns
+keyboard navigation, collision positioning and menu focus. Only required Lucide
+icons are imported. Initial production browser checks found Nitro tracing the
+wrong Lucide export target; Vite SSR now bundles the icons, resolving missing
+server modules and hydration fallback. The standalone output is 4.91 MB. The
+first sandboxed Nitro attempt also hit parent-directory readlink restrictions;
+the build passed with the required filesystem access. A touch-test locator was
+corrected to measure its trigger before the modal menu hides background content
+from accessibility queries; the corrected touch scenario passed.
+
+The dependency audit identified two existing Seroval serialization advisories.
+Updating only its compatible transitive lockfile resolution from 1.6.9 to 1.7.5
+cleared them; the final production audit reports **zero advisories**. The complete
+development audit still reports 16 advisories (six high, five moderate, five low)
+in Nitro's build dependencies: node-forge, serialize-javascript, deepmerge,
+minimatch and glob. These are recorded in ignored audit artifacts; broader
+build-tool upgrades remain outside this UI refactoring. The production image
+continues to contain only standalone output.
+
+Evidence lives in ignored `quality-reports/plan00014/`: final unit/build/lint
+logs, production/development audit JSON, JUnit, before screenshots, localized
+desktop/mobile menu/header screenshots and MCP schemas/snippet/refresh/statistics.
+Quality containers use automatic removal, and disposable browser databases are
+stopped and removed after each run. Existing development services, volumes,
+images and external build containers are preserved. Physical-device and manual
+screen-reader testing were not performed; accessibility evidence uses browser
+roles/names, focus, keyboard operation and emulated touch. Available-platform
+coverage remains Windows/Podman/Edge, with inherited Vite-dev language-switching,
+native macOS/Linux/Docker and deployment HTTPS limitations unchanged.
+
+### Plan 00014 advisory health
+
+Application health **declines from 87.5 to 86.9 (-0.6)**. Tooling health improves
+from **52.0 to 52.3 (+0.3)**, while its complexity also regresses. The application
+adds explicit button variants, menu dispatch and focus restoration guards. The
+browser suite adds real layout, touch, keyboard and session lifecycle scenarios,
+raising its file complexity from 145 to 214. These branches support the required
+behaviors; preserving the existing isolated fixture and scenario structure avoids
+introducing a second test harness. No scoring settings or exclusions changed.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Complexity score / share | 81.2 / 79.6; 13.8% / 15.6% | 55.9 / 54.7; 47.8% / 49.6% |
+| Maximum file complexity | 73 / 73 | 145 / 214 |
+| Duplication score | 95.2 / 95.3 | 93.9 / 94.0 |
+| Duplication percentage | 0.329421% / 0.321964% | 0.084710% / 0.081777% |
+| Clones / duplicated lines | 4 / 4; 32 / 32 | 1 / 1; 6 / 6 |
+| Dead-code score / share | 85.1 / 85.7; 0.9% / 0.8% | 26.1 / 27.1; 17.9% / 17.3% |
+| Heuristic findings | 2 / 2 | 6 / 6 |
+| Dead-code analysis coverage | 33.0% / 34.5% | 96.0% / 96.1% |
+| Analyzed files / lines | 91 / 93; 9714 / 9939 | 44 / 44; 7083 / 7337 |
+
+jscpd 5.4.1 uses unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+The preserved baseline is saved source at
+`3d452d660743dada9c01aef51a0d5ddb739c9de7`; the preceding baseline was archived as
+`baseline-before-00014-20261101`. Raw reports retain separate application/tooling
+manifests, source hashes and the whole-repository reference. Application source
+identity changes from
+`1b6ef6fd9610ad917199b0305550ca9005854998fa76a0039eee5cd97eb7de48` to
+`f55ab430c2bf811859632aed7f1564d98173079890a5779cf00b756d81975bd9`.
+Unchanged absolute duplication counts mean the lower shares reflect larger
+denominators. Existing heuristic unused-file findings include real Nitro and
+quality-tool entry points; caller review retains them. Dead-code coverage is
+partial, unsupported dimensions remain unavailable, and rounded scores do not
+establish correctness. Working-tree reports remain separate from hook receipts
+and the committed PR merge comparison.
+
+## 2026-11-01: Administrator list corrections (plan 00014 follow-up)
+
+The owner authorized updating plan 00014 and corrected the requested alignment
+to **left alignment** during implementation. Account names, usernames, roles and
+enabled states now occupy four consistently aligned desktop columns, with two
+columns on narrow screens. Reserving the action-control column keeps account
+values aligned even when a superadmin row has no menu. Shared enabled buttons,
+styled links and menu items use a pointer cursor; disabled buttons retain their
+disabled cursor and behavior.
+
+List headings include the authorized account total in parentheses. Pagination
+shows `Side 1 av 2` / `Page 1 of 2`, including page 1 of 1 for an empty list.
+The authored OpenAPI user-list response now requires `totalCount`; the repository
+reuses the same SQL authorization predicate for page and count queries, the
+service keeps both within its protected transaction, and the BFF derives
+`hasMore` from the total. Calendaradmin counts exclude unrelated accounts.
+Full pages at exact multiples of the limit no longer enable a phantom next page.
+
+On Windows/Podman/Edge, all **178 backend integration tests** and **82 frontend/BFF
+tests** passed, including scoped and empty counts, offsets beyond the last row,
+partial/full pages and exact page-size boundaries. Contract/Paraglide generation,
+explicit TypeScript, production Vite/Nitro packaging and Biome passed. Nitro again
+required filesystem access outside the sandbox for its parent-directory readlink.
+No dependency, schema migration, authorization or credential-flow changes were made.
+
+All **43 production browser scenarios** and **eight public/calendar smoke
+scenarios** passed with the corrected left alignment. Both administrator roles
+were checked in Norwegian/English at 1280px and 320px, measuring shared column
+edges, separate role/status cells, enabled-control/menu cursors and heading/page
+totals against authorized API data. Empty lists show `(0)` and page 1 of 1 with
+both navigation buttons disabled. Desktop/mobile screenshots were inspected.
+The eight localized layout scenarios also passed on the final test source after
+simplifying their expected heading lookup.
+The initial empty/error scenario attempted a now-disabled previous-page button;
+using refresh for the error request fixed that test, and the full rerun passed.
+Full saved-source quality passed. Disposable containers are automatically removed;
+existing development services, images and volumes are preserved.
+
+### Follow-up advisory health
+
+Application health **declines from 86.9 to 86.8 (-0.1)**. Tooling remains **52.3**,
+with a complexity regression. Count coordination, pagination coverage and actual
+browser measurements of alignment/cursors add the relevant branches. The browser
+scenarios reuse the existing fixture and test combinations. Absolute duplication
+and heuristic finding counts remain unchanged; no scoring/exclusion changes were made.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Complexity score / share | 79.6 / 79.4; 15.6% / 15.7% | 54.7 / 54.6; 49.6% / 49.8% |
+| Maximum file complexity | 73 / 75 | 215 / 226 |
+| Duplication percentage | 0.321964% / 0.318566% | 0.081777% / 0.081444% |
+| Clones / duplicated lines | 4 / 4; 32 / 32 | 1 / 1; 6 / 6 |
+| Heuristic findings | 2 / 2 | 6 / 6 |
+| Dead-code analysis coverage | 34.5% / 34.5% | 96.1% / 96.1% |
+| Analyzed files / lines | 93 / 93; 9939 / 10045 | 44 / 44; 7337 / 7367 |
+
+jscpd **5.4.1** retains configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+The follow-up baseline is saved source at
+`1ead425fd422119caff873c51c57e20a77f7221c`; the previous baseline is preserved as
+`baseline-before-00014-adjustments-20261101`. Application source SHA-256 changes
+from `f55ab430c2bf811859632aed7f1564d98173079890a5779cf00b756d81975bd9`
+to `ec9509726c3e0fbe46c46e5407c6868996aa9b6f3aad4ebce394163b09e89987`;
+tooling changes from `47cbb1b18a4e161826f62cc4f544923ae36afa1a17564584c7538b317e44bb9b`
+to `f6f4872417187e7c5356694014dd4136fb0443af0a8ca98c5b0cb5e2813153d8`.
+Raw identities, whole-repository reference, MCP schemas/refresh/statistics and
+logs are retained under ignored `quality-reports/health/` and
+`quality-reports/plan00014/adjustments-*`. Lower duplication shares reflect larger
+denominators. Analysis remains partial and heuristic; the inherited dependency,
+platform, physical-device and manual-screen-reader limitations above still apply.

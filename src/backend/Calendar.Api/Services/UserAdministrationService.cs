@@ -119,7 +119,7 @@ public sealed class UserAdministrationService(
         }
     }
 
-    public Task<IEnumerable<Account>> ListAsync(
+    public Task<AccountPage> ListAsync(
         SessionIdentity? identity,
         int offset,
         int limit,
@@ -133,12 +133,10 @@ public sealed class UserAdministrationService(
             {
                 var actor = await sessions.RequireAsync(identity, administrator: true);
                 // Query only authorized metadata, never credentials or lockout state.
-                return await accounts.ListAsync(
-                    actor.Account.Role == AccountRoles.Superadmin,
-                    actor.Account.Id,
-                    offset,
-                    limit
-                );
+                var allAccounts = actor.Account.Role == AccountRoles.Superadmin;
+                var users = await accounts.ListAsync(allAccounts, actor.Account.Id, offset, limit);
+                var totalCount = await accounts.CountAsync(allAccounts, actor.Account.Id);
+                return new AccountPage(users, totalCount);
             },
             cancellationToken
         );

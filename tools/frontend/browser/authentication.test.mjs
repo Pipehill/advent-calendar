@@ -13,7 +13,7 @@ const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
 const runtime = process.env.QUALITY_CONTAINER_RUNTIME || settings.runtime || 'podman';
 const dotnet = process.env.DOTNET_EXE || settings.dotnet || 'dotnet';
-const reports = path.join(root, 'quality-reports/plan00013/browser');
+const reports = path.join(root, 'quality-reports/plan00014/browser');
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
 const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
 const children = [];
@@ -142,7 +142,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
         assert.equal(await page.getByRole('link', { name: 'Lag ny kalenderbruker' }).count(), 1);
         assert(await page.getByRole('button', { name: 'Lag ny kalender', exact: true }).isDisabled());
         assert.equal(await page.getByText('Alle kontoer').count(), 0);
-        await page.getByText('Dine kalenderbrukere', { exact: true }).waitFor();
+        await page.getByRole('heading', { name: /^Dine kalenderbrukere \(\d+\)$/ }).waitFor();
         await page.getByText(accounts.find(item => item.username === 'browser-user').name, { exact: true }).waitFor();
         assert.equal(await page.getByText('Annen Bruker', { exact: true }).count(), 0);
       } else {
@@ -153,7 +153,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
           assert.equal(await page.getByText(other.name, { exact: true }).count(), 1);
         }
         await page.getByRole('button', { name: 'Neste', exact: true }).click();
-        await page.getByText('Side 2', { exact: true }).waitFor();
+        await page.getByText(/^Side 2 av \d+$/).waitFor();
         await page.getByText('Pagination 51', { exact: true }).waitFor();
         assert.equal(await page.locator('li').count(), accounts.length + 51 - 50);
       }
@@ -309,7 +309,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     // Given an authorized list already viewed in this browser context.
     const superadmin = accounts.find(item => item.username === 'browser-superadmin');
     await signIn(superadmin);
-    await page.getByText('Alle kontoer', { exact: true }).waitFor();
+    await page.getByRole('heading', { name: /^Alle kontoer \(\d+\)$/ }).waitFor();
 
     // When logout is followed by an ordinary user's fresh login in the same context.
     await page.getByRole('button', { name: 'Logg ut', exact: true }).click();
@@ -319,7 +319,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     const response = await page.reload({ waitUntil: 'networkidle' });
 
     // Then neither browser queries, rendered personal UI nor SSR hydration retain the previous list.
-    assert.equal(await page.getByText('Alle kontoer', { exact: true }).count(), 0);
+    assert.equal(await page.getByRole('heading', { name: /^Alle kontoer \(\d+\)$/ }).count(), 0);
     assert.equal(await page.locator('li').count(), 0);
     assert(!(await response.text()).includes(superadmin.name));
   });
@@ -331,7 +331,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     const pending = new Promise(resolve => { release = resolve; });
     await page.route('**/api/trpc/accounts.list**', async route => {
       await pending;
-      await route.fulfill({ json: { result: { data: { users: [], hasMore: false } } } });
+      await route.fulfill({ json: { result: { data: { users: [], offset: 0, totalCount: 0, hasMore: false } } } });
     });
 
     // When a new page is waiting and then returns an empty result.
@@ -340,9 +340,13 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('li').count(), 0);
     release();
     await page.getByText('Ingen kontoer å vise.', { exact: true }).waitFor();
+    assert.equal(await page.locator('#accounts-heading').textContent(), 'Alle kontoer (0)');
+    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 1 av 1');
+    assert.equal(await page.getByRole('button', { name: 'Forrige', exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole('button', { name: 'Neste', exact: true }).isDisabled(), true);
     await page.unroute('**/api/trpc/accounts.list**');
     await page.route('**/api/trpc/accounts.list**', route => route.fulfill({ status: 503, json: { error: { message: 'SERVICE_UNAVAILABLE', code: -32603, data: { code: 'SERVICE_UNAVAILABLE', httpStatus: 503 } } } }));
-    await page.getByRole('button', { name: 'Forrige', exact: true }).click();
+    await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).click();
 
     // Then failures remain accessible and do not display data from the previous successful page.
     await page.getByRole('alert').filter({ hasText: 'Innloggingstjenesten er utilgjengelig' }).waitFor();
@@ -387,10 +391,11 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
       // When the account is created through real browser/BFF/API transport.
       const account = await createAccount(actor, input);
       await page.getByText(input.name, { exact: true }).waitFor();
+      assert.equal(await page.locator(`[data-account-id="${account.id}"] button`).evaluate(element => element === document.activeElement), true);
       const session = await context.request.get(`${frontendUrl}/api/trpc/auth.session`);
-      const pageNumber = await page.getByText(/^Side \d+$/).textContent();
+      const pageNumber = await page.getByText(/^Side \d+ av \d+$/).textContent();
       await page.reload({ waitUntil: 'networkidle' });
-      if (pageNumber !== 'Side 1') {
+      if (!pageNumber.startsWith('Side 1 av ')) {
         await page.getByRole('button', { name: 'Neste', exact: true }).click();
       }
 
@@ -544,8 +549,10 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
     // Then no status/role controls or cross-owner rows are exposed and forged calls fail.
     assert(results.every(response => response.status() === 403));
-    assert.equal(await page.getByRole('button', { name: /^Deaktiver konto/ }).count(), 0);
-    assert.equal(await page.getByRole('button', { name: /^Gjør til/ }).count(), 0);
+    await page.locator(`[data-account-id="${account.id}"]`).getByRole('button').click();
+    assert.equal(await page.getByRole('menuitem').count(), 1);
+    assert.equal(await page.getByRole('menuitem', { name: 'Tilbakestill passord', exact: true }).count(), 1);
+    await page.keyboard.press('Escape');
     assert.equal(await page.getByText(other.name, { exact: true }).count(), 0);
   });
 
@@ -553,7 +560,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     // Given a superadmin viewing the existing administrator with ordinary users.
     await signIn(accounts.find(item => item.username === 'browser-superadmin'));
     const target = accounts.find(item => item.username === 'browser-admin');
-    await page.getByRole('button', { name: `Endre til kalenderbruker: ${target.username}`, exact: true }).click();
+    await openAccountAction(target, 'Endre til kalenderbruker');
     await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin-two').id);
 
     // When the dependency-protected role change is submitted.
@@ -654,6 +661,276 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(persisted.responsibleAdministratorId, owner.id);
   });
 
+  test('Given account menus, When keyboard navigation selects and cancels each action, Then only explicit forms open and focus returns without writes', async () => {
+    // Given a superadmin, an ordinary target, and recorded account mutation requests.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    const trigger = page.getByRole('button', { name: `Handlinger for ${account.name} (${account.username})`, exact: true });
+    const writes = [];
+    page.on('request', request => {
+      if (request.method() === 'POST' && request.url().includes('/api/trpc/accounts.')) writes.push(request.url());
+    });
+
+    // When Enter/Space/ArrowDown, arrow navigation, Escape and form cancellation are used.
+    for (const key of ['Enter', 'Space', 'ArrowDown']) {
+      await trigger.focus();
+      await page.keyboard.press(key);
+      await page.getByRole('menu').waitFor();
+      assert.equal(await page.getByRole('menuitem').count(), 3);
+      await page.keyboard.press('End');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Gjør til kalenderadministrator');
+      assert.equal(await page.getByRole('menuitem', { name: 'Gjør til kalenderadministrator', exact: true }).evaluate(element => element === document.activeElement), true);
+      await page.keyboard.press('Home');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Tilbakestill passord');
+      await page.keyboard.press('ArrowDown');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Deaktiver konto');
+      assert.equal(await page.getByRole('menuitem', { name: 'Deaktiver konto', exact: true }).evaluate(element => element === document.activeElement), true);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+    }
+    for (const action of ['Tilbakestill passord', 'Deaktiver konto', 'Gjør til kalenderadministrator']) {
+      await openAccountAction(account, action);
+      assert.equal(await page.getByRole('menu').count(), 0);
+      assert.match(await page.locator('#account-action-heading').textContent(), new RegExp(account.username));
+      assert.equal(await trigger.isDisabled(), true);
+      assert.equal(await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).isDisabled(), true);
+      await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+      assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+    }
+
+    // Then no mutation occurred, and superadmin rows have no maintenance control.
+    assert.deepEqual(writes, []);
+    const superadmin = accounts.find(item => item.username === 'browser-superadmin');
+    assert.equal(await page.locator(`[data-account-id="${superadmin.id}"]`).getByRole('button').count(), 0);
+  });
+
+  test('Given a completed maintenance write, When the target disappears from the refreshed page, Then focus returns to the account heading', async () => {
+    // Given a selected reset form and a list refresh that no longer includes the target.
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    await openAccountAction(account, 'Tilbakestill passord');
+    await page.route('**/api/trpc/accounts.list**', async route => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.result.data.users = body.result.data.users.filter(user => user.id !== account.id);
+      await route.fulfill({ response, json: body });
+    });
+    await page.getByLabel('Mottakerens midlertidige passord').fill(`Reset!${randomUUID()}`);
+
+    // When the explicit confirmation succeeds and refresh replaces the rows.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === 'accounts-heading');
+
+    // Then the removed target is absent and keyboard users retain a meaningful position.
+    assert.equal(await page.locator(`[data-account-id="${account.id}"]`).count(), 0);
+    assert.equal(await page.locator('#accounts-heading').evaluate(element => element === document.activeElement), true);
+  });
+
+  for (const [actorUsername, creationLabels] of [
+    ['browser-admin', { nb: 'Lag ny kalenderbruker', en: 'Create calendar user' }],
+    ['browser-superadmin', { nb: 'Opprett konto', en: 'Create account' }],
+  ]) {
+    for (const locale of ['nb', 'en']) {
+      for (const width of [1280, 320]) {
+        test(`Given ${actorUsername} with ${locale} controls at ${width}px, When headers and menus are used, Then labels wrap within the viewport and outside dismissal returns focus`, async () => {
+          // Given a localized production page with a long, unchanged user-authored name.
+          const actor = accounts.find(item => item.username === actorUsername);
+          await signIn(actor);
+          await page.getByRole('combobox').selectOption(locale);
+          await page.waitForLoadState('networkidle');
+          await page.setViewportSize({ width, height: 812 });
+          const account = accounts.find(item => item.username === 'browser-user');
+          const label = locale === 'nb' ? `Handlinger for ${account.name} (${account.username})` : `Actions for ${account.name} (${account.username})`;
+          const trigger = page.getByRole('button', { name: label, exact: true });
+          const accountHeader = page.locator('section[aria-labelledby=accounts-heading] > header');
+          const personalHeader = page.locator('.protected-content > header');
+          const creation = accountHeader.getByRole('link', { name: creationLabels[locale], exact: true });
+          await creation.waitFor();
+          const listResponse = await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`);
+          const accountPage = (await listResponse.json()).result.data;
+
+          // When the row menu opens at a viewport edge and is dismissed outside.
+          await trigger.scrollIntoViewIfNeeded();
+          await trigger.click();
+          const menu = page.getByRole('menu');
+          await menu.waitFor();
+          const bounds = await menu.boundingBox();
+          assert(bounds.x >= 0 && bounds.x + bounds.width <= width);
+          assert(bounds.y >= 0 && bounds.y + bounds.height <= 812);
+          assert.equal(await page.getByRole('menuitem', { name: locale === 'nb' ? 'Tilbakestill passord' : 'Reset password', exact: true }).count(), 1);
+          assert.equal(await page.getByRole('menuitem').first().evaluate(element => getComputedStyle(element).cursor), 'pointer');
+          await page.screenshot({ path: path.join(reports, `menu-${actor.role}-${locale}-${width}.png`), fullPage: true });
+          await page.mouse.click(2, 2);
+          await menu.waitFor({ state: 'hidden' });
+          await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+          assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+
+          // Then navigation stays recognizable, localized and contained on desktop/mobile.
+          const titles = {
+            nb: { superadmin: 'Alle kontoer', calendarAdmin: 'Dine kalenderbrukere' },
+            en: { superadmin: 'All accounts', calendarAdmin: 'Your calendar users' },
+          };
+          assert.equal(await accountHeader.getByRole('heading').textContent(), `${titles[locale][actor.role]} (${accountPage.totalCount})`);
+          const totalPages = Math.max(1, Math.ceil(accountPage.totalCount / 50));
+          assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), locale === 'nb' ? `Side 1 av ${totalPages}` : `Page 1 of ${totalPages}`);
+          const controls = await page.locator('button:enabled, a[href]').evaluateAll(elements => elements.map(element => getComputedStyle(element).cursor));
+          assert(controls.every(cursor => cursor === 'pointer'), 'Every enabled button and navigation link has a pointer cursor');
+          const columns = await page.locator('[data-account-id] > div').evaluateAll(rows => rows.map(row => [...row.children].map(cell => ({
+            left: cell.getBoundingClientRect().left,
+            top: cell.getBoundingClientRect().top,
+            alignment: getComputedStyle(cell).textAlign,
+          }))));
+          assert(columns.length > 0);
+          for (const cells of columns) {
+            assert.equal(cells.length, 4, 'Name, username, role and enabled status occupy separate cells');
+            for (let index = 0; index < 4; index += 1) {
+              assert.equal(cells[index].alignment, 'left');
+              assert(Math.abs(cells[index].left - columns[0][index].left) < 1, 'Column edges align across every row, including rows without menus');
+            }
+            if (width >= 640) assert.equal(cells[2].top, cells[3].top, 'Role and status have separate columns on the same row');
+          }
+          assert.equal(await personalHeader.getByRole('button', { name: locale === 'nb' ? 'Logg ut' : 'Log out', exact: true }).count(), 1);
+          assert.equal(await personalHeader.getByRole('link', { name: locale === 'nb' ? 'Bytt passord' : 'Change password', exact: true }).count(), 1);
+          assert.equal(await page.getByText(account.name, { exact: true }).count(), 1);
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+          const refresh = accountHeader.getByRole('button', { name: locale === 'nb' ? 'Oppdater kontoer' : 'Refresh accounts', exact: true });
+          assert.equal(await refresh.textContent(), '');
+          await page.screenshot({ path: path.join(reports, `headers-${actor.role}-${locale}-${width}.png`), fullPage: true });
+          await personalHeader.getByRole('link').click();
+          await page.waitForURL('**/change-password');
+          assert.equal(await page.getByRole('button', { name: locale === 'nb' ? 'Logg ut' : 'Log out', exact: true }).count(), 1);
+        });
+      }
+  }
+  }
+
+  test('Given touch input and a long account name, When a menu item is tapped and canceled, Then usable targets open the same confirmation without overflow', async () => {
+    // Given a coarse-pointer browser at a narrow mobile width.
+    await context.close();
+    context = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true, isMobile: true });
+    page = await context.newPage();
+    page.on('pageerror', error => errors.push(error.message));
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    const trigger = page.locator(`[data-account-id="${account.id}"]`).getByRole('button');
+
+    // When the touch menu opens near the bottom edge and its role item is selected.
+    await trigger.scrollIntoViewIfNeeded();
+    const target = await trigger.boundingBox();
+    assert(target.width >= 44 && target.height >= 44);
+    await trigger.tap();
+    const menu = await page.getByRole('menu').boundingBox();
+    assert(menu.x >= 0 && menu.x + menu.width <= 320 && menu.y >= 0 && menu.y + menu.height <= 700);
+    const item = page.getByRole('menuitem', { name: 'Gjør til kalenderadministrator', exact: true });
+    assert((await item.boundingBox()).height >= 44);
+    await item.tap();
+    await page.waitForFunction(() => document.activeElement?.id === 'account-action-heading');
+    await page.getByRole('button', { name: 'Avbryt', exact: true }).tap();
+
+    // Then the same confirmation and focus lifecycle work without horizontal scrolling.
+    assert.equal(await page.locator('#account-action-heading').count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+  });
+
+  test('Given header logout, When a pending request fails and is retried, Then feedback stays localized and the session remains usable until success', async () => {
+    // Given an administrator and a held logout response.
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/auth.logout', async route => {
+      await pending;
+      await route.fulfill({ status: 503, json: { error: { message: 'SERVICE_UNAVAILABLE', code: -32603, data: { code: 'SERVICE_UNAVAILABLE', httpStatus: 503 } } } });
+    });
+
+    // When logout is pending, fails, then succeeds on an explicit retry.
+    const header = page.locator('.protected-content > header');
+    await header.getByRole('button', { name: 'Logg ut', exact: true }).click();
+    await header.getByRole('button', { name: 'Vennligst vent …', exact: true }).waitFor();
+    assert.equal(await header.getByRole('button').isDisabled(), true);
+    release();
+    await header.getByRole('alert').waitFor();
+    assert.equal((await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 200);
+    await page.unroute('**/api/trpc/auth.logout');
+    await header.getByRole('button', { name: 'Logg ut', exact: true }).click();
+    await page.waitForURL(frontendUrl + '/');
+
+    // Then successful logout removes the session and protected account content.
+    assert.equal((await context.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
+    assert.equal(await page.locator('[data-account-id]').count(), 0);
+  });
+
+  test('Given a returning tab, When its session has been revoked, Then visibility revalidation removes personal output', async () => {
+    // Given one authenticated administrator and an externally revoked session.
+    const actor = accounts.find(item => item.username === 'browser-admin');
+    await signIn(actor);
+    command(dotnet, [fixtureDll, 'revoke', actor.username], environment);
+
+    // When the existing page becomes visible again.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await page.waitForURL('**/login');
+
+    // Then the header's single session-controls instance revalidates and clears personal content.
+    assert.equal(await page.locator('[data-account-id]').count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Logg ut', exact: true }).count(), 0);
+  });
+
+  test('Given a personal page session deadline, When browser time reaches expiry, Then the header session timer discards protected content', async () => {
+    // Given a real administrator session with the browser clock controlled before mounting.
+    await page.clock.install();
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+
+    // When the fixed eight-hour client deadline passes without tab activity.
+    await page.clock.fastForward(8 * 60 * 60 * 1000 + 1000);
+    await page.waitForURL('**/login');
+
+    // Then client-side expiry clears protected route data and the sole session header.
+    assert.equal(await page.locator('.protected-content').count(), 0);
+    assert.equal(await page.getByRole('heading', { name: 'Logg inn', exact: true }).count(), 1);
+  });
+
+  test('Given three account pages, When refresh and navigation are requested, Then icon controls preserve pending guards and first middle last boundaries', async () => {
+    // Given a first page and controlled subsequent responses with bounded pagination metadata.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const calls = [];
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/accounts.list**', async route => {
+      const offset = JSON.parse(new URL(route.request().url()).searchParams.get('input')).offset;
+      calls.push(offset);
+      if (calls.length === 1) await pending;
+      await route.fulfill({ json: { result: { data: { users: [], offset, totalCount: 150, hasMore: offset < 100 } } } });
+    });
+    const previous = page.getByRole('button', { name: 'Forrige', exact: true });
+    const next = page.getByRole('button', { name: 'Neste', exact: true });
+    const refresh = page.getByRole('button', { name: 'Oppdater kontoer', exact: true });
+    assert.equal(await previous.isDisabled(), true);
+
+    // When navigation waits, reaches the middle and last pages, and refreshes the last page.
+    await next.click();
+    await page.getByRole('status').filter({ hasText: 'Henter kontoer' }).waitFor();
+    assert.equal(await previous.isDisabled(), true);
+    assert.equal(await next.isDisabled(), true);
+    assert.equal(await refresh.isDisabled(), true);
+    release();
+    await page.getByText(/^Side 2 av \d+$/).waitFor();
+    assert.equal(await previous.isEnabled(), true);
+    assert.equal(await next.isEnabled(), true);
+    await next.click();
+    await page.getByText('Side 3 av 3', { exact: true }).waitFor();
+    assert.equal(await next.isDisabled(), true);
+    await refresh.click();
+    await page.getByText('Ingen kontoer å vise.', { exact: true }).waitFor();
+    await previous.click();
+    await page.getByText(/^Side 2 av \d+$/).waitFor();
+
+    // Then refetch retains offset and visible page announcements track navigation.
+    assert.deepEqual(calls, [50, 100, 100, 50]);
+    assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2 av 3');
+  });
+
   test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
     const env = { ...process.env, FRONTEND_URL: frontendUrl, API_URL: apiUrl };
@@ -705,7 +982,7 @@ async function createAccount(actor, input) {
 }
 
 async function maintain(account, action, password, responsibleId) {
-  await page.getByRole('button', { name: `${action}: ${account.username}`, exact: true }).click();
+  await openAccountAction(account, action);
   await page.locator('#account-action-heading').waitFor();
   if (password) await page.getByLabel('Mottakerens midlertidige passord').fill(password);
   if (responsibleId) await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(responsibleId);
@@ -713,6 +990,13 @@ async function maintain(account, action, password, responsibleId) {
   await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
   await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).waitFor({ state: 'visible' });
   await page.waitForLoadState('networkidle');
+  assert.equal(await page.locator(`[data-account-id="${account.id}"] button`).evaluate(element => element === document.activeElement), true);
+}
+
+async function openAccountAction(account, action) {
+  await page.locator(`[data-account-id="${account.id}"]`).getByRole('button').click();
+  await page.getByRole('menuitem', { name: action, exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.id === 'account-action-heading');
 }
 
 function command(executable, args, env = process.env) {

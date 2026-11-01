@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form';
+import { Check, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import {
@@ -275,15 +276,19 @@ export function AccountForm({
               </p>
             )}
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" disabled={pending} aria-busy={pending}>
+              <Button size="compact" type="submit" disabled={pending} aria-busy={pending}>
+                <Check aria-hidden="true" />
                 {pending ? m.auth_pending() : m.admin_submit()}
               </Button>
               <Button
+                size="compact"
+                variant="secondary"
                 onClick={() => {
                   form.reset();
                   onCancel();
                 }}
               >
+                <X aria-hidden="true" />
                 {m.admin_cancel()}
               </Button>
             </div>

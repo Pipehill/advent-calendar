@@ -11,6 +11,62 @@ namespace Calendar.Api.Tests;
 public sealed class UserAdministrationTests(ApiFixture fixture)
 {
     [Theory(
+        DisplayName = "Given scoped accounts, When pages are listed, Then totals count only authorized accounts independently of page size"
+    )]
+    [InlineData(AccountRoles.Superadmin, 0, 2, 5, 2)]
+    [InlineData(AccountRoles.Superadmin, 4, 2, 5, 1)]
+    [InlineData(AccountRoles.Superadmin, 5, 2, 5, 0)]
+    [InlineData(AccountRoles.Administrator, 0, 1, 1, 1)]
+    [InlineData(AccountRoles.Administrator, 1, 1, 1, 0)]
+    public async Task ListTotalsRespectAuthorization(
+        string role,
+        int offset,
+        int limit,
+        int total,
+        int pageSize
+    )
+    {
+        // Given two administrators, their own users and a superadmin in an isolated database.
+        await using var context = await CreateAsync(fixture);
+        var owner = await context.ProvisionAsync(AccountRoles.Administrator);
+        var other = await context.ProvisionAsync(AccountRoles.Administrator);
+        await context.ProvisionAsync(AccountRoles.User, owner.Id);
+        await context.ProvisionAsync(AccountRoles.User, other.Id);
+        var superadmin = await context.ProvisionAsync(AccountRoles.Superadmin);
+        await context.LoginAsync(role == AccountRoles.Superadmin ? superadmin : owner);
+
+        // When the caller lists a bounded page, including offsets beyond the last row.
+        var page = (
+            await context.Client.GetFromJsonAsync<UserListDto>(
+                $"/users?offset={offset}&limit={limit}"
+            )
+        )!;
+
+        // Then the full authorized total is independent of returned rows and excludes other scopes.
+        Assert.Equal(total, page.TotalCount);
+        Assert.Equal(pageSize, page.Users.Count);
+        if (role == AccountRoles.Administrator)
+            Assert.All(page.Users, user => Assert.Equal(owner.Id, user.ResponsibleAdministratorId));
+    }
+
+    [Fact(
+        DisplayName = "Given an administrator without assigned users, When accounts are listed, Then both the authorized total and page are empty"
+    )]
+    public async Task EmptyAssignedListHasZeroTotal()
+    {
+        // Given an authenticated administrator without assigned accounts.
+        await using var context = await CreateAsync(fixture);
+        await context.LoginAsync(await context.ProvisionAsync(AccountRoles.Administrator));
+
+        // When the authorized list is requested.
+        var page = (await context.Client.GetFromJsonAsync<UserListDto>("/users"))!;
+
+        // Then the administrator's own account is excluded from both the count and rows.
+        Assert.Equal(0, page.TotalCount);
+        Assert.Empty(page.Users);
+    }
+
+    [Theory(
         DisplayName = "Given each account role, When an assignable role is created, Then the direct API enforces the permission matrix"
     )]
     [InlineData(AccountRoles.Superadmin, AccountRoles.Administrator, 201)]

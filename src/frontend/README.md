@@ -29,6 +29,12 @@ enable/disable accounts and change between calendaradmin/calendar-user roles.
 Superadmin targets remain view-only. Lists show name, username, localized role
 and enabled state, with pagination and refresh. Calendar creation remains unavailable.
 
+Compact session actions sit beside the signed-in name, and account creation sits
+beside the list heading. Eligible rows expose a keyboard-accessible three-dot
+menu with localized action labels. Selecting an item opens a confirmation form;
+it never changes the account immediately. Refresh and pagination use named icon
+buttons. Controls wrap on narrow screens and provide larger touch targets.
+
 `/create-account` is a dedicated, session-protected TanStack Form/Zod creation page.
 Superadmins select a responsible calendaradmin for ordinary users; calendaradmin
 responsibility is derived by the backend. Administrator options load across backend
@@ -226,4 +232,4 @@ logout/replay, revoked-session SSR and the existing eight public/calendar smoke 
 Each independent scenario replaces the isolated API process to reset aggregate
 request budgets while preserving database-backed account/session state and the
 production rate-limit settings. Reports/screenshots are kept under
-`quality-reports/plan00013/`. It is separate from normal unit/API tests.
+`quality-reports/plan00014/`. It is separate from normal unit/API tests.

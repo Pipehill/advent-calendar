@@ -1,19 +1,23 @@
 import { Link } from '@tanstack/react-router';
+import { KeyRound, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { twMerge } from 'tailwind-merge';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
 import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
-import { Button } from './ui/button';
+import { Button, buttonStyles } from './ui/button';
 
 export function SessionControls({
   context,
   expiresAt,
   passwordLink = false,
+  className,
 }: {
   context: RouterContext;
   expiresAt: string;
   passwordLink?: boolean;
+  className?: string;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -45,14 +49,21 @@ export function SessionControls({
     };
   }, [context, expiresAt]);
   return (
-    <div className="mt-8 flex flex-wrap items-center gap-4">
+    <div className={twMerge('flex min-w-0 flex-wrap items-center gap-2', className)}>
       {passwordLink && (
-        <Link to="/change-password" className="underline underline-offset-4">
+        <Link
+          to="/change-password"
+          className={buttonStyles({ size: 'compact', variant: 'secondary' })}
+        >
+          <KeyRound aria-hidden="true" />
           {m.password_change_title()}
         </Link>
       )}
       <Button
+        size="compact"
+        variant="secondary"
         disabled={pending}
+        aria-busy={pending}
         onClick={async () => {
           setPending(true);
           setError('');
@@ -65,9 +76,14 @@ export function SessionControls({
           }
         }}
       >
+        <LogOut aria-hidden="true" />
         {pending ? m.auth_pending() : m.logout_label()}
       </Button>
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="w-full break-anywhere text-red-800">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

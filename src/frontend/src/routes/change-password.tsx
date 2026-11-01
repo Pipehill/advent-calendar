@@ -29,7 +29,7 @@ function PasswordPage() {
         {administrator ? m.password_policy_admin() : m.password_policy_user()}
       </p>
       <CredentialForm context={context} changePassword administrator={administrator} />
-      <SessionControls context={context} expiresAt={session.expiresAt} />
+      <SessionControls context={context} expiresAt={session.expiresAt} className="mt-8" />
     </section>
   );
 }

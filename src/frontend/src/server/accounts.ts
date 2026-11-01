@@ -79,7 +79,8 @@ export function listAccounts(context: RequestContext, input: z.infer<typeof acco
     const page = await client.listUsers(offset, input.limit, signal);
     return {
       users: page.users.map(accountMetadata),
-      hasMore: page.users.length === input.limit,
+      totalCount: page.totalCount,
+      hasMore: offset + page.users.length < page.totalCount,
       offset,
     };
   });
