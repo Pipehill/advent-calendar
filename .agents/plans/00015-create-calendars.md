@@ -288,10 +288,10 @@ The following are creative proposals for implementation, not approved final artw
 | Small children | Soft shapes, cheerful animals and a simple bright Christmas scene |
 | Older children | A more atmospheric winter landscape with northern lights and adventure details |
 
-- [ ] Produce three or four distinct usable images covering all four directions.
+- [x] Produce three or four distinct usable images covering all four directions.
   Keep door labels and content legible across backgrounds, narrow screens and
   wider previews. Supply useful thumbnails and suitable full-calendar assets.
-- [ ] Store assets locally under the frontend public assets with stable selection
+- [x] Store assets locally under the frontend public assets with stable selection
   identifiers and document their provenance as appropriate. Avoid user-entered
   remote image URLs or uploads in the specified background-choice flow.
 - [ ] Translate background labels, form controls, door editor, layout labels,
