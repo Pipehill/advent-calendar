@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Bundle the imported icons so Nitro does not trace Lucide's different
+  // Node/browser export targets into an incomplete standalone package.
+  ssr: { noExternal: ['lucide-react'] },
   server: { port: 3000, strictPort: true },
   plugins: [
     paraglideVitePlugin({

@@ -13,7 +13,7 @@ const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
 const runtime = process.env.QUALITY_CONTAINER_RUNTIME || settings.runtime || 'podman';
 const dotnet = process.env.DOTNET_EXE || settings.dotnet || 'dotnet';
-const reports = path.join(root, 'quality-reports/plan00013/browser');
+const reports = path.join(root, 'quality-reports/plan00014/browser');
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
 const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
 const children = [];
@@ -544,8 +544,10 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
     // Then no status/role controls or cross-owner rows are exposed and forged calls fail.
     assert(results.every(response => response.status() === 403));
-    assert.equal(await page.getByRole('button', { name: /^Deaktiver konto/ }).count(), 0);
-    assert.equal(await page.getByRole('button', { name: /^Gjør til/ }).count(), 0);
+    await page.locator(`[data-account-id="${account.id}"]`).getByRole('button').click();
+    assert.equal(await page.getByRole('menuitem').count(), 1);
+    assert.equal(await page.getByRole('menuitem', { name: 'Tilbakestill passord', exact: true }).count(), 1);
+    await page.keyboard.press('Escape');
     assert.equal(await page.getByText(other.name, { exact: true }).count(), 0);
   });
 
@@ -553,7 +555,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     // Given a superadmin viewing the existing administrator with ordinary users.
     await signIn(accounts.find(item => item.username === 'browser-superadmin'));
     const target = accounts.find(item => item.username === 'browser-admin');
-    await page.getByRole('button', { name: `Endre til kalenderbruker: ${target.username}`, exact: true }).click();
+    await openAccountAction(target, 'Endre til kalenderbruker');
     await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin-two').id);
 
     // When the dependency-protected role change is submitted.
@@ -654,6 +656,73 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(persisted.responsibleAdministratorId, owner.id);
   });
 
+  test('Given account menus, When keyboard navigation selects and cancels each action, Then only explicit forms open and focus returns without writes', async () => {
+    // Given a superadmin, an ordinary target, and recorded account mutation requests.
+    await signIn(accounts.find(item => item.username === 'browser-superadmin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    const trigger = page.getByRole('button', { name: `Handlinger for ${account.name} (${account.username})`, exact: true });
+    const writes = [];
+    page.on('request', request => {
+      if (request.method() === 'POST' && request.url().includes('/api/trpc/accounts.')) writes.push(request.url());
+    });
+
+    // When Enter/Space/ArrowDown, arrow navigation, Escape and form cancellation are used.
+    for (const key of ['Enter', 'Space', 'ArrowDown']) {
+      await trigger.focus();
+      await page.keyboard.press(key);
+      await page.getByRole('menu').waitFor();
+      assert.equal(await page.getByRole('menuitem').count(), 3);
+      await page.keyboard.press('End');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Gjør til kalenderadministrator');
+      assert.equal(await page.getByRole('menuitem', { name: 'Gjør til kalenderadministrator', exact: true }).evaluate(element => element === document.activeElement), true);
+      await page.keyboard.press('Home');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Tilbakestill passord');
+      await page.keyboard.press('ArrowDown');
+      await page.waitForFunction(() => document.activeElement?.textContent === 'Deaktiver konto');
+      assert.equal(await page.getByRole('menuitem', { name: 'Deaktiver konto', exact: true }).evaluate(element => element === document.activeElement), true);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+    }
+    for (const action of ['Tilbakestill passord', 'Deaktiver konto', 'Gjør til kalenderadministrator']) {
+      await openAccountAction(account, action);
+      assert.equal(await page.getByRole('menu').count(), 0);
+      assert.match(await page.locator('#account-action-heading').textContent(), new RegExp(account.username));
+      assert.equal(await trigger.isDisabled(), true);
+      assert.equal(await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).isDisabled(), true);
+      await page.getByRole('button', { name: 'Avbryt', exact: true }).click();
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu');
+      assert.equal(await trigger.evaluate(element => element === document.activeElement), true);
+    }
+
+    // Then no mutation occurred, and superadmin rows have no maintenance control.
+    assert.deepEqual(writes, []);
+    const superadmin = accounts.find(item => item.username === 'browser-superadmin');
+    assert.equal(await page.locator(`[data-account-id="${superadmin.id}"]`).getByRole('button').count(), 0);
+  });
+
+  test('Given a completed maintenance write, When the target disappears from the refreshed page, Then focus returns to the account heading', async () => {
+    // Given a selected reset form and a list refresh that no longer includes the target.
+    await signIn(accounts.find(item => item.username === 'browser-admin'));
+    const account = accounts.find(item => item.username === 'browser-user');
+    await openAccountAction(account, 'Tilbakestill passord');
+    await page.route('**/api/trpc/accounts.list**', async route => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.result.data.users = body.result.data.users.filter(user => user.id !== account.id);
+      await route.fulfill({ response, json: body });
+    });
+    await page.getByLabel('Mottakerens midlertidige passord').fill(`Reset!${randomUUID()}`);
+
+    // When the explicit confirmation succeeds and refresh replaces the rows.
+    await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
+    await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === 'accounts-heading');
+
+    // Then the removed target is absent and keyboard users retain a meaningful position.
+    assert.equal(await page.locator(`[data-account-id="${account.id}"]`).count(), 0);
+    assert.equal(await page.locator('#accounts-heading').evaluate(element => element === document.activeElement), true);
+  });
+
   test('Given a public calendar stack, When the existing browser regression suite runs, Then landing languages and direct calendar routes remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
     const env = { ...process.env, FRONTEND_URL: frontendUrl, API_URL: apiUrl };
@@ -705,7 +774,7 @@ async function createAccount(actor, input) {
 }
 
 async function maintain(account, action, password, responsibleId) {
-  await page.getByRole('button', { name: `${action}: ${account.username}`, exact: true }).click();
+  await openAccountAction(account, action);
   await page.locator('#account-action-heading').waitFor();
   if (password) await page.getByLabel('Mottakerens midlertidige passord').fill(password);
   if (responsibleId) await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(responsibleId);
@@ -713,6 +782,12 @@ async function maintain(account, action, password, responsibleId) {
   await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();
   await page.getByRole('button', { name: 'Oppdater kontoer', exact: true }).waitFor({ state: 'visible' });
   await page.waitForLoadState('networkidle');
+}
+
+async function openAccountAction(account, action) {
+  await page.locator(`[data-account-id="${account.id}"]`).getByRole('button').click();
+  await page.getByRole('menuitem', { name: action, exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.id === 'account-action-heading');
 }
 
 function command(executable, args, env = process.env) {

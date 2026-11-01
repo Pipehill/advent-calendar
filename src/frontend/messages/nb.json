@@ -81,6 +81,7 @@
   "admin_enabled": "Aktivert",
   "admin_disabled": "Deaktivert",
   "admin_refresh": "Oppdater kontoer",
+  "admin_account_actions": "Handlinger for {name} ({username})",
   "admin_reset": "Tilbakestill passord",
   "admin_disable": "Deaktiver konto",
   "admin_enable": "Aktiver konto",

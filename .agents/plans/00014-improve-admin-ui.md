@@ -158,21 +158,21 @@ Current repository facts:
 
 ### 3. Replace row actions and pagination
 
-- [ ] Adjust account-row layout so metadata remains easy to scan and the
+- [x] Adjust account-row layout so metadata remains easy to scan and the
   three-dot trigger sits at the row's trailing edge. Keep name, username, role,
   enabled status, and `data-account-id` available.
-- [ ] Reuse the current role/action predicates and `actionLabel` behavior when
+- [x] Reuse the current role/action predicates and `actionLabel` behavior when
   constructing menu items. Do not introduce additional maintenance permissions.
   Preserve the list's existing busy guards while an action form is selected.
-- [ ] Close the menu on selection and open the existing `AccountForm` with the
+- [x] Close the menu on selection and open the existing `AccountForm` with the
   selected target/action. Preserve focus on the action heading, accounting for
   menu focus restoration so it does not steal focus from the opened form. Restore
   focus to a meaningful row control after cancellation or completion, including
   when a successful mutation removes the target from the current list.
-- [ ] Support Enter/Space opening, arrow-key item navigation, Escape dismissal,
+- [x] Support Enter/Space opening, arrow-key item navigation, Escape dismissal,
   outside dismissal, and usable focus return. Ensure menu positioning works at
   viewport edges and on mobile, and disabled triggers/items cannot activate.
-- [ ] Replace refresh and pagination visuals with the specified secondary icon
+- [x] Replace refresh and pagination visuals with the specified secondary icon
   controls. Reuse the current refetch, offset, limit, `hasMore`, error, selected
   action, and newly created-account focus logic.
 
@@ -219,6 +219,19 @@ health is reviewed against the baseline; the unused dropdown finding remains
 temporary until step 3. Existing administrator browser scenarios passed before
 reorganization and their screenshots are retained for comparison. Final browser
 scenarios verify integrated header layout in both languages.
+
+Step 3: 77 unit tests, TypeScript, production build and full quality passed.
+Five focused production browser scenarios passed, including reset/promotion/
+demotion, enable/disable, assigned-only reset, keyboard menu cancellation with
+zero mutation requests, form focus and focus fallback when a refreshed target
+disappears. Initial browser checks found a missing Lucide Node export in Nitro's
+traced output; bundling Lucide through Vite SSR fixed real server rendering and
+hydration without copying the full icon library into standalone output.
+The temporary unused-dropdown finding is resolved. Application health is 86.9
+versus baseline 87.5; additional focus guards and responsive controls explain
+the complexity tradeoff, with unchanged clone counts/lines and heuristic findings.
+Localized trigger messages moved forward from step 4 because the menu requires
+them to remain accessible in every intermediate commit.
 
 - **Visual layout:** compare the administrator page before/after on desktop and
   narrow mobile widths in Norwegian and English. Confirm smaller, quieter
