@@ -10,6 +10,13 @@ import {
 } from '../lib/account-input';
 import { changePasswordInput, loginInput } from '../lib/auth-input';
 import {
+  calendarIdInput,
+  calendarPageInput,
+  createCalendarInput,
+  saveDoorInput,
+  saveLayoutInput,
+} from '../lib/calendar-input';
+import {
   AdministrationFieldError,
   changeAccountRole,
   changeAccountStatus,
@@ -20,7 +27,15 @@ import {
   responsibleAdministrators,
 } from './accounts';
 import { inspectSession, publicSession } from './auth';
-import { BackendProblem, callBackend, retrieveCalendar } from './backend';
+import { BackendProblem, callBackend } from './backend';
+import {
+  calendarRecipients,
+  createOwnedCalendar,
+  listOwnedCalendars,
+  readOwnedCalendar,
+  saveOwnedDoor,
+  saveOwnedLayout,
+} from './calendars';
 import { logRequest, type RequestContext } from './context';
 
 const t = initTRPC.context<RequestContext>().create({
@@ -94,15 +109,25 @@ export const appRouter = t.router({
       .mutation(({ ctx, input }) => changeAccountRole(ctx, input)),
   }),
   calendar: t.router({
-    get: procedure.input(z.object({ id: z.uuid() })).query(async ({ input, ctx }) => {
-      const calendar = await retrieveCalendar(input.id, ctx);
-      // The first page needs only metadata; door contents stay out of hydration.
-      return {
-        id: calendar.id,
-        title: calendar.title,
-        doors: calendar.doors.map((door) => ({ number: door.number })),
-      };
-    }),
+    get: procedure
+      .input(calendarIdInput)
+      .query(({ input, ctx }) => readOwnedCalendar(ctx, input.id)),
+    preview: procedure
+      .input(calendarIdInput)
+      .query(({ input, ctx }) => readOwnedCalendar(ctx, input.id)),
+    list: procedure
+      .input(calendarPageInput)
+      .query(({ input, ctx }) => listOwnedCalendars(ctx, input)),
+    recipients: procedure.query(({ ctx }) => calendarRecipients(ctx)),
+    create: procedure
+      .input(createCalendarInput)
+      .mutation(({ input, ctx }) => createOwnedCalendar(ctx, input)),
+    saveDoor: procedure
+      .input(saveDoorInput)
+      .mutation(({ input, ctx }) => saveOwnedDoor(ctx, input)),
+    saveLayout: procedure
+      .input(saveLayoutInput)
+      .mutation(({ input, ctx }) => saveOwnedLayout(ctx, input)),
   }),
 });
 

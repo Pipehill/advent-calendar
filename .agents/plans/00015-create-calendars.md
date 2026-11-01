@@ -248,36 +248,47 @@ Intermediate application health improved 86.8 to 87.7; absolute duplication rose
 32 to 53 application lines (4 to 6 clones). Keep explicit security attributes and
 scenario setup for clarity; final measurements follow the frontend iteration.
 
-- [ ] Add shared calendar-input validation and focused server helpers alongside
+- [x] Add shared calendar-input validation and focused server helpers alongside
   the existing auth/account modules. Extend `server/trpc.ts` and the browser
   mutation client with typed creation, editing, layout and preview operations.
-- [ ] Reuse `callBackend`, session inspection, the designated auth/CSRF cookie
+- [x] Reuse `callBackend`, session inspection, the designated auth/CSRF cookie
   allowlist, principal-bound CSRF refresh, structured errors, cancellation and
   total deadlines. Keep mutation retries disabled.
-- [ ] Replace the disabled creation action with navigation to a dedicated English
+- [x] Replace the disabled creation action with navigation to a dedicated English
   route, following existing route conventions. Add owner-protected administration
   and preview routes keyed by calendar UUID and support direct navigation/refresh.
-- [ ] Build the creation form with name, eligible recipient and illustrated
+- [x] Build the creation form with name, eligible recipient and illustrated
   background choices. Show name/username when necessary to distinguish recipients;
   include pending, empty and recoverable failure states for recipient loading.
-- [ ] Navigate using the successfully persisted calendar ID. Display exactly 24
+- [x] Navigate using the successfully persisted calendar ID. Display exactly 24
   selectable doors on administration, the title/message editor and layout controls,
   plus personal-page, preview and logout actions.
-- [ ] Share calendar rendering between preview and subsequent recipient work
+- [x] Share calendar rendering between preview and subsequent recipient work
   where appropriate, while keeping privileged queries and content isolated.
   In this increment only the owner can open all door contents in preview.
-- [ ] Reflect successful saves in administrator and preview query data so the
+- [x] Reflect successful saves in administrator and preview query data so the
   owner sees the persisted result. Save door edits through an explicit Save
   action, show pending/success/error feedback and retain unsaved values on failure.
-- [ ] Add the owner-scoped personal-page calendar list with links to administration,
+- [x] Add the owner-scoped personal-page calendar list with links to administration,
   pagination and loading/empty/error states. Refresh it after creation so the
   calendar is visible on return. Keep this separate from the existing account
   list and do not add a superadmin or recipient calendar list.
-- [ ] Extend session checks and no-store coverage to calendar routes and API/BFF
+- [x] Extend session checks and no-store coverage to calendar routes and API/BFF
   responses. Prevent route prefetch, SSR/hydration and browser history/session
   changes from reusing another account's protected calendar data.
 
 ### 4. Produce the background choices and localized interface
+
+Iterations 3-4 evidence: four inspected 1536 x 1024 JPEG backgrounds and 384 x 256
+thumbnails are local with stable identifiers and documented provenance. Frontend
+creation is `/create-calendar`, administration retains `/calendars/$id`, and the
+separate owner preview is `/calendar-preview/$id`. All 117 frontend/BFF tests,
+explicit TypeScript checking, production Vite/Nitro build and full saved-source
+quality passed. Nitro needed an unsandboxed build to inspect the Windows profile
+symlink; the first sandboxed attempt failed with EPERM and was rerun successfully.
+Production browser/keyboard/touch verification follows in iteration 5. MCP reports
+132 duplicated lines / 14 clones (0.67395% repository), mainly explicit form/route
+security and test setup; inspect final health after integrated verification.
 
 The following are creative proposals for implementation, not approved final artwork:
 
@@ -294,7 +305,7 @@ The following are creative proposals for implementation, not approved final artw
 - [x] Store assets locally under the frontend public assets with stable selection
   identifiers and document their provenance as appropriate. Avoid user-entered
   remote image URLs or uploads in the specified background-choice flow.
-- [ ] Translate background labels, form controls, door editor, layout labels,
+- [x] Translate background labels, form controls, door editor, layout labels,
   preview indicators, confirmations and error states in `messages/nb.json` and
   `messages/en.json`. Do not bake interface labels into the background images.
 - [ ] Verify keyboard selection, visible focus, accessible labels, usable contrast

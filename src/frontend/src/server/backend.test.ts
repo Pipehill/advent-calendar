@@ -163,16 +163,20 @@ test('Given malformed UUID input, When the tRPC query runs, Then validation reje
   expect(request).not.toHaveBeenCalled();
 });
 
-test('Given a stored calendar with door contents, When the page query runs, Then only display metadata is returned', async () => {
-  // Given a successful backend response with content this page does not use.
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(calendar));
+test('Given an unrestricted calendar owner, When the administration query runs, Then authorized door content remains unchanged', async () => {
+  // Given a validated calendar administrator followed by its owner-authorized response.
+  vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(
+      Response.json({ user: { role: 'calendarAdmin' }, mustChangePassword: false }),
+    )
+    .mockResolvedValueOnce(Response.json(calendar));
   const caller = appRouter.createCaller(context());
 
   // When the BFF adapts the calendar for SSR and browser use.
   const result = await caller.calendar.get({ id });
 
-  // Then user-authored titles remain untouched and door text stays out of hydration.
-  expect(result).toEqual({ id, title: calendar.title, doors: [{ number: 1 }] });
+  // Then the privileged owner response preserves authored content for administration.
+  expect(result).toEqual(calendar);
 });
 
 test('Given invalid connection configuration, When BFF settings load, Then startup configuration is rejected', () => {
