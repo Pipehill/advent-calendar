@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import type { AccountAction } from '../lib/account-form-values';
@@ -8,7 +10,7 @@ import type { AccountMetadata } from '../server/accounts';
 import { AccountForm } from './account-form';
 import { RequestFailure } from './auth-feedback';
 import { errorCode } from './error-state';
-import { Button } from './ui/button';
+import { Button, buttonStyles } from './ui/button';
 
 export function roleLabel(role: string) {
   if (role === 'superadmin') return m.role_superadmin();
@@ -41,21 +43,25 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
   }, [query.error, context]);
   return (
     <section className="mt-10" aria-labelledby="accounts-heading">
-      <h2 id="accounts-heading" className="mb-4 font-serif text-2xl">
-        {actorRole === 'superadmin' ? m.accounts_title() : m.admin_assigned_accounts()}
-      </h2>
+      <header className="mb-4 flex flex-wrap items-center gap-3">
+        <h2 id="accounts-heading" className="mr-auto min-w-0 break-anywhere font-serif text-2xl">
+          {actorRole === 'superadmin' ? m.accounts_title() : m.admin_assigned_accounts()}
+        </h2>
+        {(actorRole === 'superadmin' || actorRole === 'calendarAdmin') && (
+          <Link to="/create-account" className={buttonStyles({ size: 'compact' })}>
+            <UserPlus aria-hidden="true" />
+            {actorRole === 'superadmin' ? m.admin_create_account() : m.create_user()}
+          </Link>
+        )}
+        <Button disabled={query.isFetching || !!selected} onClick={() => void query.refetch()}>
+          {m.admin_refresh()}
+        </Button>
+      </header>
       {success && (
         <p role="status" className="mb-4">
           {success}
         </p>
       )}
-      <Button
-        className="mb-4"
-        disabled={query.isFetching || !!selected}
-        onClick={() => void query.refetch()}
-      >
-        {m.admin_refresh()}
-      </Button>
       {selected && (
         <section
           className="mb-6 rounded-2xl border border-stone-300 bg-white p-5"

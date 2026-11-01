@@ -141,19 +141,19 @@ Current repository facts:
 
 ### 2. Reorganize the personal-page and account headers
 
-- [ ] Update `src/frontend/src/routes/my-page.tsx` so the avatar/name group and
+- [x] Update `src/frontend/src/routes/my-page.tsx` so the avatar/name group and
   right-aligned session actions share a responsive header. Allow long names and
   controls to wrap without overlap or horizontal scrolling.
-- [ ] Adapt `src/frontend/src/components/session-controls.tsx` to support this
+- [x] Adapt `src/frontend/src/components/session-controls.tsx` to support this
   placement without its current forced top margin. Preserve exactly one active
   session-controls instance per page, including expiry, returning-tab
   revalidation, pending logout, and failure feedback. Check its existing
   consumers on `/create-account` and `/change-password` when changing its API.
-- [ ] Put the authorized creation link in the account-section header in
+- [x] Put the authorized creation link in the account-section header in
   `account-list.tsx`, alongside the heading and refresh control. Remove the
   previous creation entry from the personal-page action section. Preserve the
   appropriate localized creation label for each administrator role.
-- [ ] Keep the unavailable calendar action and explanatory text visible for
+- [x] Keep the unavailable calendar action and explanatory text visible for
   calendaradmins, with the new compact appearance and calendar icon.
 
 ### 3. Replace row actions and pagination
@@ -211,6 +211,14 @@ support. The temporary health decline (87.5 to 86.6) is an unused-component
 heuristic for the dropdown, whose first consumer arrives in step 3; application
 clones remain four / 32 lines. Integrated browser verification completes
 SSR/hydration and dependency audit evidence.
+
+Step 2: 77 unit tests, standalone TypeScript and full repository quality passed.
+Both non-header SessionControls consumers explicitly retain their spacing, with
+one instance per page and unchanged session lifecycle handlers. Saved-source
+health is reviewed against the baseline; the unused dropdown finding remains
+temporary until step 3. Existing administrator browser scenarios passed before
+reorganization and their screenshots are retained for comparison. Final browser
+scenarios verify integrated header layout in both languages.
 
 - **Visual layout:** compare the administrator page before/after on desktop and
   narrow mobile widths in Norwegian and English. Confirm smaller, quieter
