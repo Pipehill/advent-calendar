@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Advent calendar API",
-    "version": "1.1.0",
-    "description": "Backend username/password accounts and user management. Calendar endpoints remain anonymous pending separate authorization work. All authentication/user responses are no-store. Unsafe operations require the ASP.NET antiforgery cookie and X-CSRF-TOKEN header; refresh the token after a principal change. Production requires HTTPS.",
+    "version": "1.2.0",
+    "description": "Backend username/password accounts, user management and owner-only calendar administration. Recipient viewing and timed opening are deferred.",
     "license": {
       "name": "Private"
     }
@@ -35,26 +35,22 @@
     "/calendars": {
       "post": {
         "operationId": "Create",
-        "summary": "Create a calendar",
+        "summary": "Create an owned calendar for an assigned calendar user",
         "tags": [
           "calendars"
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCalendarRequest"
-              }
-            }
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
           }
-        },
+        ],
         "responses": {
           "201": {
-            "description": "Persisted calendar with 24 doors",
+            "description": "Persisted calendar with exactly 24 empty doors",
             "headers": {
-              "Location": {
-                "description": "Retrieval path",
+              "Cache-Control": {
+                "description": "no-store",
                 "schema": {
                   "type": "string"
                 }
@@ -71,36 +67,137 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "415": {
             "$ref": "#/components/responses/UnsupportedMediaType"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarRequest"
+              }
+            }
           }
         }
+      },
+      "get": {
+        "operationId": "ListCalendars",
+        "summary": "List only calendars owned by the current calendar administrator",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner-scoped metadata",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
       }
     },
     "/calendars/{id}": {
       "get": {
         "operationId": "Get",
-        "summary": "Retrieve a calendar",
+        "summary": "Retrieve owner-only administration and preview content",
         "tags": [
           "calendars"
         ],
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "AuthCookie": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Persisted calendar",
+            "description": "Privileged owner content; never a recipient response",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -112,13 +209,36 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
       }
     },
     "/health/live": {
@@ -896,6 +1016,171 @@
           }
         ]
       }
+    },
+    "/calendars/{id}/doors/{number}": {
+      "put": {
+        "operationId": "UpdateDoor",
+        "summary": "Save plain-text content on one numbered door",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted owner calendar",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoorRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/calendars/{id}/layout": {
+      "put": {
+        "operationId": "UpdateLayout",
+        "summary": "Persist chronological order or a newly generated random permutation",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted owner calendar",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLayoutRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -996,7 +1281,9 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "title"
+          "title",
+          "recipientId",
+          "background"
         ],
         "properties": {
           "title": {
@@ -1005,28 +1292,97 @@
             "description": "Trim surrounding .NET Unicode whitespace before validation/storage. The trimmed value must contain 1-100 Unicode code points and no NUL (PostgreSQL text cannot store NUL). Combining marks and compound emoji components each count separately. Raw input has no minLength/maxLength so surrounding whitespace never invalidates a valid normalized title.",
             "x-normalized-minLength": 1,
             "x-normalized-maxLength": 100
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "background": {
+            "type": "string",
+            "enum": [
+              "woodland",
+              "sleigh",
+              "playtime",
+              "aurora"
+            ]
           }
         }
       },
       "CalendarDto": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
           "title",
-          "doors",
+          "recipientId",
+          "year",
+          "background",
           "createdAt",
-          "lastModifiedAt"
+          "lastModifiedAt",
+          "ownerId",
+          "layout",
+          "doorOrder",
+          "doors"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
-            "description": "UUID v4 generated by the service"
+            "format": "uuid"
           },
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "background": {
+            "type": "string",
+            "enum": [
+              "woodland",
+              "sleigh",
+              "playtime",
+              "aurora"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "chronological",
+              "random"
+            ]
+          },
+          "doorOrder": {
+            "type": "array",
+            "minItems": 24,
+            "maxItems": 24,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
           },
           "doors": {
             "type": "array",
@@ -1035,23 +1391,15 @@
             "items": {
               "$ref": "#/components/schemas/DoorDto"
             }
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 UTC instant"
-          },
-          "lastModifiedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "RFC 3339 UTC instant"
           }
         }
       },
       "DoorDto": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "number",
+          "title",
           "text"
         ],
         "properties": {
@@ -1061,10 +1409,13 @@
             "minimum": 1,
             "maximum": 24
           },
+          "title": {
+            "type": "string",
+            "maxLength": 50
+          },
           "text": {
             "type": "string",
-            "nullable": false,
-            "description": "Persisted contents; initially empty"
+            "maxLength": 5000
           }
         }
       },
@@ -1384,6 +1735,116 @@
             "items": {
               "$ref": "#/components/schemas/UserDto"
             }
+          }
+        }
+      },
+      "UpdateDoorRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "text"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 50
+          },
+          "text": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 5000
+          }
+        }
+      },
+      "UpdateLayoutRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "layout"
+        ],
+        "properties": {
+          "layout": {
+            "type": "string",
+            "enum": [
+              "chronological",
+              "random"
+            ]
+          }
+        }
+      },
+      "CalendarSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "recipientId",
+          "year",
+          "background",
+          "createdAt",
+          "lastModifiedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "background": {
+            "type": "string",
+            "enum": [
+              "woodland",
+              "sleigh",
+              "playtime",
+              "aurora"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CalendarListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "calendars",
+          "totalCount"
+        ],
+        "properties": {
+          "calendars": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/CalendarSummaryDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647
           }
         }
       }

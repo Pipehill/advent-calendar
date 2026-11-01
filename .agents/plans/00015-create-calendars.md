@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-01
 
+Implementation type: feature
+
 ## Overview
 
 Let calendar administrators create calendars for their assigned calendar users
@@ -114,7 +116,8 @@ None.
 - The owner confirmed existing calendars are disposable test data and authorized
   deleting them at the transition. Scope the one-time migration cleanup to the
   legacy calendars and their doors; do not reset the database or delete accounts.
-- This is planning work only. Implementation type has not been selected.
+- On 2026-11-01 the owner selected `feature` for implementation. Implementation
+  starts from synchronized `main` at `78c7b1c` on `feature/create-calendars`.
 - `src/frontend/src/routes/my-page.tsx` currently has a disabled calendar-creation
   button for `calendarAdmin` and an empty-calendar placeholder for `calendarUser`.
   Account lists and session controls are already implemented.
@@ -147,12 +150,53 @@ None.
 
 ### 1. Establish the agreed scope and contracts
 
+Implementation iterations (one commit each):
+
+1. Specify and generate protected contracts and add migration 0004. Verify
+   OpenAPI generation; consumer compilation depends on iteration 2.
+2. Implement transaction-scoped backend administration and integration coverage.
+   Verify backend build/tests, saved-source lint and duplication feedback.
+3. Produce four local background assets and their thumbnails/provenance.
+   Inspect all artwork and verify asset identifiers and dimensions.
+4. Implement validated BFF operations and localized creation, administration,
+   preview and own-list UI. Verify focused tests, type checking and build.
+5. Complete security, migration and production-browser verification, update
+   owning documentation, run quality/health comparison and publish a draft PR.
+
+Contract and persistence decisions:
+
+- Retain protected `POST /calendars` and owner-only `GET /calendars/{id}`;
+  add paginated `GET /calendars`, `PUT /calendars/{id}/doors/{number}` and
+  `PUT /calendars/{id}/layout`. These are administrator contracts only.
+- Creation accepts `title`, `recipientId` and `background` (`woodland`, `sleigh`,
+  `playtime`, `aurora`); owner and Europe/Oslo year are server-derived.
+- Calendar responses include owner/recipient UUIDs, year, background, layout,
+  persisted `doorOrder`, timestamps and 24 numbered doors with `title`/`text`.
+  Lists contain metadata only, a total count and bounded offset/limit pagination.
+- Door updates require non-null `title`/`text` (0-50/0-5000 code points).
+  Layout updates accept `chronological` or `random`; selection persists a new
+  permutation. Reads never generate order. Missing/null/unknown fields and
+  invalid Unicode/NUL are rejected at the respective boundaries.
+- All calendar operations require an unrestricted current `calendarAdmin`
+  session. Service checks and writes share security transaction lock 800008 with
+  account maintenance. Cross-owner access returns 404; other roles receive 403.
+  No recent-password check applies. Mutations require CSRF; responses use no-store.
+- Journaled transactional migration 0004 deletes only legacy calendars (cascading
+  doors), then adds required references, year/background/layout/order and content
+  constraints. Accounts and sessions are preserved; published scripts stay intact.
+
 - [x] Resolve the planning questions and record the owner's decisions in the
   requirements and implementation details.
 - [x] Track creation, administration and the own-calendar list in this plan and
   TODO; keep recipient lists/viewing/opening as a separate TODO follow-up.
-- [ ] Specify exact request/response schemas, validation, ownership constraints
+- [x] Specify exact request/response schemas, validation, ownership constraints
   and the authorized legacy-data cleanup before changing the API or database.
+
+Iteration 1 evidence: authored OpenAPI validation and both generators passed
+(four inherited Redocly warnings). Full saved-source quality passed after SQL
+formatting fixes. MCP refresh reports no SQL clones; repository duplication is
+38 lines / 5 clones (0.21783%). Backend consumer compilation and real migration
+execution depend on iteration 2; no successful runtime check is claimed yet.
 
 ### 2. Extend persistence and the authored API
 
