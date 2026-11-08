@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Calendar.Api.Generated;
+using Calendar.Api.Services;
 using Calendar.Security;
+using Dapper;
 using Xunit;
 using static Calendar.Api.Tests.AuthTestContext;
 
@@ -23,6 +25,7 @@ public sealed class SystemCalendarTests(ApiFixture fixture)
         var other = await context.Auth.ProvisionAsync(AccountRoles.Administrator);
         var recipient = await context.Auth.ProvisionAsync(AccountRoles.User, other.Id);
         using var ownerClient = await context.Auth.CreateAuthenticatedClientAsync(other);
+        context.Auth.Time.Advance(TimeSpan.FromSeconds(1));
         var third = (
             await (
                 await SendAsync(
@@ -47,12 +50,12 @@ public sealed class SystemCalendarTests(ApiFixture fixture)
             new { recipient.Id }
         );
         await context.Auth.ExecuteAsync(
-            "UPDATE accounts SET enabled = false WHERE id = @Id",
+            "UPDATE accounts SET enabled = false, account_role = 'superadmin' WHERE id = @Id",
             new { other.Id }
         );
         var superadmin = await context.Auth.ProvisionAsync();
         using var caller = await context.Auth.CreateAuthenticatedClientAsync(superadmin);
-        var expected = new[] { first.Id, second.Id, third.Id }.Order().ToArray();
+        var expected = new[] { third.Id }.Concat(new[] { first.Id, second.Id }.Order()).ToArray();
 
         // When paging through all calendars, including an empty out-of-range page.
         var page = (
@@ -311,6 +314,50 @@ public sealed class SystemCalendarTests(ApiFixture fixture)
         // Then authorized lookup returns the ordinary no-store not-found response.
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoStore);
+    }
+
+    [Theory(
+        DisplayName = "Given a queued system read and concurrent security maintenance, When the security lock is released, Then the reader rechecks the current superadmin session and role"
+    )]
+    [InlineData("list", "revoke")]
+    [InlineData("preview", "revoke")]
+    [InlineData("list", "role")]
+    [InlineData("preview", "role")]
+    public async Task QueuedReadsRecheckAuthority(string operation, string change)
+    {
+        // Given a valid superadmin identity and a separate transaction holding the security lock.
+        await using var context = await CalendarTestContext.CreateAsync(fixture);
+        var calendar = await CreateCalendarAsync(context);
+        var actor = await context.Auth.ProvisionAsync();
+        using var caller = await context.Auth.CreateAuthenticatedClientAsync(actor);
+        await using var security = new CalendarSecurityScope(context);
+        await security.AcquireAsync(actor.Id);
+
+        // When a read queues before another transaction commits revocation or role replacement.
+        Task read =
+            operation == "list"
+                ? security.Service.ListSystemAsync(security.Identity, 0, 12, CancellationToken.None)
+                : security.Service.PreviewSystemAsync(
+                    security.Identity,
+                    calendar.Id,
+                    CancellationToken.None
+                );
+        await security.Connection.ExecuteAsync(
+            change == "revoke"
+                ? "UPDATE account_sessions SET revoked = true WHERE account_id = @Id"
+                : "UPDATE accounts SET account_role = 'calendarAdmin' WHERE id = @Id",
+            new { actor.Id },
+            security.Transaction
+        );
+        await security.Transaction.CommitAsync();
+        var action = () => read;
+
+        // Then neither operation relies on the authority that existed before acquiring the lock.
+        var failure = await Assert.ThrowsAsync<AccountFailureException>(action);
+        Assert.Equal(
+            change == "revoke" ? AccountFailure.Unauthenticated : AccountFailure.Forbidden,
+            failure.Failure
+        );
     }
 
     private static async Task<CalendarDto> CreateCalendarAsync(CalendarTestContext context) =>

@@ -17,7 +17,7 @@ layouts use smaller translucent buttons so the illustration remains visible.
 Chronological keeps ascending numbers in three, four or six responsive columns.
 Random scatters doors across the illustration, with Christmas Eve near the centre
 at exactly 1.5 times an ordinary door's area. The same saved order and board width
-produce the same positions in administration and owner preview. Narrow screens
+produce the same positions in administration and both preview modes. Narrow screens
 use a taller scattered canvas to preserve at least 44px targets and 8px clearance;
 resizing and language changes never save a new arrangement.
 Calendar cards and the administration page show the recipient's current name
@@ -31,14 +31,27 @@ Startup does not create sample calendars.
 The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in
 server code. Owner-authorized content is server-rendered and hydrated only for
-the unrestricted owner. Administration and preview use separate query keys;
+the unrestricted owner, with separate read-only superadmin access through explicit
+backend operations. Owner administration, owner preview, system list and system
+preview use separate query keys;
 session changes clear protected query data. After backend validation the BFF
 supplies a SHA-256 fingerprint of the opaque authentication cookie as a
 non-credential cache scope; even simultaneous same-account sessions with equal
 expiry remain distinct without exposing the HttpOnly ticket. Calendar routes disable prefetch and
 reload current session/ownership rather than reuse another user's route output.
-Protected SSR, hydration transport and errors use no-store. Recipients and
-superadmins receive no calendar administration/preview access in this increment.
+Protected SSR, hydration transport and errors use no-store. Recipients still have
+no calendar access; superadmins cannot use owner administration or mutations.
+
+On `/my-page`, unrestricted superadmins switch between Users and Calendars using
+accessible tabs with arrow/Home/End navigation. Only the selected panel mounts
+its controls. Calendars shows a semantic, horizontally scrollable table of all
+calendars with title/year, owner and recipient names/usernames, 12-row pagination,
+total/page counts, refresh and error/empty states. `/my-page?tab=calendars`
+restores this view. Preview links disable prefetch and open `/calendar-preview/<id>`;
+the freshly validated session selects the dedicated `calendar.systemPreview`
+reader rather than accepting a caller-supplied mode. Preview shares the existing
+board and plain-text door content, with a localized read-only notice and return
+link to Calendars. No edit form, layout controls or owner-editor link is present.
 
 ## Sign-in and personal pages
 
@@ -265,4 +278,8 @@ production rate-limit settings. Reports/screenshots are kept under
 screenshots for all four backgrounds are under `quality-reports/plan00016/`.
 The layout scenarios verify 320/375/768/1280px targets, area, clearance, focus,
 stable refresh/preview/languages/resizing and touch selection of all 24 doors.
+System calendar scenarios also verify cross-owner identity/paging, tab semantics,
+read-only future-door access, write denials, concurrent role/SSR boundaries and
+revocation/logout/account switching in both languages and desktop/mobile sizes.
+Their screenshots are under `quality-reports/plan00017/`.
 The browser suite is separate from normal unit/API tests.

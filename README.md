@@ -8,8 +8,8 @@ repository includes a runnable backend and a frontend showing stored calendar
 titles and 24 numbered doors, with PostgreSQL persistence. The interface supports
 Norwegian by default and English selection; user-authored content stays as written.
 Backend accounts, website login, personal pages, account administration and
-owner-protected calendar preparation are implemented. Recipient viewing, timed
-opening and deployment remain planned.
+owner-protected calendar preparation and superadmin calendar oversight are
+implemented. Recipient viewing, timed opening and deployment remain planned.
 
 Accounts use a username and password, with no public registration. Through the
 website or backend API, superadmins create calendar administrators and ordinary users;
@@ -31,6 +31,11 @@ across visits. Recipient access, content moves and invitation behavior remain fu
 The administrator sees the recipient's name and username on calendar cards and
 the administration page, and can explicitly save another assigned calendar user
 as recipient while editing, preserving the calendar's content and arrangement.
+
+Superadmins switch between Users and Calendars on their personal page. The
+calendar table lists all calendars with owner and recipient names/usernames,
+pagination and refresh. Superadmins can preview every saved door and arrangement
+without editing the calendar or opening doors for its recipient.
 
 Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
 so children can open them in the morning. Earlier doors will remain available
@@ -90,8 +95,9 @@ backend/database stay running and preserve calendars. Stop all containers with
 visitors with a Norwegian Christmas illustration and a login link.
 Calendar administrators use `/my-page` to list their own calendars and open
 `/create-calendar`. `/calendars/<id>` administers an owned calendar and
-`/calendar-preview/<id>` previews all 24 doors. Both require the current owner's
-unrestricted session; superadmins and recipients have no calendar authority yet.
+`/calendar-preview/<id>` previews all 24 doors. Editing requires the current owner's
+unrestricted session; preview also permits an unrestricted superadmin through a
+separate read-only flow. Recipient calendar access remains deferred.
 Recipient access/opening and production database hardening remain production gates.
 See [backend authentication](src/backend/authentication.md) for the direct API
 exchange and intentional manual superadmin provisioning.

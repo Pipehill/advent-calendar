@@ -6,7 +6,11 @@ operations enforce authentication/authorization independently of the website.
 The website integrates sign-in, password changes, logout, the personal page and
 authorized account creation/maintenance
 through its tRPC BFF. Calendar creation, listing, editing and preview require the
-current unrestricted calendaradmin owner. All calendar mutations require CSRF;
+current unrestricted calendaradmin owner. Dedicated system-wide list/preview
+GET endpoints permit unrestricted superadmins to inspect every calendar without
+editing or opening doors for recipients. They recheck current session/role under
+the same security lock before lookup; owner reads/mutations remain denied.
+All calendar mutations require CSRF;
 successful/error responses are no-store. The service joins actor/session/recipient
 checks and persistence in the shared security transaction (advisory lock 800008),
 without recent-password verification or password-hashing concurrency limits.

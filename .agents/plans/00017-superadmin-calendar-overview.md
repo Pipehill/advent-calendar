@@ -1,6 +1,6 @@
 # 00017: Superadmin calendar overview and read-only preview
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
 
@@ -154,7 +154,7 @@ review, records evidence and publishes the draft PR.
   `components/calendar-workspace.tsx` for a read-only superadmin notice and return
   navigation. Reuse `CalendarBoard` and native door selection. Add maintained
   Norwegian/English messages and verify both languages and responsive behavior.
-- [ ] **4. Verify and align documentation.** Extend backend tests, frontend/BFF
+- [x] **4. Verify and align documentation.** Extend backend tests, frontend/BFF
   tests and the existing isolated browser scenarios. Update current capability
   descriptions in `README.md`, `docs/architecture.md`, component READMEs and
   `.agents/rules/authentication-and-calendar-access.md` when implementing the
@@ -200,14 +200,14 @@ review, records evidence and publishes the draft PR.
   required final quality/health comparisons. Record missing evidence and inherited
   failures rather than claiming unexecuted checks passed.
 
-This plan does not implement the feature. No new superadmin calendar access is
-available until implementation and verification are complete.
+The feature is implemented through dedicated superadmin reads while preserving
+owner-only editing. Recipient calendar access/opening remains separate work.
 
 ## Implementation evidence
 
 - Step 1: authored OpenAPI validation and both NSwag consumers generated; Release
   build passed with zero compiler warnings/errors. All 63 targeted backend
-  integration cases passed against isolated PostgreSQL (21 new system-read cases
+  integration cases passed against isolated PostgreSQL (20 new system-read cases
   plus existing owner/recipient protections). Read-only CSharpier 1.3.0 passed.
   Tests exposed missing early-error no-store coverage on the new path; extending
   the existing response-protection boundary fixed all eight failures.
@@ -234,3 +234,29 @@ available until implementation and verification are complete.
   denials, role/SSR boundaries and revoked/logout/account-switch isolation.
   Screenshots are under `quality-reports/plan00017/`; full regressions follow in
   step 4. Browser tests found and fixed an encoding error in new Norwegian texts.
+- Step 4: all 245 isolated PostgreSQL integration cases, 163 frontend/BFF tests,
+  74 production Edge scenarios (including eight smoke scenarios), contract
+  generation, explicit TypeScript, production build, API publish, read-only .NET
+  formatting/analyzers and full MegaLinter/custom checks pass. Production audit
+  reports no known vulnerabilities. Final cache review also clears old privileged
+  data before redirecting a newly restricted session to password change.
+- Shared browser fixtures now avoid credentials reset by earlier scenarios; the
+  successful full run uses one unchanged production build. Backend tests include
+  four queued system-read cases rechecking revocation/role changes under lock
+  800008. Current capability/security documentation is aligned; implemented plans
+  remain unchanged. Detailed evidence and limitations are recorded in
+  [backend verification](../../src/backend/verification.md) and
+  [frontend verification](../../src/frontend/verification.md).
+- Final advisory values: application 89.4 to 90.8; tooling 53.2 to 54.1.
+  Application clones/duplicated lines are 10/81 versus 10/84; tooling remains
+  2/12. Tooling maximum file complexity increases 227 to 228 for the isolated
+  revocation fixture bridge, and complex lines increase by eight. Nine additional
+  heuristic dead lines are the shared cookie/logout helpers, verified through
+  real test callers; finding counts remain unchanged. Shared UI/list helpers
+  remove avoidable duplication. Raw comparisons retain counts, scopes, identities,
+  tool/config versions and partial-analysis limitations. The committed-head
+  comparison and Local QA receipt are generated before publication.
+- The final keyboard-assertion refinement passes separately after the complete
+  74-scenario run. All final source/docs pass full quality checks. Disposable
+  browser/backend test containers are removed; no new images were built.
+  The original development containers and pre-existing build artifacts are preserved.

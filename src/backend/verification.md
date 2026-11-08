@@ -1,5 +1,28 @@
 # Backend verification
 
+## 2026-11-08: Superadmin calendar overview and preview
+
+Release build, authored OpenAPI validation, both NSwag consumers, all **245
+integration tests** on isolated PostgreSQL/Windows Podman, read-only .NET
+format/analyzers and API publish pass. Four inherited Redocly recommendations
+remain advisory; there are no compiler or contract validation errors. No migration
+or dependency changes are needed. Existing migration/startup integrity tests pass.
+
+The 24 new system-calendar cases cover newest-first paging with deterministic
+ties and counts; empty, last and out-of-range pages; Unicode/duplicate names;
+stored owner/recipient references after disabled/changed-role accounts; bounded
+inputs; missing previews; restricted/anonymous/role/stale-session denials; and
+queued reads after concurrent revocation/role replacement under security lock
+800008. Full preview matches all saved doors/layout and modification time.
+CSRF-protected create/door/layout/recipient write attempts remain forbidden and
+leave the aggregate unchanged. Tests exposed early authentication/binding errors
+outside controller response protection; including the new administration path
+in the existing no-store middleware fixed them. Owner/cross-owner regression
+tests continue to pass. Recipient access/opening remains deferred.
+
+Logs are under ignored `quality-reports/plan00017-*`; frontend browser and
+advisory evidence is recorded in [frontend verification](../frontend/verification.md).
+
 ## 2026-11-08: PR 43 quality regression follow-up
 
 Calendar detail rows reuse the existing summary metadata instead of repeating

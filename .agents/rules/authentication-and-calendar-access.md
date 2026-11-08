@@ -201,11 +201,13 @@ behavior to plan 00008.
   as an approved design or assume an invitation grants identity/admin privileges.
 - Let calendaradmins manage calendars they own. Enforce ownership and assigned
   recipient access in the backend; administrator role alone must not grant access
-  to another administrator's calendar. The superadmin permission grant in plan
-  00008 applies to implemented user management, not unspecified calendar authority.
+  to another administrator's calendar. Superadmin user-management permissions do
+  not imply owner editing or recipient access. Plan 00017 grants only explicit
+  system-wide calendar listing and full read-only preview.
 - Plan 00015 closes anonymous creation/read and adds owner-only list/edit/preview.
-  Calendar users, superadmins and restricted sessions have no calendar authority
-  in this increment. Recheck current actor/session, ownership and recipient
+  Calendar users and restricted sessions have no calendar authority. Superadmins
+  use dedicated `/administration/calendars` list and `/{id}/preview` GET operations,
+  never owner reads or writes. Recheck current actor/session, ownership and recipient
   eligibility in the committing security transaction under lock 800008. Calendar
   mutations use CSRF and all protected responses/errors use no-store; keep them
   outside password-hashing concurrency limits and recent-password verification.
@@ -220,6 +222,17 @@ behavior to plan 00008.
   data when the session changes. Bind the browser scope to the BFF fingerprint of
   the validated opaque authentication cookie, rather than username/expiry alone.
   Never expose the ticket itself. Do not use owner preview as a recipient view.
+- Superadmin list/preview must revalidate the current role and unrestricted session
+  inside the shared security transaction before querying calendars. Join names and
+  usernames by the persisted owner/recipient IDs, without role/enabled filtering.
+  Bound SQL paging and order by `created_at DESC, id`; omit door/security data from
+  summary rows. Preview returns all saved doors/layout without mutations, recipient
+  opening effects or modification-time changes. Keep distinct owner-edit,
+  owner-preview, system-list and system-preview query keys in session-scoped caches.
+  Choose preview authority from the validated session, never a browser mode/role.
+  No-store covers successful reads, errors and protected SSR/hydration. The
+  superadmin personal page mounts only the selected Users/Calendars tab panel;
+  preview returns to Calendars without an editor link or layout controls.
 
 ## Calendar opening and administrator editing
 

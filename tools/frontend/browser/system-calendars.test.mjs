@@ -13,6 +13,12 @@ const overview = async state => {
   await state.page.getByRole('tab', { name: 'Kalendere', exact: true }).click();
   await state.page.getByRole('heading', { name: /^Alle kalendere/ }).waitFor();
 };
+async function assertEmptyOverview(page) {
+  await page.getByText('Det finnes ingen kalendere på denne siden.', { exact: true }).waitFor();
+  assert.equal(await page.locator('tbody tr').count(), 0);
+  assert.equal(await page.getByRole('heading', { name: 'Alle kalendere (0)', exact: true }).count(), 1);
+  assert.equal(await page.getByText('Side 1 av 1', { exact: true }).count(), 1);
+}
 
 export function registerSystemCalendarScenarios(environment) {
   test('Given superadmin with no calendars, When the Calendars tab opens, Then an explicit empty page replaces the Users controls', async () => {
@@ -24,11 +30,9 @@ export function registerSystemCalendarScenarios(environment) {
 
     // Then only one associated panel is accessible and its empty total/page are explicit.
     const { page } = state;
-    await page.getByText('Det finnes ingen kalendere på denne siden.', { exact: true }).waitFor();
+    await assertEmptyOverview(page);
     assert.equal(await page.getByRole('tabpanel').count(), 1);
     assert.equal(await page.getByRole('link', { name: 'Opprett konto', exact: true }).count(), 0);
-    assert.equal(await page.getByRole('heading', { name: 'Alle kalendere (0)', exact: true }).count(), 1);
-    assert.equal(await page.getByText('Side 1 av 1', { exact: true }).count(), 1);
   });
 
   test('Given superadmin tabs, When pointer arrows Home and End switch panels and language, Then focus selection and existing user actions remain accessible', async () => {
@@ -40,10 +44,12 @@ export function registerSystemCalendarScenarios(environment) {
 
     // When switching by keyboard and pointer, including wrapping and endpoint keys.
     await users.focus();
-    for (const key of ['ArrowRight', 'ArrowRight', 'End', 'Home', 'ArrowLeft']) {
+    for (const [key, selected] of [
+      ['ArrowRight', calendars], ['ArrowRight', users], ['End', calendars],
+      ['Home', users], ['ArrowLeft', calendars],
+    ]) {
       await page.keyboard.press(key);
-      const selected = key === 'ArrowRight' ? null : key === 'Home' ? users : calendars;
-      if (selected) await selected.getAttribute('aria-selected').then(value => assert.equal(value, 'true'));
+      assert.equal(await selected.getAttribute('aria-selected'), 'true');
       assert.equal(await page.getByRole('tabpanel').count(), 1);
     }
     assert.equal(await calendars.evaluate(element => element.matches(':focus-visible')), true);
@@ -103,6 +109,40 @@ export function registerSystemCalendarScenarios(environment) {
     await page.screenshot({ path: path.resolve('quality-reports/plan00017/overview-mobile.png'), fullPage: true });
     assert.equal(new URL(page.url()).pathname, '/my-page');
     assert.equal(new URL(page.url()).searchParams.get('tab'), 'calendars');
+  });
+
+  test('Given a system overview request, When loading fails and is retried before becoming empty, Then status feedback and recovery never retain stale rows', async () => {
+    // Given actual persisted metadata and a controllable browser read transport.
+    const state = environment();
+    const { page, accounts, signIn } = state;
+    await signIn(superadmin(accounts));
+    const original = await data(await query(state, 'systemList', { offset: 0, limit: 12 }));
+    let mode = 'held';
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/trpc/calendar.systemList**', async route => {
+      if (mode === 'held') await held;
+      if (mode === 'error') return route.fulfill({ status: 503, json: { error: { message: 'SERVICE_UNAVAILABLE', code: -32603, data: { code: 'SERVICE_UNAVAILABLE', httpStatus: 503 } } } });
+      return route.fulfill({ json: { result: { data: mode === 'empty' ? { calendars: [], totalCount: 0 } : original } } });
+    });
+
+    // When pending data succeeds, a refresh fails, retry succeeds and a later refresh is empty.
+    await page.getByRole('tab', { name: 'Kalendere', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Henter kalenderen' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Oppdater kalendere', exact: true }).isDisabled(), true);
+    release();
+    await page.getByRole('table').waitFor();
+    mode = 'error';
+    await page.getByRole('button', { name: 'Oppdater kalendere', exact: true }).click();
+    await page.getByRole('alert').waitFor();
+    assert.equal(await page.locator('tbody tr').count(), 0);
+    mode = 'success';
+    await page.getByRole('button', { name: 'Prøv igjen', exact: true }).click();
+    await page.getByRole('table').waitFor();
+    mode = 'empty';
+    await page.getByRole('button', { name: 'Oppdater kalendere', exact: true }).click();
+    // Then empty state replaces every old row/count while authorized retry stays explicit.
+    await assertEmptyOverview(page);
   });
 
   for (const layout of ['chronological', 'random']) {
@@ -199,7 +239,7 @@ export function registerSystemCalendarScenarios(environment) {
     await mutation('calendar.saveDoor', { id: calendar.id, number: 24, title: 'System future marker', text: 'Private future message' });
 
     // When each role bypasses UI gates at the BFF, API and SSR boundaries.
-    for (const username of [null, 'browser-admin-two', 'browser-user', 'browser-system-temporary']) {
+    for (const username of [null, 'browser-admin-two', 'browser-user-two', 'browser-system-temporary']) {
       const isolated = await context.browser().newContext();
       const target = await isolated.newPage();
       try {
@@ -241,7 +281,7 @@ export function registerSystemCalendarScenarios(environment) {
     const cookie = await sessionCookie(context);
     await logout(page, frontendUrl);
     const replay = await fetch(`${apiUrl}/administration/calendars/${calendar.id}/preview`, { headers: { Cookie: `advent.auth=${cookie.value}` } });
-    await signIn(recipient(accounts));
+    await signIn(accounts.find(account => account.username === 'browser-user-two'));
     await page.goto(`${frontendUrl}/calendar-preview/${calendar.id}`, { waitUntil: 'networkidle' });
 
     // Then replay and changed authority cannot retain any calendar data or privileged tab.

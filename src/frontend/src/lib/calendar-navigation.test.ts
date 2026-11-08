@@ -134,6 +134,30 @@ test('Given a revoked session with cached system data, When preview navigation r
   expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
 });
 
+test('Given cached system data and a newly restricted session, When preview navigation validates it, Then protected data is cleared before required password change', async () => {
+  // Given future content cached under a previous unrestricted session.
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(['calendar', 'systemPreview'], 'future content');
+  const restrictedSession = {
+    ...session,
+    mustChangePassword: true,
+    cacheScope: 'restricted-session',
+  };
+  const context = {
+    queryClient,
+    administration: { sessionScope: scope },
+    auth: { session: async () => restrictedSession },
+  } as unknown as RouterContext;
+
+  // When a cookie replacement introduces restricted authority during navigation.
+  const action = loadCalendarPage(context, 'calendar', true);
+
+  // Then neither route output nor previous query values retain unrestricted authority.
+  await expect(action).rejects.toMatchObject({ options: { to: '/change-password' } });
+  expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+  expect(context.administration.sessionScope).toBe('restricted-session');
+});
+
 test('Given an owner-denied preview read, When SSR loads the route, Then a plain error code survives transport and protected query data is removed', async () => {
   // Given a current administrator session and an owner denial from the BFF query.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

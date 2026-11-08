@@ -1,6 +1,6 @@
 # Technology stack and architecture
 
-Last reviewed: 2026-11-01
+Last reviewed: 2026-11-08
 
 This document describes the agreed design for the advent calendar. The repository
 now includes an ASP.NET Core backend, authored OpenAPI contract and C# generation,
@@ -10,8 +10,9 @@ login, password changes, protected personal pages, account administration and
 owner-only calendar preparation are implemented. Calendaradmins create for their
 assigned ordinary users, edit plain-text door titles/messages, persist layouts
 and preview every door through tRPC and the generated backend client, with
-Norwegian/English translations. Calendar API operations require the current
-unrestricted owner session; mutations also require CSRF. Recipient access/opening
+Norwegian/English translations. Superadmins have a separate calendar overview
+and full read-only preview. Owner API operations require the current unrestricted
+owner session; mutations also require CSRF. Recipient access/opening
 and deployment remain future work. See [backend workflows](../src/backend/README.md).
 
 Application source belongs under root `src/`: the backend is in `src/backend`,
@@ -327,8 +328,9 @@ responsibility.
 Backend accounts and authentication are implemented as described in the
 [backend authentication workflow](../src/backend/authentication.md). Calendar
 POST/GET and editing/listing operations are protected in the backend and BFF.
-Only current unrestricted calendaradmin owners have administration/preview
-authority; superadmins and recipients do not gain that authority. Frontend login, required password change,
+Only current unrestricted calendaradmin owners have editing authority. Dedicated
+system list/preview endpoints also permit unrestricted superadmin reads;
+recipients do not gain calendar access. Frontend login, required password change,
 logout and `/my-page` use backend-validated sessions through the BFF. Every
 account has a required single display name, trimmed to 1-100 Unicode code points,
 independent of its unique username and role. Existing usernames are backfilled.
@@ -353,6 +355,19 @@ SSR/hydration/errors use no-store, query caches separate administration/preview
 and session changes discard protected data. Migration 0004 journaled removal of
 legacy test calendars/doors preserves accounts and sessions. Recipient viewing,
 opening and production database hardening remain production gates.
+
+Superadmins use Users/Calendars tabs on `/my-page`, with only the selected panel
+mounted. The calendar table pages through all calendars and joins current names
+and usernames using their persisted owner/recipient references, regardless of
+linked account role or enabled state. Dedicated OpenAPI/BFF system readers
+revalidate the unrestricted superadmin inside the shared security transaction
+before lookup. `/calendar-preview/<id>` chooses owner or system preview from the
+freshly validated session and reuses the same board, saved layout and all 24 doors.
+System preview has no writes, opening effects, editor link or layout controls;
+its return link restores Calendars. Owner edit, owner preview, system list and
+system preview keep separate query keys within the validated session's cache;
+all authorized data/errors/SSR use no-store and session changes clear them.
+
 The end-to-end sequence below includes the deferred recipient authorization.
 
 ### Credentials and manual provisioning
@@ -461,6 +476,9 @@ sequenceDiagram
     else Valid administrator who owns calendar
         API-->>BFF: Full preview/edit view, including future doors
         BFF-->>Browser: Isolated administrator result or SSR/hydration
+    else Unrestricted superadmin using dedicated system reads
+        API-->>BFF: System metadata or full read-only preview
+        BFF-->>Browser: Isolated superadmin result or SSR/hydration
     else Valid assigned calendar recipient
         API->>API: Check server time against 07:00 Europe/Oslo opening
         API-->>BFF: Recipient data with future content withheld
