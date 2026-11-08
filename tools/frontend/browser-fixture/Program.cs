@@ -17,6 +17,18 @@ if (
 
 await using var database = new NpgsqlConnection(connectionString);
 await database.OpenAsync();
+if (args.FirstOrDefault() == "calendar-year")
+{
+    var id = Guid.Parse(args[1]);
+    var year = int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture);
+    if (year is < 1 or > 9999)
+        throw new ArgumentOutOfRangeException(nameof(args));
+    await database.ExecuteAsync(
+        "UPDATE calendars SET calendar_year = @Year WHERE id = @Id",
+        new { Id = id, Year = year }
+    );
+    return;
+}
 if (args.FirstOrDefault() == "revoke")
 {
     await database.ExecuteAsync(

@@ -254,7 +254,7 @@ in an owner-approved worktree based on origin/main (43524dc).
   persistence, time and image tests; regenerate both API consumers.
 - [x] 3. Add BFF procedures, recipient route/session guards, scoped queries and
   assigned-calendar list with SSR and protected-data tests.
-- [ ] 4. Implement recipient board states, server opening writes, green opened
+- [x] 4. Implement recipient board states, server opening writes, green opened
   indicators, dialog, hinge/zoom motion, image retrieval and reduced motion.
 - [ ] 5. Verify time-boundary refresh, account/assignment/content changes,
   cross-device history, both launcher frontend modes and responsive motion.
@@ -285,6 +285,16 @@ and SSR safe metadata. The recipient route currently renders the board; opening
 interaction, states, refresh timing and presentation are completed in step 4.
 Production packaging needed filesystem access beyond the sandbox for Nitro's
 dependency tracing; rerunning with that access passed.
+
+Iteration 4: all 218 frontend/BFF tests, TypeScript, Nitro packaging and Biome
+pass. Eight isolated Edge/production scenarios pass: safe future SSR, explicit
+keyboard opening, actual hinge/zoom animation names, modal focus containment,
+Escape/focus return, durable green frames, long/plain text, image-only content,
+image retry, reduced motion and real bypass-on/off API restarts. Four backgrounds
+were captured at 320/375/768/1280px with saved Random geometry and 44px targets;
+English controls preserve the authored Norwegian content. The browser fixture's
+stale lockfile omitted existing SkiaSharp references; it is refreshed and locked
+restore passes. A native-dialog Tab edge needed explicit containment, now verified.
 
 - Backend integration tests use actual migrations/PostgreSQL and controlled
   `TimeProvider` values immediately before, exactly at and after 07:00 Oslo.

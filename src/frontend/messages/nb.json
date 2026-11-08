@@ -151,5 +151,13 @@
   "calendar_image_invalid": "Bildet kunne ikke behandles. Velg et gyldig, stillestående JPEG- eller PNG-bilde. Bildet kan være maksimalt 10 000 piksler på hver side og 40 millioner piksler totalt. Utkastet er beholdt.",
   "calendar_image_processing": "Behandler og lagrer bildet …",
   "calendar_image_load_failed": "Bildet kunne ikke lastes.",
-  "recipient_calendars": "Dine kalendere"
+  "recipient_calendars": "Dine kalendere",
+  "recipient_available": "Tilgjengelig",
+  "recipient_empty": "Luken er tom",
+  "recipient_locked": "Åpnes {date} (Oslo)",
+  "recipient_opened": "Åpnet",
+  "recipient_opening": "Åpner luken …",
+  "recipient_close": "Lukk",
+  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen.",
+  "recipient_hint": "Velg en tilgjengelig luke. En grønn ramme og hake viser luker du har åpnet."
 }

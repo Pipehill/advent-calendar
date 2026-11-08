@@ -6,7 +6,7 @@ import type { CalendarDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
 import {
-  type CalendarMode,
+  type AdministratorCalendarMode,
   calendarQueryOptions,
   type loadCalendarPage,
 } from '../lib/calendar-navigation';
@@ -69,7 +69,7 @@ export function CalendarWorkspace({
   id: string;
   expiresAt: string;
   scope: string;
-  mode?: CalendarMode;
+  mode?: AdministratorCalendarMode;
 }) {
   const preview = mode !== 'owner-edit';
   const options = calendarQueryOptions(context, id, mode);
