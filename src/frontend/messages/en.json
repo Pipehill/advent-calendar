@@ -123,7 +123,7 @@
   "calendar_layout": "Door arrangement",
   "calendar_chronological": "Chronological",
   "calendar_random": "Random",
-  "calendar_layout_help": "Choose Random to save a new arrangement. Door numbers and content stay together.",
+  "calendar_layout_help": "Choose Random to save a scattered arrangement with a larger Christmas Eve door near the centre. Door numbers and content stay together.",
   "calendar_empty_door": "This door is empty.",
   "calendar_date": "December {day}, {year}",
   "calendar_unsaved": "You have unsaved changes.",

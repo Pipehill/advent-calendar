@@ -12,7 +12,14 @@ assigned ordinary user and one of four [local illustrated backgrounds](calendar-
 The backend stores the current Europe/Oslo year, exactly 24 empty doors and a
 chronological order. Explicit Save actions persist plain-text door titles (50
 Unicode code points) and messages (5000), preserving line breaks. Choosing Random
-persists a new permutation; reads/refresh/preview never reshuffle doors.
+persists a new permutation; reads/refresh/preview never reshuffle doors. Both
+layouts use smaller translucent buttons so the illustration remains visible.
+Chronological keeps ascending numbers in three, four or six responsive columns.
+Random scatters doors across the illustration, with Christmas Eve near the centre
+at exactly 1.5 times an ordinary door's area. The same saved order and board width
+produce the same positions in administration and owner preview. Narrow screens
+use a taller scattered canvas to preserve at least 44px targets and 8px clearance;
+resizing and language changes never save a new arrangement.
 Calendar cards and the administration page show the recipient's current name
 and username. In administration, the owner can select another assigned calendar
 user by choosing Change recipient beside the displayed identity. The selector
@@ -254,4 +261,8 @@ foreign-owner denial, mobile touch/keyboard controls and eight public/denial smo
 Each independent scenario replaces the isolated API process to reset aggregate
 request budgets while preserving database-backed account/session state and the
 production rate-limit settings. Reports/screenshots are kept under
-`quality-reports/plan00015/`. It is separate from normal unit/API tests.
+`quality-reports/plan00015/`. Responsive layout measurements and comparison
+screenshots for all four backgrounds are under `quality-reports/plan00016/`.
+The layout scenarios verify 320/375/768/1280px targets, area, clearance, focus,
+stable refresh/preview/languages/resizing and touch selection of all 24 doors.
+The browser suite is separate from normal unit/API tests.
