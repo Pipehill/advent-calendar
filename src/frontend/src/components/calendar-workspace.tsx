@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import type { CalendarDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
+import { type CalendarMode, calendarQueryOptions } from '../lib/calendar-navigation';
 import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
 import { CalendarBoard } from './calendar-board';
@@ -33,16 +34,15 @@ export function CalendarWorkspace({
   context,
   id,
   expiresAt,
-  preview = false,
+  mode = 'owner-edit',
 }: {
   context: RouterContext;
   id: string;
   expiresAt: string;
-  preview?: boolean;
+  mode?: CalendarMode;
 }) {
-  const options = preview
-    ? context.trpc.calendar.preview.queryOptions({ id })
-    : context.trpc.calendar.get.queryOptions({ id });
+  const preview = mode !== 'owner-edit';
+  const options = calendarQueryOptions(context, id, mode);
   const query = useQuery({ ...options, staleTime: 0, gcTime: 0 });
   const [selected, setSelected] = useState(1);
   const [layoutPending, setLayoutPending] = useState(false);

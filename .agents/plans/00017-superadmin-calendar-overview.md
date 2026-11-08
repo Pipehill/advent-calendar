@@ -142,7 +142,7 @@ review, records evidence and publishes the draft PR.
   Join current account names/usernames using stored associations. Verify against
   isolated PostgreSQL with calendars owned by multiple administrators, and prove
   that existing owner-only writes remain denied to superadmins.
-- [ ] **2. Integrate BFF and protected preview.** Add strict Zod inputs, dedicated
+- [x] **2. Integrate BFF and protected preview.** Add strict Zod inputs, dedicated
   server readers/tRPC queries and role-aware preview navigation in
   `src/frontend/src/server/calendars.ts`, `server/trpc.ts`,
   `lib/auth-navigation.ts`, `lib/calendar-navigation.ts` and the preview route.
@@ -216,3 +216,11 @@ available until implementation and verification are complete.
   independently required unauthorized-session matrix from owner protections;
   shared executable authorization/preview mapping is reused. Final regression
   review will inspect all dimensions and remaining findings.
+- Step 2: all 162 frontend/BFF tests and explicit TypeScript/typecheck build pass.
+  New tests cover strict hostile inputs, anonymous/restricted/role denials,
+  authoritative backend failures after session inspection, concurrent cookie and
+  endpoint isolation, validated access-mode selection, refresh and session-cache
+  clearing. Owner routes remain calendaradmin-only; preview selects its reader
+  from the freshly validated session. Step 3 completes the system-preview notice
+  and return link. Biome and MCP refresh pass; application health is 89.9 with
+  the same declarative test overlap, tooling unchanged at 53.2.

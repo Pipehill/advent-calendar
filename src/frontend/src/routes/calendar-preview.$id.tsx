@@ -16,11 +16,11 @@ export const Route = createFileRoute('/calendar-preview/$id')({
 
 function PreviewPage() {
   const context = Route.useRouteContext();
-  const { session, failure } = Route.useLoaderData();
+  const { session, mode, failure } = Route.useLoaderData();
   const { id } = Route.useParams();
   return failure ? (
     <ErrorState code={failure} />
   ) : (
-    <CalendarWorkspace context={context} id={id} expiresAt={session.expiresAt} preview />
+    <CalendarWorkspace context={context} id={id} expiresAt={session.expiresAt} mode={mode} />
   );
 }
