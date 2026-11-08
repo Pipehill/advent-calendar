@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-08
 
+Implementation type: feature
+
 Provide a system-wide calendar table showing each calendar's owner and recipient.
 Let superadmins preview
 calendars through a read-only flow while preserving owner-only editing.
@@ -128,7 +130,14 @@ None.
 
 ### Work steps
 
-- [ ] **1. Implement backend reads and contract.** Add the two read operations,
+Each numbered step is one implementation iteration and commit. Step 1 verifies
+contract generation, backend build and isolated integration tests. Step 2 verifies
+BFF authorization/validation and route/cache tests; its preview presentation is
+completed in step 3. Step 3 verifies localization, types, build and browser behavior.
+Step 4 runs the complete test/build/quality sequence and committed-head regression
+review, records evidence and publishes the draft PR.
+
+- [x] **1. Implement backend reads and contract.** Add the two read operations,
   paginated DTOs, service/repository methods and thin controller adaptation.
   Join current account names/usernames using stored associations. Verify against
   isolated PostgreSQL with calendars owned by multiple administrators, and prove
@@ -193,3 +202,17 @@ None.
 
 This plan does not implement the feature. No new superadmin calendar access is
 available until implementation and verification are complete.
+
+## Implementation evidence
+
+- Step 1: authored OpenAPI validation and both NSwag consumers generated; Release
+  build passed with zero compiler warnings/errors. All 63 targeted backend
+  integration cases passed against isolated PostgreSQL (21 new system-read cases
+  plus existing owner/recipient protections). Read-only CSharpier 1.3.0 passed.
+  Tests exposed missing early-error no-store coverage on the new path; extending
+  the existing response-protection boundary fixed all eight failures.
+- Step 1 advisory comparison: application health 89.4 to 89.7; tooling 53.2
+  unchanged. One additional six-line declarative test-case overlap repeats the
+  independently required unauthorized-session matrix from owner protections;
+  shared executable authorization/preview mapping is reused. Final regression
+  review will inspect all dimensions and remaining findings.

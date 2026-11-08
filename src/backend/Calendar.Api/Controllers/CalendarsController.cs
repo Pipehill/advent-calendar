@@ -20,6 +20,42 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
 {
     private SessionIdentity? Identity => SessionAuthentication.ReadIdentity(User);
 
+    public override async Task<ActionResult<SystemCalendarListDto>> ListSystemCalendars(
+        int? offset = 0,
+        int? limit = 20
+    )
+    {
+        var page = await service.ListSystemAsync(
+            Identity,
+            offset ?? 0,
+            limit ?? 20,
+            HttpContext.RequestAborted
+        );
+        return Ok(
+            new SystemCalendarListDto
+            {
+                TotalCount = page.TotalCount,
+                Calendars = page
+                    .Calendars.Select(calendar => new SystemCalendarSummaryDto
+                    {
+                        Id = calendar.Id,
+                        Title = calendar.Title,
+                        Year = calendar.Year,
+                        OwnerId = calendar.OwnerId,
+                        OwnerName = calendar.OwnerName,
+                        OwnerUsername = calendar.OwnerUsername,
+                        RecipientId = calendar.RecipientId,
+                        RecipientName = calendar.RecipientName,
+                        RecipientUsername = calendar.RecipientUsername,
+                    })
+                    .ToList(),
+            }
+        );
+    }
+
+    public override async Task<ActionResult<CalendarDto>> PreviewSystemCalendar(Guid id) =>
+        Ok(Map(await service.PreviewSystemAsync(Identity, id, HttpContext.RequestAborted)));
+
     public override async Task<ActionResult<CalendarDto>> Create(CreateCalendarRequest body)
     {
         var calendar = await service.CreateAsync(
