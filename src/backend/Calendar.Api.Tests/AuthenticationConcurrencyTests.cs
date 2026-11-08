@@ -157,10 +157,12 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         );
     }
 
-    [Fact(
-        DisplayName = "Given an administrator reset paused after hashing, When the acting administrator is disabled, Then no stale target mutation commits"
+    [Theory(
+        DisplayName = "Given an administrator reset paused after hashing, When actor authority or target role changes, Then no stale target mutation commits"
     )]
-    public async Task ActorRevocationDuringTargetMutationIsRechecked()
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentResetRechecksActorAndTarget(bool promoteTarget)
     {
         // Given an authorized reset paused outside the final database transaction.
         using var barrier = new HashBarrier();
@@ -188,15 +190,19 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         );
         await barrier.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
-        // When superadmin disables the actor before the reset's mutation transaction.
+        // When superadmin disables the actor or promotes the target before the reset commits.
         HttpResponseMessage disable;
         try
         {
+            // Allow the promotion's own hash while the already prepared reset stays paused.
+            barrier.PauseAccount(Guid.Empty);
             disable = await SendAsync(
                 superadmin,
                 HttpMethod.Patch,
-                $"/users/{actor.Id}/status",
-                new { enabled = false }
+                promoteTarget ? $"/users/{target.Id}/role" : $"/users/{actor.Id}/status",
+                promoteTarget
+                    ? new { role = AccountRoles.Administrator, temporaryPassword = Password() }
+                    : (object)new { enabled = false }
             );
         }
         finally
@@ -205,16 +211,28 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         }
         var stale = await pending;
 
-        // Then final actor/session authorization prevents the prepared reset from committing.
+        // Then current authority and target role/version prevent the prepared reset from committing.
         Assert.Equal(HttpStatusCode.NoContent, disable.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, stale.StatusCode);
         Assert.Equal(
-            version,
-            await context.ScalarAsync<Guid>(
-                "SELECT security_version FROM accounts WHERE id = @Id",
-                new { target.Id }
-            )
+            promoteTarget ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized,
+            stale.StatusCode
         );
+        var currentVersion = await context.ScalarAsync<Guid>(
+            "SELECT security_version FROM accounts WHERE id = @Id",
+            new { target.Id }
+        );
+        if (promoteTarget)
+        {
+            Assert.NotEqual(version, currentVersion);
+            Assert.True(
+                await context.ScalarAsync<bool>(
+                    "SELECT must_change_password AND temporary_password_expires_at IS NOT NULL FROM accounts WHERE id = @Id",
+                    new { target.Id }
+                )
+            );
+        }
+        else
+            Assert.Equal(version, currentVersion);
     }
 
     [Fact(

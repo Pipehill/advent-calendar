@@ -121,8 +121,15 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
             );
             Assert.True(
                 await context.ScalarAsync<bool>(
-                    "SELECT must_change_password AND temporary_password_expires_at = @Deadline FROM accounts WHERE id = @Id",
-                    new { created.Id, Deadline = context.Time.GetUtcNow().AddMinutes(30) }
+                    "SELECT must_change_password = @Temporary AND temporary_password_expires_at IS NOT DISTINCT FROM @Deadline FROM accounts WHERE id = @Id",
+                    new
+                    {
+                        created.Id,
+                        Temporary = targetRole != AccountRoles.User,
+                        Deadline = targetRole == AccountRoles.User
+                            ? (DateTimeOffset?)null
+                            : context.Time.GetUtcNow().AddMinutes(30),
+                    }
                 )
             );
             Assert.Equal(
@@ -320,7 +327,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
             new { password = temporary }
         );
         var revoked = await recipient.GetAsync("/auth/session");
-        var restricted = await context.LoginAsync(own with { Password = temporary }, recipient);
+        var fresh = await context.LoginAsync(own with { Password = temporary }, recipient);
 
         // Then only own current ordinary users are listed/reset and reset invalidates all earlier sessions.
         Assert.Equal([own.Id], list.Users.Select(user => user.Id));
@@ -329,7 +336,7 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.Conflict, same.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, revoked.StatusCode);
-        Assert.True(restricted.MustChangePassword);
+        Assert.False(fresh.MustChangePassword);
     }
 
     [Fact(

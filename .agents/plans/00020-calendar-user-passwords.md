@@ -2,6 +2,8 @@
 
 Status: Not implemented
 
+Implementation type: feature
+
 Last updated: 2026-11-08
 
 Let administrators set a calendar user's password once, without requiring the
@@ -187,14 +189,28 @@ endpoint, authentication mechanism or deployment setting is needed.
 
 ### Work steps
 
-- [ ] 1. Add role-specific creation/reset behavior and demotion metadata handling;
+- [x] 1. Add role-specific creation/reset behavior and demotion metadata handling;
   preserve administrator promotion, concurrency and authorization protections.
+  Verify targeted user administration, lifecycle, concurrency and ordinary-password
+  integration tests before committing this iteration.
+  Completed: 56 targeted PostgreSQL integration cases, Release build, full quality
+  and MCP refresh pass. Application health 91.7 to 91.9; tooling stays 55.0.
+  Application duplication increases from 79 to 90 lines (9 to 10 clones), solely
+  the required import/namespace declarations of the separate password lifecycle
+  suite; no duplicated application logic was introduced. Tests retain temporary
+  administrator expiry/recovery and add a concurrent reset/promotion rejection.
 - [ ] 2. Add the existing-user conversion migration and database-backed transition,
   restart, revoked-session, expired-credential and disabled/locked-account tests.
+  Verify actual embedded scripts, atomic rollback, retained business data and
+  journal-based restart against isolated PostgreSQL.
 - [ ] 3. Update role-aware frontend labels/help, contract descriptions, generated
   consumers, account/login tests and affected browser fixtures.
+  Verify generation, frontend/BFF tests, explicit TypeScript/build checks and
+  production browser lifecycle/role-switching scenarios.
 - [ ] 4. Verify both role lifecycles, voluntary changes and the documented
   transition; update owning rules/docs and complete required quality checks.
+  Run the complete backend/frontend/browser suites, full quality, advisory health
+  comparison and committed-head regression review before draft PR publication.
 
 ## Verification
 

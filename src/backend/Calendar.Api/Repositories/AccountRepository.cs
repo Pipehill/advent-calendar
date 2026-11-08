@@ -122,7 +122,12 @@ public sealed class AccountRepository(SecurityTransaction transaction) : IAccoun
 
     public Task SetRoleAsync(Guid id, string role, Guid securityVersion) =>
         transaction.ExecuteAsync(
-            "UPDATE accounts SET account_role = @Role, security_version = @Version WHERE id = @Id",
+            """
+            UPDATE accounts SET account_role = @Role, security_version = @Version,
+                must_change_password = CASE WHEN @Role = 'calendarUser' THEN false ELSE must_change_password END,
+                temporary_password_expires_at = CASE WHEN @Role = 'calendarUser' THEN NULL ELSE temporary_password_expires_at END
+            WHERE id = @Id
+            """,
             new
             {
                 Id = id,
