@@ -2,7 +2,7 @@
 
 Status: Implemented (2026-10-25)
 
-Last updated: 2026-10-25
+Last updated: 2026-11-08
 
 Implementation type: feature (confirmed by the owner on 2026-10-25).
 
@@ -16,7 +16,7 @@ Build on the existing account operations and protected personal page from
 plan 00011, with a dedicated page for the account-creation form.
 
 Calendar lists requested alongside this task are recorded separately in
-[TODO](TODO.md).
+[TODO](https://github.com/Pipehill/advent-calendar/blob/5dde02421b70024fe03e8a143febd710fb19b8e9/.agents/plans/TODO.md).
 
 ## Requirements
 

@@ -2,7 +2,7 @@
 
 Status: Implemented (2026-10-25)
 
-Last updated: 2026-10-25
+Last updated: 2026-11-08
 
 Implementation type: chore
 
@@ -89,5 +89,7 @@ invalid/corrected linter fixtures, index/source preservation, hook receipts,
 stale/missing CI evidence and actual Windows/Podman startup. Docker and native
 macOS/Linux evidence remain unavailable. Production browser smoke passed all eight
 cases; Vite reproduced three language-switch failures on the original commit.
-The [Vite language-switch follow-up](TODO.md) remains open; native-platform
+The [Vite language-switch follow-up][vite-follow-up] remains open; native-platform
 verification follow-ups remain in their existing verification records.
+
+[vite-follow-up]: https://github.com/Pipehill/advent-calendar/blob/5dde02421b70024fe03e8a143febd710fb19b8e9/.agents/plans/TODO.md

@@ -1,7 +1,5 @@
 # Plans
 
-See [TODO](TODO.md) for follow-up items not yet expanded into numbered plans.
-
 Store task plans in numbered Markdown files with descriptive names, such as
 `00001-technology-architecture.md`. Each plan's title includes the same number.
 The [plan-task skill](../skills/plan-task/SKILL.md) owns the numbering workflow.
