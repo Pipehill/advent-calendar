@@ -19,7 +19,8 @@ internal sealed class AuthTestContext : IAsyncDisposable
     public static async Task<AuthTestContext> CreateAsync(
         ApiFixture fixture,
         Action<IServiceCollection>? configureServices = null,
-        string environment = "Testing"
+        string environment = "Testing",
+        bool noTimeCheck = false
     )
     {
         var name = "auth_" + Guid.NewGuid().ToString("N");
@@ -33,7 +34,7 @@ internal sealed class AuthTestContext : IAsyncDisposable
             Database = name,
         }.ConnectionString;
         var time = new TestTime();
-        var app = fixture.Application(environment, connectionString, time);
+        var app = fixture.Application(environment, connectionString, time, noTimeCheck);
         if (configureServices is not null)
             app = app.WithWebHostBuilder(builder => builder.ConfigureServices(configureServices));
         return new()

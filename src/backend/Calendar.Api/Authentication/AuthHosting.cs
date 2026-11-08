@@ -152,7 +152,8 @@ public static class AuthHosting
         path.StartsWithSegments("/auth")
         || path.StartsWithSegments("/users")
         || path.StartsWithSegments("/calendars")
-        || path.StartsWithSegments("/administration/calendars");
+        || path.StartsWithSegments("/administration/calendars")
+        || path.StartsWithSegments("/recipient/calendars");
 
     public static void UseAccountResponseProtection(this WebApplication app)
     {

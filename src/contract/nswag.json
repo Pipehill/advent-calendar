@@ -26,6 +26,7 @@
       "generateDataAnnotations": false,
       "jsonLibrary": "SystemTextJson",
       "dateTimeType": "System.DateTimeOffset",
+      "dateType": "System.DateOnly",
       "generateNullableReferenceTypes": true,
       "output": "../backend/Calendar.Api/generated/Contract.cs",
       "generateOptionalPropertiesAsNullable": true

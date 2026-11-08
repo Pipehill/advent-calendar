@@ -51,7 +51,8 @@ public sealed class ApiFixture : IAsyncLifetime
     public WebApplicationFactory<Program> Application(
         string environment = "Testing",
         string? connectionString = null,
-        TimeProvider? time = null
+        TimeProvider? time = null,
+        bool noTimeCheck = false
     ) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -64,6 +65,7 @@ public sealed class ApiFixture : IAsyncLifetime
                             ["ConnectionStrings:Calendar"] =
                                 connectionString ?? Database.GetConnectionString(),
                             ["Database:StartupAttempts"] = "1",
+                            ["CalendarOpening:DisableTimeCheck"] = noTimeCheck.ToString(),
                             ["Authentication:KeyDirectory"] =
                                 environment == "Production"
                                     ? Path.Combine(KeyDirectory, "production")

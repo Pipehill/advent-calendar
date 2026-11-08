@@ -249,7 +249,7 @@ in an owner-approved worktree based on origin/main (43524dc).
 
 - [x] 1. Add backend availability policy and local flag plumbing, validation,
   startup documentation and focused boundary/launcher tests.
-- [ ] 2. Add the opening-history migration, dedicated recipient contracts,
+- [x] 2. Add the opening-history migration, dedicated recipient contracts,
   repository/service/controller operations and database-backed authorization,
   persistence, time and image tests; regenerate both API consumers.
 - [ ] 3. Add BFF procedures, recipient route/session guards, scoped queries and
@@ -265,7 +265,17 @@ in an owner-approved worktree based on origin/main (43524dc).
 Iteration 1: all 18 policy cases and 30 launcher cases pass; backend Release
 build and generated consumers pass. The captured worktree baseline preserves
 the main workspace's independent measurements. MCP refresh/statistics completed.
-Actual Compose mode/flag transitions are reserved for step 5.
+Actual Compose mode/flag transitions are reserved for step 5. Full quality passed;
+the QA snapshot initializer now clears inherited hook Git paths, verified by a
+regression test, so worktree hooks cannot index the caller's repository.
+
+Iteration 2: 357 backend tests pass (including time/content, real Development
+bypass, pre-migration rejection in Production/Staging/Testing, history across
+devices/login, assignment/revocation, CSRF, images and lock-800008 races). The
+additional scoped-list/pagination test passes after rebuilding. Contract
+validation/generation, frontend TypeScript/build and new migration SQL lint pass.
+The generated date-only representation is explicitly DateOnly. MCP reports two
+new import-only clones; recipient service/repository logic adds no clones.
 
 - Backend integration tests use actual migrations/PostgreSQL and controlled
   `TimeProvider` values immediately before, exactly at and after 07:00 Oslo.

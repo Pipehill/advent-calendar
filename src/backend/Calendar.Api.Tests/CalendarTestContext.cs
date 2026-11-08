@@ -21,10 +21,17 @@ internal sealed class CalendarTestContext(
 
     public static async Task<CalendarTestContext> CreateAsync(
         ApiFixture fixture,
-        Action<IServiceCollection>? configureServices = null
+        Action<IServiceCollection>? configureServices = null,
+        string environment = "Testing",
+        bool noTimeCheck = false
     )
     {
-        var auth = await AuthTestContext.CreateAsync(fixture, configureServices);
+        var auth = await AuthTestContext.CreateAsync(
+            fixture,
+            configureServices,
+            environment,
+            noTimeCheck
+        );
         var owner = await auth.ProvisionAsync(AccountRoles.Administrator);
         var recipient = await auth.ProvisionAsync(AccountRoles.User, owner.Id);
         await auth.LoginAsync(owner);

@@ -107,7 +107,7 @@ public sealed class DoorImageBoundaryTests(ApiFixture fixture)
         Assert.Equal(calendar.Background, after.Background);
         Assert.Equal(calendar.DoorOrder, after.DoorOrder);
         Assert.Equal(
-            5,
+            6,
             await context.Auth.ScalarAsync<int>("SELECT count(*)::int FROM schemaversions")
         );
     }

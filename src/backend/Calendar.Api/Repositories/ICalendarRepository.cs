@@ -7,6 +7,7 @@ public interface ICalendarRepository
     Task InsertAsync(CalendarModel calendar);
     Task<CalendarModel?> GetAsync(Guid id, Guid ownerId);
     Task<CalendarModel?> GetSystemPreviewAsync(Guid id);
+    Task<CalendarModel?> GetForRecipientAsync(Guid id, Guid recipientId);
     Task<DoorImage?> GetDoorImageAsync(Guid id, int number);
     Task<SystemCalendarPage> ListSystemAsync(int offset, int limit);
     Task<CalendarPage> ListAsync(Guid ownerId, int offset, int limit);
