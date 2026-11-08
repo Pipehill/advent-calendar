@@ -96,8 +96,8 @@ export function scatteredLayout(
       }
     }
     if (doors.length === 24) {
-      const byNumber = new Map(doors.map((door) => [door.number, door]));
-      return { width, height, doors: order.map((number) => byNumber.get(number)!) };
+      doors.sort((first, second) => order.indexOf(first.number) - order.indexOf(second.number));
+      return { width, height, doors };
     }
   }
   return { width, height, doors: reserveLayout(order, width, height, size) };

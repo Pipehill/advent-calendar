@@ -107,7 +107,7 @@ None.
   central enlarged door 24, bounds/clearance checks and bounded fallback in the
   pure layout module. Define responsive sizing without changing stored data.
   Add focused tests of geometry and arrangement stability.
-- [ ] **2. Integrate and style the board.** Pass `calendar.layout` from
+- [x] **2. Integrate and style the board.** Pass `calendar.layout` from
   `src/frontend/src/components/calendar-workspace.tsx` into `CalendarBoard`.
   Render chronological cells with smaller buttons and Random with scattered
   positioning. Update scoped surface/focus/selection CSS and preserve background
@@ -156,3 +156,11 @@ None.
   Board integration and browser verification follow in iterations 2 and 3.
 - The previous advisory baseline is preserved as
   `baseline-before-00016-20261108`; the new baseline was captured before edits.
+- Iteration 2: shared board integration, 70%-width chronological buttons,
+  translucent surface variants and opaque numeral backings with double-contrast
+  focus/selection. Deterministic initial geometry adapts through ResizeObserver
+  without writes. All 146 frontend tests, Biome and the production Vite/Nitro build
+  with explicit TypeScript pass. Existing production browser content/preview/
+  language and narrow touch/keyboard scenarios pass; no hydration errors.
+  MCP refreshed the saved directory before statistics. Final advisory comparison
+  and full responsive geometry measurements remain in iteration 3.

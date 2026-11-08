@@ -85,8 +85,9 @@ function verifyGeometry(geometry: ReturnType<typeof scatteredLayout>, numbers: n
       expect(clear, `Doors ${door.number} and ${other.number} have clearance`).toBe(true);
     }
   }
-  const ordinary = doors.find((door) => door.number === 1)!;
-  const christmas = doors.find((door) => door.number === 24)!;
+  const ordinary = doors.find((door) => door.number === 1);
+  const christmas = doors.find((door) => door.number === 24);
+  if (!ordinary || !christmas) throw new Error('Numbered doors are missing');
   expect(christmas.size ** 2 / ordinary.size ** 2).toBeCloseTo(1.5, 12);
   expect((christmas.x + christmas.size / 2) / width).toBeGreaterThanOrEqual(1 / 3);
   expect((christmas.x + christmas.size / 2) / width).toBeLessThanOrEqual(2 / 3);

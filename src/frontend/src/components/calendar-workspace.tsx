@@ -157,6 +157,7 @@ export function CalendarWorkspace({
       )}
       <CalendarBoard
         background={calendar.background}
+        layout={calendar.layout}
         order={calendar.doorOrder}
         selected={selected}
         onSelect={setSelected}

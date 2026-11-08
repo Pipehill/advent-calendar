@@ -1,36 +1,61 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import { calendarBackgroundPath } from '../lib/calendar-input';
+import { scatteredLayout } from '../lib/calendar-layout';
 
 export function CalendarBoard({
   background,
+  layout,
   order,
   selected,
   onSelect,
 }: {
   background: string;
+  layout: string;
   order: number[];
   selected: number;
   onSelect: (number: number) => void;
 }) {
+  const board = useRef<HTMLOListElement>(null);
+  // SSR and the first client render agree; measurement only adapts geometry.
+  const [width, setWidth] = useState(248);
+  useEffect(() => {
+    const element = board.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const geometry = useMemo(() => scatteredLayout(order, width), [order, width]);
+  const random = layout === 'random';
   return (
     <div
       className="rounded-2xl bg-emerald-950 bg-cover bg-center p-4 shadow-sm sm:p-8"
       style={{ backgroundImage: `url("${calendarBackgroundPath(background)}")` }}
     >
       <ol
+        ref={board}
         aria-label={m.doors_label()}
-        className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
+        className={
+          random
+            ? 'calendar-doors calendar-doors-scattered'
+            : 'calendar-doors calendar-doors-chronological grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6'
+        }
+        style={random ? { height: geometry.height } : undefined}
       >
-        {order.map((number) => (
-          <li key={number}>
+        {geometry.doors.map(({ number, x, y, size }) => (
+          <li
+            key={number}
+            style={random ? { left: x, top: y, width: size, height: size } : undefined}
+          >
             <button
               type="button"
               aria-label={m.door_label({ number: String(number) })}
               aria-pressed={selected === number}
               onClick={() => onSelect(number)}
-              className="door-tile flex aspect-square w-full cursor-pointer items-center justify-center rounded-xl border-2 font-serif text-3xl text-emerald-950 shadow-sm hover:bg-white focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-white aria-pressed:border-emerald-900 aria-pressed:ring-2 aria-pressed:ring-white sm:text-4xl"
+              className="door-tile flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 font-serif text-2xl text-emerald-950 sm:text-3xl"
             >
-              {number}
+              <span className="door-number">{number}</span>
             </button>
           </li>
         ))}
