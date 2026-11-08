@@ -37,6 +37,18 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
 
     public Task<CalendarModel?> GetSystemPreviewAsync(Guid id) => ReadAsync(id, null);
 
+    public async Task<DoorImage?> GetDoorImageAsync(Guid id, int number) =>
+        (
+            await transaction.QueryAsync<DoorImage>(
+                """
+                SELECT image_data AS Data, image_media_type AS MediaType, image_width AS Width,
+                    image_height AS Height, image_version AS Version FROM doors
+                WHERE calendar_id = @Id AND day_number = @Number AND image_data IS NOT NULL
+                """,
+                new { Id = id, Number = number }
+            )
+        ).SingleOrDefault();
+
     private async Task<CalendarModel?> ReadAsync(Guid id, Guid? ownerId)
     {
         var rows = (
@@ -144,12 +156,19 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         int number,
         string title,
         string text,
-        DateTimeOffset modified
+        DateTimeOffset modified,
+        string imageAction = "keep",
+        DoorImage? image = null
     )
     {
         await transaction.ExecuteAsync(
             """
             UPDATE doors SET content_title = @Title, content_text = @Text
+                , image_data = CASE WHEN @Keep THEN image_data ELSE @Data END
+                , image_media_type = CASE WHEN @Keep THEN image_media_type ELSE @MediaType END
+                , image_width = CASE WHEN @Keep THEN image_width ELSE @Width END
+                , image_height = CASE WHEN @Keep THEN image_height ELSE @Height END
+                , image_version = CASE WHEN @Keep THEN image_version ELSE @Version END
             WHERE calendar_id = @Id AND day_number = @Number
             """,
             new
@@ -158,6 +177,12 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                 Number = number,
                 Title = title,
                 Text = text,
+                Keep = imageAction == "keep",
+                Data = image?.Data,
+                MediaType = image?.MediaType,
+                Width = image?.Width,
+                Height = image?.Height,
+                Version = image?.Version,
             }
         );
         await transaction.ExecuteAsync(

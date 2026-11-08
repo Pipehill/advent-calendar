@@ -9,6 +9,7 @@ public enum AccountFailure
     Conflict,
     ResourceLimit,
     NotFound,
+    PayloadTooLarge,
 }
 
 public sealed class AccountFailureException(

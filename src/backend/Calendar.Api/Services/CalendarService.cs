@@ -10,7 +10,8 @@ public sealed class CalendarService(
     ISecurityTransaction transaction,
     ISessionService sessions,
     IAccountRepository accounts,
-    TimeProvider clock
+    TimeProvider clock,
+    IDoorImageProcessor images
 ) : ICalendarService
 {
     public Task<SystemCalendarPage> ListSystemAsync(
@@ -128,24 +129,82 @@ public sealed class CalendarService(
             cancellationToken
         );
 
-    public Task<CalendarModel> SaveDoorAsync(
+    public async Task<CalendarModel> SaveDoorAsync(
         SessionIdentity? identity,
         Guid id,
         int number,
         string? title,
         string? text,
+        CancellationToken cancellationToken,
+        string imageAction = "keep",
+        string? imageData = null
+    )
+    {
+        // Authorize before decoding; never keep lock 800008 during native processing.
+        await transaction.RunAsync(
+            async () => await FindOwnedAsync(identity, id),
+            cancellationToken
+        );
+        if (number is < 1 or > 24)
+            throw Invalid("number");
+        ValidateText(title, 0, 50, "title");
+        ValidateText(text, 0, 5000, "text");
+        if (imageAction is not ("keep" or "replace" or "remove"))
+            throw Invalid("imageAction");
+        if (imageAction == "replace" ? string.IsNullOrEmpty(imageData) : imageData is not null)
+            throw Invalid("imageData");
+        var image =
+            imageAction == "replace"
+                ? await images.ProcessAsync(imageData!, cancellationToken)
+                : null;
+        cancellationToken.ThrowIfCancellationRequested();
+        return await transaction.RunAsync(
+            async () =>
+            {
+                var calendar = await FindOwnedAsync(identity, id);
+                await repository.SaveDoorAsync(
+                    id,
+                    number,
+                    title!,
+                    text!,
+                    Now(),
+                    imageAction,
+                    image
+                );
+                return (await repository.GetAsync(id, calendar.OwnerId))!;
+            },
+            cancellationToken
+        );
+    }
+
+    public Task<DoorImage> ReadDoorImageAsync(
+        SessionIdentity? identity,
+        Guid id,
+        int number,
+        bool systemPreview,
         CancellationToken cancellationToken
     ) =>
         transaction.RunAsync(
             async () =>
             {
-                var calendar = await FindOwnedAsync(identity, id);
+                if (systemPreview)
+                {
+                    await RequireSuperadminAsync(identity);
+                    if (await repository.GetSystemPreviewAsync(id) is null)
+                        throw new AccountFailureException(
+                            AccountFailure.NotFound,
+                            "Calendar not found"
+                        );
+                }
+                else
+                    await FindOwnedAsync(identity, id);
                 if (number is < 1 or > 24)
                     throw Invalid("number");
-                ValidateText(title, 0, 50, "title");
-                ValidateText(text, 0, 5000, "text");
-                await repository.SaveDoorAsync(id, number, title!, text!, Now());
-                return (await repository.GetAsync(id, calendar.OwnerId))!;
+                return await repository.GetDoorImageAsync(id, number)
+                    ?? throw new AccountFailureException(
+                        AccountFailure.NotFound,
+                        "Door image not found"
+                    );
             },
             cancellationToken
         );

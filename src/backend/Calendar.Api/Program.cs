@@ -91,6 +91,7 @@ builder.Services.AddSingleton(provider =>
     )
 );
 builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddSingleton<IDoorImageProcessor, DoorImageProcessor>();
 builder.Services.AddScoped<ICalendarRepository, CalendarRepository>();
 builder.Services.AddSingleton<MigrationState>();
 builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
@@ -150,6 +151,7 @@ app.Use(
                         AccountFailure.Conflict => 409,
                         AccountFailure.ResourceLimit => 429,
                         AccountFailure.NotFound => 404,
+                        AccountFailure.PayloadTooLarge => 413,
                         _ => 500,
                     },
                     exception.Message,
@@ -161,6 +163,12 @@ app.Use(
                         },
                     exception.Failure == AccountFailure.VerificationRequired
                 )
+                .ExecuteResultAsync(new ActionContext { HttpContext = context });
+        }
+        catch (BadHttpRequestException exception) when (exception.StatusCode == 413)
+        {
+            await ApiErrors
+                .Create(context, 413, "Request too large")
                 .ExecuteResultAsync(new ActionContext { HttpContext = context });
         }
         catch (NpgsqlException exception) when (AuthHosting.IsAccountPath(context.Request.Path))

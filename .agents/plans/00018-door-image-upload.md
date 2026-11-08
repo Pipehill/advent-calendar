@@ -199,10 +199,20 @@ Each step is one implementation iteration and commit, following
   metadata failed the database constraint. Full DbUp/journal integration follows
   step 2: this intermediate build intentionally reports the two new abstract
   image-read methods awaiting backend implementation (CS0534).
-- [ ] **2. Implement image processing and backend operations.** Add/pin the image
+- [x] **2. Implement image processing and backend operations.** Add/pin the image
   library and runtime assets, bounded validation/adaptation, protected reads and
   atomic saves. Verify actual HTTP binding, PostgreSQL storage/rollback,
   authorization/CSRF and Windows/Linux runtime-image compatibility.
+  Release build and 36 focused image/migration tests pass, including independent
+  reads, atomic rollback and session/role/ownership changes during processing.
+  SkiaSharp and Linux.NoDependencies are pinned to stable 4.155.0; NuGet's direct
+  and transitive vulnerability audit reports no findings. Real native processing
+  on Windows and the built Ubuntu runtime produced identical bounded outputs:
+  detailed PNG 5,390,853 to 865,071 bytes, JPEG 1,945,958 to 936,726 bytes.
+  Saved-source custom checks pass. Application health is 90.8 to 91.2; the one
+  added 11-line clone is standard integration-test imports/namespace/collection
+  structure, retained for readable, independently discoverable tests. Tooling
+  remains 54.1. Production HTTP/body-limit/browser evidence follows steps 3–4.
 - [ ] **3. Integrate BFF and editor/preview.** Add strict inputs, body-size limits,
   error translation, scoped image queries and the localized common-save flow.
   Verify focused frontend/BFF cases, types, build and production browser behavior.
