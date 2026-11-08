@@ -84,7 +84,6 @@ export function CalendarDoorForm({
   const submit = useFormSubmit(form.handleSubmit);
   return (
     <form className="space-y-4" onSubmit={submit}>
-      <p className="text-sm text-stone-600">{m.calendar_content_help()}</p>
       <form.Field name="title">
         {(field) => (
           <div className="space-y-2">
@@ -109,20 +108,22 @@ export function CalendarDoorForm({
       <form.Subscribe selector={(state) => [state.isSubmitting, state.values.title] as const}>
         {([pending, title]) => (
           <>
-            {imageAction === 'keep' && (
-              <SavedDoorImage
-                context={context}
-                id={id}
-                door={door}
-                mode="owner-edit"
-                scope={scope}
-              />
-            )}
             <DoorImagePicker
               file={file}
               hasImage={!!file || (imageAction === 'keep' && !!door.image)}
               pending={pending}
               title={title}
+              savedImage={
+                imageAction === 'keep' && (
+                  <SavedDoorImage
+                    context={context}
+                    id={id}
+                    door={door}
+                    mode="owner-edit"
+                    scope={scope}
+                  />
+                )
+              }
               failed={setFailure}
               changed={(selected) => {
                 setFile(selected);

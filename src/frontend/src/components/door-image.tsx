@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import type { DoorDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
@@ -21,12 +22,23 @@ export function useImageUrl(blob: Blob | null) {
   return image?.blob === blob ? image.url : undefined;
 }
 
-export function DoorImageView({ src, title }: { src: string; title: string }) {
+export function DoorImageView({
+  src,
+  title,
+  thumbnail = false,
+}: {
+  src: string;
+  title: string;
+  thumbnail?: boolean;
+}) {
   return (
     <img
       src={src}
       alt={title || m.calendar_image_alt()}
-      className="mx-auto h-auto max-h-[70vh] max-w-full rounded-lg object-contain"
+      className={clsx(
+        'h-auto max-w-full rounded-lg object-contain',
+        thumbnail ? 'max-h-40' : 'mx-auto max-h-[70vh]',
+      )}
     />
   );
 }
@@ -72,5 +84,5 @@ export function SavedDoorImage({
       </p>
     );
   if (!url) return <p role="status">{m.loading()}</p>;
-  return <DoorImageView src={url} title={door.title} />;
+  return <DoorImageView src={url} title={door.title} thumbnail={mode === 'owner-edit'} />;
 }
