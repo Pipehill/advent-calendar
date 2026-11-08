@@ -1020,7 +1020,7 @@
     "/calendars/{id}/doors/{number}": {
       "put": {
         "operationId": "UpdateDoor",
-        "summary": "Save plain-text content on one numbered door",
+        "summary": "Atomically save door text and optional image",
         "tags": [
           "calendars"
         ],
@@ -1060,6 +1060,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           },
           "415": {
             "$ref": "#/components/responses/UnsupportedMediaType"
@@ -1405,6 +1408,162 @@
         ],
         "description": "Requires a current unrestricted superadmin session, checked before calendar lookup. Returns all 24 doors including future content and the persisted layout. Does not mutate modification time or recipient opening state."
       }
+    },
+    "/calendars/{id}/doors/{number}/image": {
+      "get": {
+        "operationId": "GetDoorImage",
+        "summary": "Read one image as the current calendar owner",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privileged owner content; never a recipient response",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoorImageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          }
+        ],
+        "description": "Independently authorizes the calendar and numbered door. Never grants recipient access."
+      }
+    },
+    "/administration/calendars/{id}/preview/doors/{number}/image": {
+      "get": {
+        "operationId": "PreviewSystemDoorImage",
+        "summary": "Read one image as the current unrestricted superadmin",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privileged owner content; never a recipient response",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoorImageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          }
+        ],
+        "description": "Independently authorizes the calendar and numbered door. Never grants recipient access."
+      }
     }
   },
   "components": {
@@ -1491,6 +1650,16 @@
       },
       "Unavailable": {
         "description": "Session validity persistence unavailable; access fails closed.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiProblemDetails"
+            }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "Upload request exceeds the bounded source or request size.",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -1636,7 +1805,8 @@
         "required": [
           "number",
           "title",
-          "text"
+          "text",
+          "image"
         ],
         "properties": {
           "number": {
@@ -1652,6 +1822,16 @@
           "text": {
             "type": "string",
             "maxLength": 5000
+          },
+          "image": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoorImageMetadataDto"
+              }
+            ],
+            "type": "object",
+            "additionalProperties": false
           }
         }
       },
@@ -1991,6 +2171,21 @@
             "type": "string",
             "minLength": 0,
             "maxLength": 5000
+          },
+          "imageAction": {
+            "type": "string",
+            "enum": [
+              "keep",
+              "replace",
+              "remove"
+            ],
+            "description": "Omitted means keep. Replacement requires imageData; keep/remove forbid it."
+          },
+          "imageData": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 13333336,
+            "description": "Base64 transport only; at most 10000000 decoded JPEG/PNG bytes."
           }
         }
       },
@@ -2189,6 +2384,57 @@
             "format": "int32",
             "minimum": 0,
             "maximum": 2147483647
+          }
+        }
+      },
+      "DoorImageMetadataDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "mediaType",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mediaType": {
+            "type": "string",
+            "pattern": "^image/(jpeg|png)$"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 1600
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 1600
+          }
+        }
+      },
+      "DoorImageDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metadata",
+          "data"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/DoorImageMetadataDto"
+          },
+          "data": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1333336,
+            "description": "Base64 encoded processed image, at most 1000000 decoded bytes."
           }
         }
       }

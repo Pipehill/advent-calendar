@@ -157,6 +157,45 @@ and an authorized unknown calendar 404. All responses/errors are no-store,
 including pre-controller authentication and binding errors. Superadmins remain
 denied on owner read/list/create/door/layout/recipient endpoints.
 
+## Door images
+
+Door saves also accept optional `imageAction` (`keep`, `replace`, `remove`) and
+`imageData` (base64 JPEG/PNG for replacement only). Omitted action means `keep`;
+null fields and contradictory action/data combinations are rejected. Title,
+message, image/version and modification time commit in one security transaction.
+Text-only saves preserve image bytes; removal preserves text. Existing doors have
+null image metadata after the data-preserving migration 0005.
+
+PostgreSQL stores processed bytes in `doors.image_data` (`bytea`), with media type,
+dimensions and a UUID version. Constraints require consistent metadata and
+1–1,000,000 encoded bytes. Ordinary calendar/list/save responses contain no image
+payloads. `DoorDto.image` is required and nullable; TypeScript generation explicitly
+uses JSON `null` for nullable values.
+
+`GET /calendars/{id}/doors/{number}/image` independently authorizes the current
+unrestricted owner. The separate superadmin read is
+`GET /administration/calendars/{id}/preview/doors/{number}/image`. Both return one
+bounded base64 image DTO plus metadata, or 404 when absent. Neither endpoint grants
+recipient access; superadmin preview grants no writes. All responses/errors are
+no-store and writes retain principal-bound CSRF protection.
+
+The backend detects the actual JPEG/PNG format, rejects malformed/truncated,
+animated and multi-image containers, applies EXIF orientation and re-encodes pixels
+without source metadata. Sources allow at most 10,000,000 encoded bytes,
+10,000 pixels per side and 40,000,000 decoded pixels. Output never upscales and
+starts with a maximum 1600-pixel long edge; bounded JPEG quality and dimension
+reductions continue until at most 1,000,000 bytes. PNG retains transparency.
+The door-save body limit is 14,000,000 bytes; other calendar writes retain 131,072.
+Oversized source/body requests return structured HTTP 413.
+
+Processing permits two native jobs and four queued uploads per instance, with
+cancellation checks between bounded stages. Authorization occurs before processing
+and is revalidated under lock 800008 in the committing transaction. Native codec
+work never holds that lock. The pinned SkiaSharp 4.155.0 dependency uses matching
+Linux.NoDependencies native assets in the executable project, as described in the
+[upstream package guide](https://github.com/mono/SkiaSharp/blob/main/documentation/dev/packages.md).
+See [verification](verification.md) for Windows and Linux runtime evidence.
+
 ## Contract, build and tests
 
 Exact pins are committed in `global.json`, `.config/dotnet-tools.json`, project

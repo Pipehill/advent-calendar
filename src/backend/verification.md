@@ -574,6 +574,42 @@ Recipient access/opening and production database hardening remain unimplemented;
 these results establish owner administration only. Platform limitations below
 remain unchanged.
 
+## Plan 00018: door image storage and processing (2026-11-08)
+
+All **301 backend tests** pass on isolated PostgreSQL. Windows Release
+compilation, clean byte-identical contract generation, SDK
+format/analyzer verification and publish pass. The expanded backend suite covers
+image lifecycle, independent owner/system-preview authority, CSRF, direct HTTP
+presence/null/enum binding, structured source/body 413 responses, database binary
+constraints, populated migration preservation/journal restart and atomic rollback.
+Processing outside lock 800008 permits concurrent session revocation, role and
+ownership changes; the committing recheck rejects every stale draft. Cancellation,
+bounded queue overflow and queued cancellation are exercised.
+
+Actual SkiaSharp 4.155.0 decoding/re-encoding is verified on Windows and in the
+Ubuntu 24.04.5 ASP.NET runtime image with its own assemblies/native dependencies.
+Detailed PNG adapts from 5,390,853 to 865,071 bytes (675×421); JPEG adapts from
+1,945,958 to 936,726 bytes (1600×1000), identically on both platforms. Tests verify
+PNG transparency, all eight EXIF orientations, no retained EXIF, unsupported
+formats, truncated data, APNG, concatenated JPEGs, pixel/side/source limits and
+the independent exact 1,000,000-byte PostgreSQL boundary. The pinned package and
+matching Linux.NoDependencies assets have no reported direct/transitive NuGet
+vulnerabilities at verification time.
+
+An isolated Linux API/PostgreSQL stack additionally verifies real HTTP JPEG
+save/read, binary/image/session persistence across API restart, unchanged saved
+state after rejection and no-store on declared and chunked oversized requests.
+The Windows-to-Podman port-forwarded oversized HTTP probe timed out after the API
+had returned 413. Repeating both requests from an isolated Node client on the
+container network passed; this distinguishes the verification transport from
+the Linux API behavior. Disposable stacks/networks were removed, preserving the
+existing development database and application containers.
+
+Evidence is retained in ignored `quality-reports/plan00018/`,
+`quality-reports/plan00015/browser/` and `quality-reports/health/`. See
+[frontend verification](../frontend/verification.md) for production UI coverage.
+Recipient access/opening and production database hardening remain separate tasks.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

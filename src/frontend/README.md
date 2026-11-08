@@ -53,6 +53,37 @@ reader rather than accepting a caller-supplied mode. Preview shares the existing
 board and plain-text door content, with a localized read-only notice and return
 link to Calendars. No edit form, layout controls or owner-editor link is present.
 
+## Door images
+
+The owner can select one optional JPEG/PNG image per door, replace it or choose
+Remove image. Selection/removal only changes the draft. The existing Save button
+persists title, message and image together; failed saves retain the draft.
+Source files allow at most 10 MB (10,000,000 bytes). The backend detects and
+processes the image, automatically adapting it to at most 1 MB (1,000,000 bytes),
+applying orientation and preserving PNG transparency. Help, validation, processing
+and save feedback are localized. Authored titles/messages remain plain text.
+
+Administration and both privileged previews show the saved output without
+cropping. Image-only and title-only doors do not show an empty-door notice.
+Local draft previews use object URLs that are revoked on replacement, removal
+and unmount. Changing doors disposes the outgoing draft. No image bytes enter
+localStorage, route parameters, logs or public asset paths.
+
+Calendar details contain only optional image metadata, never 24 image payloads.
+The selected door's protected tRPC query includes the backend-validated session
+scope from SSR loader data, access mode, calendar, number and image version.
+The BFF independently validates session/mode/scope, chooses the dedicated backend
+authority from that session and rejects conflicting versions. Zero garbage
+collection time and session cache clearing remove outgoing protected bytes;
+late responses cannot populate a different numbered/versioned query.
+
+Production Nitro and the BFF bound streamed/declared tRPC request bodies before
+JSON parsing: 14,000,000 bytes for door saves, including aggregate batches, and
+131,072 for other procedures. The independent backend has matching upload limits.
+Structured HTTP 413 maps to localized feedback; writes retain CSRF and never retry.
+Image reads, errors, SSR and hydration retain no-store. Recipient viewing/opening
+remains separate work.
+
 ## Sign-in and personal pages
 
 `/login` accepts username and password through a TanStack Form/Zod form.
@@ -263,6 +294,22 @@ node tools/development/dotnet.mjs build tools/frontend/browser-fixture/BrowserFi
 node tools/frontend/pnpm.mjs run build
 node --test tools/frontend/browser/authentication.test.mjs
 ```
+
+Production Nitro is the default. Set `BROWSER_FRONTEND_MODE=development` to run
+the same isolated browser scenarios through an actual Vite development server.
+The suite selects free ports and does not replace an existing local server.
+For example, in PowerShell:
+
+```powershell
+$env:BROWSER_FRONTEND_MODE = 'development'
+node --test --test-name-pattern 'When login|credential form before hydration|door image' tools/frontend/browser/authentication.test.mjs
+```
+
+Unset `BROWSER_FRONTEND_MODE` or select `production` to return to Nitro. Browser
+login waits for client modules before submitting; a separate JavaScript-disabled
+scenario verifies native credential forms use POST without placing fields in URLs.
+Request-body tests cover both native Fetch requests and compatible development
+adapters, preserving cookies, CSRF headers, trace context and cancellation.
 
 It uses the selected container runtime/SDK and installed Edge or Playwright
 Chromium. Fixture credentials remain in runner memory; only isolated `browser_*`

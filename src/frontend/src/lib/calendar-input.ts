@@ -20,10 +20,42 @@ export const createCalendarInput = z.strictObject({
   background: z.enum(backgrounds),
 });
 export const doorContentInput = z.strictObject({ title: plainText(50), text: plainText(5000) });
-export const saveDoorInput = z.strictObject({
+export const maximumSourceImageBytes = 10_000_000;
+const imageChange = {
+  imageAction: z.enum(['keep', 'replace', 'remove']).optional(),
+  imageData: z.string().min(1).max(13_333_336).optional(),
+};
+export const saveDoorInput = z
+  .strictObject({
+    id: z.uuid(),
+    number: z.number().int().min(1).max(24),
+    ...doorContentInput.shape,
+    ...imageChange,
+  })
+  .superRefine((value, context) => {
+    const replace = value.imageAction === 'replace';
+    if (replace ? !value.imageData : value.imageData !== undefined)
+      context.addIssue({
+        code: 'custom',
+        path: ['imageData'],
+        message: 'Invalid image action/data',
+      });
+    if (
+      value.imageData &&
+      (value.imageData.length % 4 !== 0 ||
+        !/^[A-Za-z0-9+/]*={0,2}$/.test(value.imageData) ||
+        (value.imageData.length / 4) * 3 -
+          (value.imageData.endsWith('==') ? 2 : value.imageData.endsWith('=') ? 1 : 0) >
+          maximumSourceImageBytes)
+    )
+      context.addIssue({ code: 'custom', path: ['imageData'], message: 'Invalid image data' });
+  });
+export const doorImageInput = z.strictObject({
   id: z.uuid(),
   number: z.number().int().min(1).max(24),
-  ...doorContentInput.shape,
+  version: z.uuid(),
+  mode: z.enum(['owner-edit', 'owner-preview', 'system-preview']),
+  scope: z.string().regex(/^[a-f0-9]{64}$/),
 });
 export const saveLayoutInput = z.strictObject({
   id: z.uuid(),

@@ -37,6 +37,18 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
 
     public Task<CalendarModel?> GetSystemPreviewAsync(Guid id) => ReadAsync(id, null);
 
+    public async Task<DoorImage?> GetDoorImageAsync(Guid id, int number) =>
+        (
+            await transaction.QueryAsync<DoorImage>(
+                """
+                SELECT image_data AS Data, image_media_type AS MediaType, image_width AS Width,
+                    image_height AS Height, image_version AS Version FROM doors
+                WHERE calendar_id = @Id AND day_number = @Number AND image_data IS NOT NULL
+                """,
+                new { Id = id, Number = number }
+            )
+        ).SingleOrDefault();
+
     private async Task<CalendarModel?> ReadAsync(Guid id, Guid? ownerId)
     {
         var rows = (
@@ -46,7 +58,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                     c.owner_id AS OwnerId, c.recipient_id AS RecipientId, c.calendar_year AS Year,
                     c.background, c.layout, c.door_order AS DoorOrder,
                     recipient.name AS RecipientName, recipient.user_name AS RecipientUsername,
-                    d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text
+                    d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text,
+                    d.image_version AS ImageVersion, d.image_media_type AS ImageMediaType,
+                    d.image_width AS ImageWidth, d.image_height AS ImageHeight
                 FROM calendars c JOIN doors d ON d.calendar_id = c.id
                 JOIN accounts recipient ON recipient.id = c.recipient_id
                 WHERE c.id = @Id AND (@OwnerId::uuid IS NULL OR c.owner_id = @OwnerId)
@@ -63,7 +77,20 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             first.Title,
             new DateTimeOffset(first.CreatedAt),
             new DateTimeOffset(first.LastModifiedAt),
-            rows.Select(row => new DoorModel(row.Number, row.DoorTitle, row.Text)).ToArray(),
+            rows.Select(row => new DoorModel(
+                    row.Number,
+                    row.DoorTitle,
+                    row.Text,
+                    row.ImageVersion is { } version
+                        ? new DoorImageMetadata(
+                            version,
+                            row.ImageMediaType!,
+                            row.ImageWidth!.Value,
+                            row.ImageHeight!.Value
+                        )
+                        : null
+                ))
+                .ToArray(),
             first.OwnerId,
             first.RecipientId,
             first.Year,
@@ -129,12 +156,19 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         int number,
         string title,
         string text,
-        DateTimeOffset modified
+        DateTimeOffset modified,
+        string imageAction = "keep",
+        DoorImage? image = null
     )
     {
         await transaction.ExecuteAsync(
             """
             UPDATE doors SET content_title = @Title, content_text = @Text
+                , image_data = CASE WHEN @Keep THEN image_data ELSE @Data END
+                , image_media_type = CASE WHEN @Keep THEN image_media_type ELSE @MediaType END
+                , image_width = CASE WHEN @Keep THEN image_width ELSE @Width END
+                , image_height = CASE WHEN @Keep THEN image_height ELSE @Height END
+                , image_version = CASE WHEN @Keep THEN image_version ELSE @Version END
             WHERE calendar_id = @Id AND day_number = @Number
             """,
             new
@@ -143,6 +177,12 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                 Number = number,
                 Title = title,
                 Text = text,
+                Keep = imageAction == "keep",
+                Data = image?.Data,
+                MediaType = image?.MediaType,
+                Width = image?.Width,
+                Height = image?.Height,
+                Version = image?.Version,
             }
         );
         await transaction.ExecuteAsync(
@@ -195,5 +235,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         public int Number { get; init; }
         public string DoorTitle { get; init; } = string.Empty;
         public string Text { get; init; } = string.Empty;
+        public Guid? ImageVersion { get; init; }
+        public string? ImageMediaType { get; init; }
+        public int? ImageWidth { get; init; }
+        public int? ImageHeight { get; init; }
     }
 }

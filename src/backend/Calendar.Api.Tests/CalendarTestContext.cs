@@ -3,6 +3,7 @@ using System.Text.Json;
 using Calendar.Api.Generated;
 using Calendar.Security;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Calendar.Api.Tests;
 
@@ -18,9 +19,12 @@ internal sealed class CalendarTestContext(
     public HttpClient Client => auth.Client;
     public WebApplicationFactory<Program> Application => auth.Application;
 
-    public static async Task<CalendarTestContext> CreateAsync(ApiFixture fixture)
+    public static async Task<CalendarTestContext> CreateAsync(
+        ApiFixture fixture,
+        Action<IServiceCollection>? configureServices = null
+    )
     {
-        var auth = await AuthTestContext.CreateAsync(fixture);
+        var auth = await AuthTestContext.CreateAsync(fixture, configureServices);
         var owner = await auth.ProvisionAsync(AccountRoles.Administrator);
         var recipient = await auth.ProvisionAsync(AccountRoles.User, owner.Id);
         await auth.LoginAsync(owner);
@@ -38,6 +42,9 @@ internal sealed class CalendarTestContext(
         fields["background"] = JsonSerializer.SerializeToElement("woodland");
         return Client.PostAsJsonAsync("/calendars", fields);
     }
+
+    public async Task<CalendarDto> CreateCalendarAsync(string title = "Images") =>
+        (await (await CreateAsync(new { title })).Content.ReadFromJsonAsync<CalendarDto>())!;
 
     public ValueTask DisposeAsync() => auth.DisposeAsync();
 }

@@ -991,3 +991,79 @@ whole-repository reference remain in ignored `quality-reports/health/`; working
 source evidence is separate from hook receipts and committed PR comparisons.
 Analysis remains partial and heuristic. Physical-device, screen-reader and
 native Linux/macOS coverage remain outside this Windows/Edge run.
+
+## Plan 00018: optional door images (2026-11-08)
+
+All **191 frontend/BFF tests**, explicit TypeScript checks, production Vite/Nitro
+packaging and Biome pass. The complete production Edge/Windows suite passes
+**81 scenarios**, including the smoke-suite wrapper; its eight separate smoke
+checks also pass. Seven new browser scenarios cover actual JPEG and detailed PNG
+adaptation, image-only content, owner administration/preview and read-only system
+preview, explicit add/keep/replace/remove saves, retained invalid drafts, object-URL
+cleanup, localized keyboard controls and 320/1280px aspect-ratio display.
+Additional HTTP scenarios cover independent API/BFF/batch body limits, no-store,
+CSRF rejection, preserved saved state and a delayed response after door selection
+changes. Screenshots are visually reviewed; the full image fits without cropping
+or horizontal overflow. Native file-dialog wording follows the browser/OS; the
+application-owned labels, help, remove controls and feedback are localized.
+
+An initial browser run exposed missing image requests after SSR hydration:
+mutable server context was not carried into the browser. Image queries now use
+the backend-validated cache scope in loader data, and the BFF verifies it against
+the current session before reading bytes. A shared calendar page renderer keeps
+failure handling, mode and scope wiring consistent across both routes. The
+TypeScript generator explicitly emits `null` for nullable JSON metadata, matching
+the backend contract. Late responses remain separated by scope/mode/door/version;
+removed blobs and all outgoing object URLs are released.
+
+Saved-source full quality passes. Application/tooling health is **91.7/55.0**,
+compared with **90.8/54.1** before the task. The
+[health record](../../tools/quality/health-verification.md#plan-00018-door-images-2026-11-08)
+records absolute duplication, complexity, scope identities and analysis limits.
+Build output retains inherited dependency directive/comment warnings; they do not
+prevent TypeScript or Nitro completion. Browser logs/screenshots remain under
+ignored `quality-reports/plan00015/browser/`, backend/TRX evidence under
+`quality-reports/plan00018/`, and raw health/quality evidence under their existing
+report owners. Physical devices, assistive technology and native Linux/macOS
+browser execution are not established by this Windows/Edge run. Recipient
+viewing/opening and production hardening remain separate tasks.
+
+## PR 48 follow-up: local Vite login (2026-11-08)
+
+The original positive login coverage used production Nitro. A reported local
+failure was reproduced in an isolated Vite browser run and a focused unit test:
+native `new Request(adapter, ...)` attempts to read private state absent from
+TanStack's lazy `srvx` NodeRequest. The body boundary now rebuilds from public
+URL, method, headers, signal and bounded bytes. Cookies, CSRF, trace context and
+caller cancellation are preserved without depending on adapter internals.
+
+All **193 frontend/BFF tests**, production build/TypeScript, Biome and full quality
+checks pass. **13 selected Vite browser scenarios** pass for all three role
+logins, refresh, CSRF and image lifecycle/display. Two additional Vite scenarios
+repeat native credential submission and the real HTTP size boundary, including
+a chunked upload. **15 matching production Nitro scenarios** pass, also covering
+account creation and maintenance. The running local server's empty login request
+returns protected HTTP 400 instead of the reported internal error. Disposable
+accounts/databases and free ports keep these checks separate from local user data.
+
+Vite verification also exposed that cancelling an oversized incoming stream
+could reset the shared socket before HTTP 413 was delivered. Declared oversized
+bodies remain unread; streamed rejection releases its reader and closes the
+connection after sending structured no-store 413. Real declared, batch and chunked
+HTTP scenarios pass in both runtimes. Credential forms explicitly use POST even
+before hydration; the JavaScript-disabled scenario confirms fields stay out of
+URLs. The login helper waits for client modules before ordinary interaction.
+
+The suite now supports `BROWSER_FRONTEND_MODE=development` alongside its default
+production mode. Vite logs are under ignored
+`quality-reports/pr48-local-login/browser/`; production reports retain their
+existing location. Application health remains **91.7**, tooling improves
+**55.0 to 55.1**, and absolute duplication remains **79 lines/9 clones** and
+**12 lines/2 clones** respectively. Harness maximum file complexity rises
+**228 to 232** for explicit runtime selection, argument factories and invalid-mode
+validation. A separate credential transport scenario keeps that coverage out of
+the already large authentication harness. The required runtime choices are
+retained after replacing repeated conditionals with named configuration; scoring
+and exclusions remain unchanged. Detailed source identities, supported dimensions,
+raw findings and the separate committed-head review remain in
+`quality-reports/health/`.

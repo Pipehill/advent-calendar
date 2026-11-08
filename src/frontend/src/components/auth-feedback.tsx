@@ -19,6 +19,7 @@ export function authError(error: unknown, login = false): string {
   const code = errorCode(error);
   if (code === 'UNAUTHORIZED') return login ? m.login_failed() : m.session_expired();
   if (code === 'TOO_MANY_REQUESTS') return m.auth_rate_limit();
+  if (code === 'PAYLOAD_TOO_LARGE') return m.calendar_image_too_large();
   if (code === 'SERVICE_UNAVAILABLE' || code === 'TIMEOUT') return m.auth_unavailable();
   if (code === 'BAD_REQUEST' || code === 'CONFLICT') return m.auth_invalid();
   if (code === 'FORBIDDEN') return m.auth_forbidden();

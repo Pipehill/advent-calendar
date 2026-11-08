@@ -34,7 +34,13 @@ public sealed class ContractRequestFilter : IAsyncResourceFilter
             await next();
             return;
         }
-        request.EnableBuffering();
+        var maximumBody = requestType.Name == "UpdateDoorRequest" ? 14_000_000 : 131072;
+        if (request.ContentLength > maximumBody)
+        {
+            context.Result = ApiErrors.Create(context.HttpContext, 413, "Request too large");
+            return;
+        }
+        request.EnableBuffering(bufferThreshold: 65536, bufferLimit: maximumBody);
         try
         {
             using var body = await JsonDocument.ParseAsync(
@@ -48,9 +54,14 @@ public sealed class ContractRequestFilter : IAsyncResourceFilter
             var error = Validate(body.RootElement, schema);
             if (error is not null)
             {
+                var tooLarge =
+                    error == "imageData"
+                    && body.RootElement.TryGetProperty("imageData", out var image)
+                    && image.ValueKind == JsonValueKind.String
+                    && image.GetString()!.Length > 13_333_336;
                 context.Result = ApiErrors.Create(
                     context.HttpContext,
-                    400,
+                    tooLarge ? 413 : 400,
                     "Invalid request",
                     new Dictionary<string, List<string>>
                     {
@@ -59,6 +70,11 @@ public sealed class ContractRequestFilter : IAsyncResourceFilter
                 );
                 return;
             }
+        }
+        catch (IOException)
+        {
+            context.Result = ApiErrors.Create(context.HttpContext, 413, "Request too large");
+            return;
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException)
         {

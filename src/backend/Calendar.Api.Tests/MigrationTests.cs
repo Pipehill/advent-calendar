@@ -31,7 +31,7 @@ public sealed class MigrationTests(ApiFixture fixture)
                 typeof(DatabaseStartup).Assembly,
                 resource =>
                     resource.EndsWith(".sql", StringComparison.Ordinal)
-                    && !resource.Contains("0004", StringComparison.Ordinal)
+                    && string.CompareOrdinal(resource, "Calendar.Api.Migrations.0004") < 0
             )
             .WithTransactionPerScript()
             .Build()
@@ -90,7 +90,7 @@ public sealed class MigrationTests(ApiFixture fixture)
             )
         );
         Assert.Equal(
-            4,
+            5,
             await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM schemaversions")
         );
         NpgsqlConnection.ClearPool(connection);
@@ -117,6 +117,7 @@ public sealed class MigrationTests(ApiFixture fixture)
                 "Calendar.Api.Migrations.0002_create_accounts.sql",
                 "Calendar.Api.Migrations.0003_add_account_name.sql",
                 "Calendar.Api.Migrations.0004_protect_calendars.sql",
+                "Calendar.Api.Migrations.0005_add_door_images.sql",
             ],
             scripts.Order()
         );

@@ -71,6 +71,49 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
     public override async Task<ActionResult<CalendarDto>> Get(Guid id) =>
         Ok(Map(await service.GetAsync(Identity, id, HttpContext.RequestAborted)));
 
+    public override async Task<ActionResult<DoorImageDto>> GetDoorImage(Guid id, int number) =>
+        Ok(
+            MapImage(
+                await service.ReadDoorImageAsync(
+                    Identity,
+                    id,
+                    number,
+                    false,
+                    HttpContext.RequestAborted
+                )
+            )
+        );
+
+    public override async Task<ActionResult<DoorImageDto>> PreviewSystemDoorImage(
+        Guid id,
+        int number
+    ) =>
+        Ok(
+            MapImage(
+                await service.ReadDoorImageAsync(
+                    Identity,
+                    id,
+                    number,
+                    true,
+                    HttpContext.RequestAborted
+                )
+            )
+        );
+
+    private static DoorImageDto MapImage(DoorImage image) =>
+        new()
+        {
+            Data = Convert.ToBase64String(image.Data),
+            Metadata = new DoorImageMetadataDto
+            {
+                Version = image.Version,
+                MediaType = image.MediaType,
+                Width = image.Width,
+                Height = image.Height,
+            },
+        };
+
+    [RequestSizeLimit(14_000_000)]
     public override async Task<ActionResult<CalendarDto>> UpdateDoor(
         Guid id,
         int number,
@@ -84,7 +127,9 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
                     number,
                     body.Title,
                     body.Text,
-                    HttpContext.RequestAborted
+                    HttpContext.RequestAborted,
+                    body.ImageAction?.ToString().ToLowerInvariant() ?? "keep",
+                    body.ImageData
                 )
             )
         );
@@ -176,6 +221,15 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
                     Number = door.Number,
                     Title = door.Title,
                     Text = door.Text,
+                    Image = door.Image is { } image
+                        ? new Image
+                        {
+                            Version = image.Version,
+                            MediaType = image.MediaType,
+                            Width = image.Width,
+                            Height = image.Height,
+                        }
+                        : null,
                 })
                 .ToList(),
         };

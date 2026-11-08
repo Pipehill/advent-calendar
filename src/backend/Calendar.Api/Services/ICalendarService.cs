@@ -4,6 +4,13 @@ namespace Calendar.Api.Services;
 
 public interface ICalendarService
 {
+    Task<DoorImage> ReadDoorImageAsync(
+        SessionIdentity? identity,
+        Guid id,
+        int number,
+        bool systemPreview,
+        CancellationToken cancellationToken
+    );
     Task<SystemCalendarPage> ListSystemAsync(
         SessionIdentity? identity,
         int offset,
@@ -39,7 +46,9 @@ public interface ICalendarService
         int number,
         string? title,
         string? text,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        string imageAction = "keep",
+        string? imageData = null
     );
     Task<CalendarModel> SaveLayoutAsync(
         SessionIdentity? identity,

@@ -1,6 +1,6 @@
 # 00018: Upload images to calendar doors
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
 
@@ -87,7 +87,7 @@ None.
 These are technical defaults selected for this plan, not additional user-confirmed
 product decisions.
 
-**Storage and size policy**
+#### Storage and size policy
 
 - Interpret 1 MB as **1,000,000 bytes of encoded image data**, excluding transport
   encoding and metadata. Use the same constant and boundary tests throughout.
@@ -107,7 +107,7 @@ product decisions.
   bytes. Show the source-file limit separately from the final storage limit in
   localized help.
 
-**Image processing**
+#### Image processing
 
 - Use SkiaSharp as the implementation library, with the matching Linux
   native-assets package required by the existing backend runtime image. Pin
@@ -135,7 +135,7 @@ product decisions.
   committing transaction under lock 800008, then write title/text/image/time
   atomically. Do not hold the global security lock while decoding images.
 
-**Contracts, BFF and protected retrieval**
+#### Contracts, BFF and protected retrieval
 
 - Extend the existing door-save request with an explicit image action
   (`keep`, `replace`, `remove`) and bounded base64 data for replacement. Prefer a
@@ -167,7 +167,7 @@ product decisions.
   Preserve no-store through Nitro, API errors, SSR and hydration. No public image
   URL, static directory or anonymously accessible thumbnail route is introduced.
 
-**Editor and preview**
+#### Editor and preview
 
 - Extend `calendar-door-form.tsx`, `calendar-workspace.tsx`, `lib/calendar-input.ts`,
   `lib/auth-client.ts`, `server/calendars.ts`, `server/trpc.ts` and the message
@@ -190,21 +190,62 @@ product decisions.
 Each step is one implementation iteration and commit, following
 [implement-plan](../skills/implement-plan/SKILL.md) when implementation is requested.
 
-- [ ] **1. Define contracts and persistence.** Add the data-preserving migration,
+- [x] **1. Define contracts and persistence.** Add the data-preserving migration,
   constraints, image metadata and save/read contracts. Regenerate both consumers,
   adapt affected mappings and verify fresh/populated databases and generation.
-- [ ] **2. Implement image processing and backend operations.** Add/pin the image
+  Contract validation and both consumers generated successfully (four inherited
+  OpenAPI warnings). The actual migration preserved populated door content in
+  isolated PostgreSQL; 1,000,000 bytes passed, 1,000,001 bytes and incomplete
+  metadata failed the database constraint. Full DbUp/journal integration follows
+  step 2: this intermediate build intentionally reports the two new abstract
+  image-read methods awaiting backend implementation (CS0534).
+- [x] **2. Implement image processing and backend operations.** Add/pin the image
   library and runtime assets, bounded validation/adaptation, protected reads and
   atomic saves. Verify actual HTTP binding, PostgreSQL storage/rollback,
   authorization/CSRF and Windows/Linux runtime-image compatibility.
-- [ ] **3. Integrate BFF and editor/preview.** Add strict inputs, body-size limits,
+  Release build and 36 focused image/migration tests pass, including independent
+  reads, atomic rollback and session/role/ownership changes during processing.
+  SkiaSharp and Linux.NoDependencies are pinned to stable 4.155.0; NuGet's direct
+  and transitive vulnerability audit reports no findings. Real native processing
+  on Windows and the built Ubuntu runtime produced identical bounded outputs:
+  detailed PNG 5,390,853 to 865,071 bytes, JPEG 1,945,958 to 936,726 bytes.
+  Saved-source custom checks pass. Application health is 90.8 to 91.2; the one
+  added 11-line clone is standard integration-test imports/namespace/collection
+  structure, retained for readable, independently discoverable tests. Tooling
+  remains 54.1. Production HTTP/body-limit/browser evidence follows steps 3–4.
+- [x] **3. Integrate BFF and editor/preview.** Add strict inputs, body-size limits,
   error translation, scoped image queries and the localized common-save flow.
   Verify focused frontend/BFF cases, types, build and production browser behavior.
-- [ ] **4. Complete verification and documentation.** Run applicable generation,
+  All 191 frontend/BFF tests, explicit TypeScript, production Vite/Nitro build,
+  Biome and saved-source custom checks pass. Five production browser scenarios
+  verify PNG/JPEG, all three modes, common-save lifecycle, retained invalid drafts,
+  object-URL cleanup, language/keyboard behavior and 320/1280px aspect ratio.
+  Image query scope now comes from validated SSR loader data, rather than mutable
+  server context that is not hydrated into the browser. NSwag's TypeScript null
+  policy is explicitly `Null`, matching the backend's required nullable image
+  metadata; no generated files are edited. Streamed and declared aggregate tRPC
+  body limits have focused tests, including the exact 14,000,000-byte boundary.
+  Application/tooling health is 91.6/54.7. Absolute application clones add four
+  lines overall (standard integration-test headers replace a removed form clone).
+- [x] **4. Complete verification and documentation.** Run applicable generation,
   tests, builds, production browser scenarios and the shared quality/health
   workflow. Update owning documentation and HTTP examples, record actual evidence
   and remaining limits, and change plan/index status only after implementation
   and verification. Keep recipient viewing/opening as separate work.
+  Final checks pass: 301 backend tests, 191 frontend/BFF tests, 81 production
+  browser scenarios and eight separate smoke checks, with seven affected image
+  scenarios repeated after the final JPEG validation correction. Release build,
+  SDK formatting/analyzers, publish, byte-identical clean contract generation,
+  explicit TypeScript, Vite/Nitro production packaging, Biome and full quality
+  pass. Windows and final Linux runtime decode/encode agree; isolated Linux HTTP
+  saves, restart persistence, declared/chunked body limits and no-store pass.
+  Browser imagery was reviewed at 320/1280px. Owning backend/frontend verification
+  and HTTP examples document actual evidence and inherited platform/tool warnings.
+  Final application/tooling health is 91.7/55.0 (baseline 90.8/54.1); application
+  duplication decreases from 81 lines/10 clones to 79 lines/9 clones, with tooling
+  unchanged at 12 lines/2 clones. Shared route rendering removes avoidable growth.
+  Native host macOS/Linux, physical-device/assistive-technology coverage and
+  production/recipient follow-ups remain separate and are not claimed delivered.
 
 ## Verification
 

@@ -5,6 +5,7 @@
 # Supply the matching HttpOnly advent.auth/advent.csrf cookie pair and fresh token.
 @sessionCookies = advent.auth=replace; advent.csrf=replace
 @csrfToken = replace-with-principal-bound-request-token
+@imageBase64 = replace-with-base64-jpeg-or-png
 
 ### Create: 201, persisted 24-door calendar and Location header
 POST {{baseUrl}}/calendars
@@ -29,6 +30,30 @@ Cookie: {{sessionCookies}}
 X-CSRF-TOKEN: {{csrfToken}}
 
 {"title":"A Christmas surprise","text":"First line\nSecond line"}
+
+### Replace image on explicit common save (paste base64 of a JPEG/PNG, at most 10 MB source)
+PUT {{baseUrl}}/calendars/{{calendarId}}/doors/24
+Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"title":"A Christmas surprise","text":"Image and message save together","imageAction":"replace","imageData":"{{imageBase64}}"}
+
+### Read only the selected image as owner: 200, no-store; 404 without an image
+GET {{baseUrl}}/calendars/{{calendarId}}/doors/24/image
+Cookie: {{sessionCookies}}
+
+### Read the same selected image through dedicated superadmin authority
+GET {{baseUrl}}/administration/calendars/{{calendarId}}/preview/doors/24/image
+Cookie: {{sessionCookies}}
+
+### Remove image while explicitly preserving authored text
+PUT {{baseUrl}}/calendars/{{calendarId}}/doors/24
+Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"title":"A Christmas surprise","text":"Image and message save together","imageAction":"remove"}
 
 ### Persist a random arrangement once; repeat reads never reshuffle
 PUT {{baseUrl}}/calendars/{{calendarId}}/layout

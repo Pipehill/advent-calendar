@@ -3,17 +3,40 @@ import type { z } from 'zod';
 import {
   type CalendarClient,
   CreateCalendarRequestBackground,
+  UpdateDoorRequestImageAction,
   UpdateLayoutRequestLayout,
 } from '../generated/backend';
 import type {
   CreateCalendarInput,
   calendarPageInput,
+  doorImageInput,
   saveDoorInput,
   saveLayoutInput,
   saveRecipientInput,
 } from '../lib/calendar-input';
+import { publicSession } from './auth';
 import { callBackend } from './backend';
 import type { RequestContext } from './context';
+
+export function readDoorImage(context: RequestContext, input: z.infer<typeof doorImageInput>) {
+  return callBackend(context, async (client, signal) => {
+    const session = await client.session(signal);
+    const system = session.user.role === 'superadmin';
+    if (
+      session.mustChangePassword ||
+      (!system && session.user.role !== 'calendarAdmin') ||
+      system !== (input.mode === 'system-preview') ||
+      publicSession(session, context).cacheScope !== input.scope
+    )
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'FORBIDDEN' });
+    const image = await (system
+      ? client.previewSystemDoorImage(input.id, input.number, signal)
+      : client.getDoorImage(input.id, input.number, signal));
+    if (image.metadata.version !== input.version)
+      throw new TRPCError({ code: 'CONFLICT', message: 'CONFLICT' });
+    return image;
+  });
+}
 
 async function requireCalendarRole(
   client: CalendarClient,
@@ -94,7 +117,19 @@ export function saveOwnedDoor(context: RequestContext, input: z.infer<typeof sav
     return client.updateDoor(
       input.id,
       input.number,
-      { title: input.title, text: input.text },
+      {
+        title: input.title,
+        text: input.text,
+        imageAction:
+          input.imageAction === undefined
+            ? undefined
+            : {
+                keep: UpdateDoorRequestImageAction.Keep,
+                replace: UpdateDoorRequestImageAction.Replace,
+                remove: UpdateDoorRequestImageAction.Remove,
+              }[input.imageAction],
+        imageData: input.imageData,
+      },
       signal,
     );
   });
