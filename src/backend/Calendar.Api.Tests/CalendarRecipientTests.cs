@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Calendar.Api.Generated;
 using Calendar.Api.Models;
+using Calendar.Api.Services;
 using Calendar.Security;
 using Dapper;
 using Xunit;

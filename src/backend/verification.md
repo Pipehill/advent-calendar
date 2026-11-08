@@ -12,6 +12,9 @@ Release build, all **221 integration tests** against isolated PostgreSQL on Wind
 Podman, and .NET formatting/analyzers passed. The production browser suite also
 passed all **60 scenarios**, including recipient/list persistence and ownership
 denials. No contract, migration or authorization behavior changes in this follow-up.
+CI then caught two required `Calendar.Api.Services` imports removed after the
+first local build. Restoring them fixes `AccountFailureException` resolution;
+the complete final source was rebuilt and its 221 tests rerun successfully.
 See [frontend verification](../frontend/verification.md#2026-11-08-pr-43-quality-regression-follow-up)
 and [health measurements](../../tools/quality/health-verification.md#2026-11-08-pr-43-regression-corrections)
 for the full regression analysis and unchanged analyzer settings/limitations.

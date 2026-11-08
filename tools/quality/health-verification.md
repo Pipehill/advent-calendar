@@ -13,9 +13,9 @@ exist exactly once after extraction. No analyzer settings or exclusions changed.
 | Metric | Main target | Original PR | Corrected saved source |
 | --- | --- | --- | --- |
 | Application health | 88.9 | 89.2 | 89.2 |
-| Application duplication | 0.950370% | 1.309468% | 0.652377% |
+| Application duplication | 0.950370% | 1.309468% | 0.652275% |
 | Application duplicated lines / clones | 117 / 12 | 169 / 17 | 84 / 10 |
-| Application analyzed files / lines | 111 / 12311 | 114 / 12906 | 118 / 12876 |
+| Application analyzed files / lines | 111 / 12311 | 114 / 12906 | 118 / 12878 |
 | Tooling health | 48.0 | 45.7 | 53.5 |
 | Tooling complexity share | 48.3% | 53.1% | 47.4% |
 | Tooling heuristic dead-code share | 20.9% | 22.2% | 16.5% |
@@ -23,10 +23,10 @@ exist exactly once after extraction. No analyzer settings or exclusions changed.
 | Tooling duplicated lines / clones | 12 / 2 | 12 / 2 | 12 / 2 |
 | Tooling analyzed files / lines | 45 / 7614 | 45 / 7737 | 49 / 7767 |
 
-Against the original PR, application duplication falls by 0.657092 percentage
+Against the original PR, application duplication falls by 0.657193 percentage
 points, 85 duplicated lines and seven clones; tooling health rises by 7.8.
 Against target `5dde02421b70024fe03e8a143febd710fb19b8e9`, application duplication
-falls by 0.297993 percentage points, 33 lines and two clones; tooling health rises
+falls by 0.298094 percentage points, 33 lines and two clones; tooling health rises
 by 5.5. Application complexity share remains 12.3%, maximum file complexity 75,
 and two heuristic findings remain. Tooling maximum file complexity remains 227
 in the existing authentication suite; its seven heuristic findings remain.
@@ -45,7 +45,7 @@ jscpd remains **5.4.1**, configuration SHA-256
 `8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
 Original/corrected application input hashes are
 `83a9326277332a975114e81f353044a8ad020d47c80aacdd0f4938401b72709f` /
-`14337f3eef6eddb687d12463d04e4e09ded516d5a69d812bf8ba7ddd1568b617`;
+`b4dd26e692252c9f412dfac3fcbf8618f7863c15215867ecbb4df55b4dbf6019`;
 tooling hashes are
 `3a80227b2474323ca1fc4f0bbace44746e5d4dbc5261649c373e596f71ae4a18` /
 `176cff227b5d04e532bf959a3fdb7a17c16091f8758997dc379b7b8a1c9adf4e`.
