@@ -8,8 +8,10 @@ rules through repositories, which use Npgsql/Dapper with parameterized SQL.
 The frontend/BFF
 implements creation, administration and full owner preview. Backend authentication,
 user management and owner-only calendar administration are implemented. Recipient
-viewing and scheduled opening remain future features. All calendar endpoints
-require an unrestricted current calendaradmin session. See the agreed
+viewing and scheduled opening remain future features. Owner calendar endpoints
+require an unrestricted current calendaradmin session. Dedicated system-wide
+calendar list/preview endpoints require an unrestricted current superadmin and
+grant no writes. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
 Recipient authorization/opening and production database hardening remain
 production gates.
@@ -140,6 +142,20 @@ and returns the updated calendar. Only the owner can assign an existing ordinary
 user under that owner's fixed responsibility, using the same recipient eligibility
 as creation. Validation and persistence share the security transaction; account
 responsibility, calendar ownership, doors and layout remain unchanged.
+
+`GET /administration/calendars?offset=0&limit=12` lists all calendars with bounded
+paging (offset 0-1000000, limit 1-100), total count and stable newest-first order
+(`created_at DESC, id`). Each row includes ID/title/year and both stored account
+IDs with current names/usernames, even if those accounts are disabled or have
+changed role. Parameterized joins exclude door content and security metadata.
+`GET /administration/calendars/{id}/preview` returns the full saved calendar,
+including future doors, without writes or modification-time changes. The service
+rechecks the actor's current superadmin role and unrestricted session under the
+shared security transaction/lock before lookup. These endpoints need no recent
+password verification; excluded roles return 403, missing/revoked sessions 401
+and an authorized unknown calendar 404. All responses/errors are no-store,
+including pre-controller authentication and binding errors. Superadmins remain
+denied on owner read/list/create/door/layout/recipient endpoints.
 
 ## Contract, build and tests
 

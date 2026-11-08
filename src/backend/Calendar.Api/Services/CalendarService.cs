@@ -13,6 +13,55 @@ public sealed class CalendarService(
     TimeProvider clock
 ) : ICalendarService
 {
+    public Task<SystemCalendarPage> ListSystemAsync(
+        SessionIdentity? identity,
+        int offset,
+        int limit,
+        CancellationToken cancellationToken
+    ) =>
+        transaction.RunAsync(
+            async () =>
+            {
+                await RequireSuperadminAsync(identity);
+                ValidatePaging(offset, limit);
+                return await repository.ListSystemAsync(offset, limit);
+            },
+            cancellationToken
+        );
+
+    public Task<CalendarModel> PreviewSystemAsync(
+        SessionIdentity? identity,
+        Guid id,
+        CancellationToken cancellationToken
+    ) =>
+        transaction.RunAsync(
+            async () =>
+            {
+                await RequireSuperadminAsync(identity);
+                return await repository.GetSystemPreviewAsync(id)
+                    ?? throw new AccountFailureException(
+                        AccountFailure.NotFound,
+                        "Calendar not found"
+                    );
+            },
+            cancellationToken
+        );
+
+    private async Task RequireSuperadminAsync(SessionIdentity? identity)
+    {
+        var actor = await sessions.RequireAsync(identity);
+        if (actor.Account.Role != AccountRoles.Superadmin)
+            throw new AccountFailureException(AccountFailure.Forbidden, "Superadmin required");
+    }
+
+    private static void ValidatePaging(int offset, int limit)
+    {
+        if (offset is < 0 or > 1000000)
+            throw Invalid("offset");
+        if (limit is < 1 or > 100)
+            throw Invalid("limit");
+    }
+
     public Task<CalendarModel> CreateAsync(
         SessionIdentity? identity,
         string? title,
@@ -73,8 +122,7 @@ public sealed class CalendarService(
             async () =>
             {
                 var owner = await RequireOwnerAsync(identity);
-                if (offset is < 0 or > 1000000 || limit is < 1 or > 100)
-                    throw Invalid("offset");
+                ValidatePaging(offset, limit);
                 return await repository.ListAsync(owner, offset, limit);
             },
             cancellationToken

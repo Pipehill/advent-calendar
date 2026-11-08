@@ -33,7 +33,9 @@ import {
   calendarRecipients,
   createOwnedCalendar,
   listOwnedCalendars,
+  listSystemCalendars,
   readOwnedCalendar,
+  readSystemPreview,
   saveOwnedDoor,
   saveOwnedLayout,
   saveOwnedRecipient,
@@ -111,6 +113,12 @@ export const appRouter = t.router({
       .mutation(({ ctx, input }) => changeAccountRole(ctx, input)),
   }),
   calendar: t.router({
+    systemList: procedure
+      .input(calendarPageInput)
+      .query(({ input, ctx }) => listSystemCalendars(ctx, input)),
+    systemPreview: procedure
+      .input(calendarIdInput)
+      .query(({ input, ctx }) => readSystemPreview(ctx, input.id)),
     get: procedure
       .input(calendarIdInput)
       .query(({ input, ctx }) => readOwnedCalendar(ctx, input.id)),

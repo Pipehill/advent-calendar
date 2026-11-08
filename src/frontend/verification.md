@@ -2,6 +2,74 @@
 
 Last updated: 2026-11-08
 
+## 2026-11-08: Superadmin calendar overview and read-only preview
+
+All **163 frontend/BFF unit tests**, explicit TypeScript checking, production
+Vite/Nitro packaging, full MegaLinter/custom repository checks, and the production
+dependency audit pass. npm reports **no known production vulnerabilities**.
+Backend Release build, publish, formatting/analyzers and all **245 isolated
+PostgreSQL integration tests** pass. No dependencies or migrations changed.
+
+New browser scenarios use the existing isolated PostgreSQL, production API/Nitro
+and Windows Edge lifecycle. They exercise accessible Users/Calendars tabs and
+one mounted panel, system-wide identity/paging/counts, loading/error/retry/empty
+states, keyboard preview, all 24 doors in both saved layouts, both interface
+languages, unchanged Unicode/plain-text content and 320/1280px layouts. They also
+exercise API/BFF write denials, foreign/anonymous/restricted-session SSR,
+revocation, logout replay and account switching. Screenshots are retained under
+ignored `quality-reports/plan00017/`.
+
+All **74 production browser scenarios** pass, including the scenario running
+**eight public/calendar smoke scenarios**, with no page/hydration errors.
+An initial run exposed shared test credentials changed by earlier account-reset
+scenarios; the new scenarios now use an untouched account. That initial run was
+also invalidated by a concurrent frontend rebuild. Final browser evidence uses
+one completed, unchanged production build. Cache review added a regression test
+and fix to clear protected data before restricted-session password-change redirects.
+
+Advisory comparison against the preserved main baseline on Windows:
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Overall health | 89.4 / 90.8 | 53.2 / 54.1 |
+| Complexity score / share | 83.2 / 85.8; 12.1% / 9.7% | 56.4 / 57.3; 46.4% / 44.8% |
+| Complex lines / maximum file complexity | 1581 / 1374; 75 / 75 | 3683 / 3691; 227 / 228 |
+| Duplication | 0.641026% / 0.569740% | 0.151324% / 0.145613% |
+| Clones / duplicated lines | 10 / 10; 84 / 81 | 2 / 2; 12 / 12 |
+| Dead-code score / share | 89.0 / 89.8; 0.6% / 0.5% | 27.7 / 28.6; 16.7% / 16.2% |
+| Heuristic findings / dead lines | 2 / 2; 29 / 29 | 8 / 8; 1276 / 1285 |
+| Dead-code analysis coverage | 39.8% / 40.9% | 96.4% / 96.5% |
+| Analyzed files / lines | 120 / 127; 13104 / 14217 | 51 / 52; 7930 / 8241 |
+
+**Tooling maximum complexity regresses from 227 to 228**, and complex lines rise
+by eight despite a lower share. The added fixture bridge in
+`authentication.test.mjs` lets the isolated system tests revoke persisted sessions
+without embedding database setup in every case. New feature scenarios live in
+their own module; shared cookie/logout helpers remove the introduced clone.
+The existing test-only-fixture heuristic now counts nine additional lines in
+`calendar-fixture.mjs`, although both helpers have real test callers. These are
+retained test-support behaviors, not unused application code. Shared list framing,
+pagination and authorization-failure handling remove avoidable UI duplication;
+the remaining added C# overlap is the declarative unauthorized-session matrix.
+No new heuristic findings remain. Denominator growth also contributes to improved
+shares, so absolute counts are reported independently.
+
+jscpd **5.4.1** uses identical scopes and configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Baseline commit: `3aa7ca5a968413a93fcbc2c986c51db246a23640`.
+Application source SHA-256 changes from
+`e42a5b17bdd129f4a343e05d9baba1341d115ae3aa16964840a03c6cbb0b2e35`
+to `64384f50b016d050a983572edf79659023b3c26c0bac4e15e55fdff8b453a67d`;
+tooling changes from
+`bb8d0a9a148ac100de0f1e58ba1af7dbcd911a38368844aa82c00277e2acc1d8`
+to `afaa38d5e7c9f37874546cf2371dbd4389c6e4faa3f45d95e91edabfa3feb756`.
+Raw identities, MCP schema/refresh/statistics and the whole-repository reference
+are retained under `quality-reports/health/`; hook receipts and committed-head PR
+comparisons remain separate. Analysis is partial and heuristic. Physical-device,
+screen-reader and native Linux/macOS coverage remain outside this Windows run.
+The inherited Vite-development language-switch issue and production recipient/
+database-hardening gates remain deferred.
+
 ## 2026-11-08: PR 43 quality regression follow-up
 
 Repeated calendar submission guards and localized field-error mapping now share

@@ -4,6 +4,17 @@ namespace Calendar.Api.Services;
 
 public interface ICalendarService
 {
+    Task<SystemCalendarPage> ListSystemAsync(
+        SessionIdentity? identity,
+        int offset,
+        int limit,
+        CancellationToken cancellationToken
+    );
+    Task<CalendarModel> PreviewSystemAsync(
+        SessionIdentity? identity,
+        Guid id,
+        CancellationToken cancellationToken
+    );
     Task<CalendarModel> CreateAsync(
         SessionIdentity? identity,
         string? title,

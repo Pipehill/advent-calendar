@@ -3,7 +3,7 @@
   "info": {
     "title": "Advent calendar API",
     "version": "1.2.0",
-    "description": "Backend username/password accounts, user management and owner-only calendar administration. Recipient viewing and timed opening are deferred.",
+    "description": "Backend username/password accounts, user management, owner-only calendar administration and superadmin read-only calendar overview/preview. Recipient viewing and timed opening are deferred.",
     "license": {
       "name": "Private"
     }
@@ -1258,6 +1258,153 @@
           }
         }
       }
+    },
+    "/administration/calendars": {
+      "get": {
+        "operationId": "ListSystemCalendars",
+        "summary": "List all calendar metadata with stored owner and recipient identities",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "System-wide calendar metadata and total count, without doors or account security metadata",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemCalendarListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "description": "Requires a current unrestricted superadmin session. Includes calendars regardless of linked account role or enabled status. Stable newest-first ordering by created_at DESC, id. Does not grant calendar writes."
+      }
+    },
+    "/administration/calendars/{id}/preview": {
+      "get": {
+        "operationId": "PreviewSystemCalendar",
+        "summary": "Read a full calendar as superadmin without editing or opening doors",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privileged owner content; never a recipient response",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "description": "Requires a current unrestricted superadmin session, checked before calendar lookup. Returns all 24 doors including future content and the persisted layout. Does not mutate modification time or recipient opening state."
+      }
     }
   },
   "components": {
@@ -1959,6 +2106,89 @@
           "recipientId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "SystemCalendarSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "year",
+          "ownerId",
+          "ownerName",
+          "ownerUsername",
+          "recipientId",
+          "recipientName",
+          "recipientUsername"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "ownerUsername": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "recipientUsername": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
+          }
+        }
+      },
+      "SystemCalendarListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "calendars",
+          "totalCount"
+        ],
+        "properties": {
+          "calendars": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/SystemCalendarSummaryDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647
           }
         }
       }

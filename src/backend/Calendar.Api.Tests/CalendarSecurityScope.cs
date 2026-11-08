@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Calendar.Api.Tests;
 
-// Keep the independent lock and scoped service alive until the queued mutation is observed.
+// Keep the independent lock and scoped service alive until the queued operation is observed.
 internal sealed class CalendarSecurityScope(CalendarTestContext context) : IAsyncDisposable
 {
     private readonly IServiceScope scope = context.Application.Services.CreateScope();
@@ -15,13 +15,13 @@ internal sealed class CalendarSecurityScope(CalendarTestContext context) : IAsyn
     public SessionIdentity Identity { get; private set; } = null!;
     public ICalendarService Service => scope.ServiceProvider.GetRequiredService<ICalendarService>();
 
-    public async Task AcquireAsync()
+    public async Task AcquireAsync(Guid? accountId = null)
     {
         var sessionId = await context.Auth.ScalarAsync<Guid>(
             "SELECT id FROM account_sessions WHERE account_id = @Id AND NOT revoked",
-            new { context.Owner.Id }
+            new { Id = accountId ?? context.Owner.Id }
         );
-        Identity = new SessionIdentity(context.Owner.Id, sessionId);
+        Identity = new SessionIdentity(accountId ?? context.Owner.Id, sessionId);
         await Connection.OpenAsync();
         Transaction = await Connection.BeginTransactionAsync();
         await Connection.ExecuteAsync(

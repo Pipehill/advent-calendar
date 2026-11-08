@@ -33,7 +33,11 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             );
     }
 
-    public async Task<CalendarModel?> GetAsync(Guid id, Guid ownerId)
+    public Task<CalendarModel?> GetAsync(Guid id, Guid ownerId) => ReadAsync(id, ownerId);
+
+    public Task<CalendarModel?> GetSystemPreviewAsync(Guid id) => ReadAsync(id, null);
+
+    private async Task<CalendarModel?> ReadAsync(Guid id, Guid? ownerId)
     {
         var rows = (
             await transaction.QueryAsync<CalendarRow>(
@@ -45,7 +49,8 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                     d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text
                 FROM calendars c JOIN doors d ON d.calendar_id = c.id
                 JOIN accounts recipient ON recipient.id = c.recipient_id
-                WHERE c.id = @Id AND c.owner_id = @OwnerId ORDER BY d.day_number
+                WHERE c.id = @Id AND (@OwnerId::uuid IS NULL OR c.owner_id = @OwnerId)
+                ORDER BY d.day_number
                 """,
                 new { Id = id, OwnerId = ownerId }
             )
@@ -68,6 +73,27 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             first.RecipientName,
             first.RecipientUsername
         );
+    }
+
+    public async Task<SystemCalendarPage> ListSystemAsync(int offset, int limit)
+    {
+        var calendars = (
+            await transaction.QueryAsync<SystemCalendarSummary>(
+                """
+                SELECT c.id, c.title, c.calendar_year AS Year, c.owner_id AS OwnerId,
+                    owner.name AS OwnerName, owner.user_name AS OwnerUsername,
+                    c.recipient_id AS RecipientId, recipient.name AS RecipientName,
+                    recipient.user_name AS RecipientUsername
+                FROM calendars c
+                JOIN accounts owner ON owner.id = c.owner_id
+                JOIN accounts recipient ON recipient.id = c.recipient_id
+                ORDER BY c.created_at DESC, c.id OFFSET @Offset LIMIT @Limit
+                """,
+                new { Offset = offset, Limit = limit }
+            )
+        ).ToArray();
+        var total = await transaction.ScalarAsync<int>("SELECT count(*)::int FROM calendars");
+        return new SystemCalendarPage(calendars, total);
     }
 
     public async Task<CalendarPage> ListAsync(Guid ownerId, int offset, int limit)

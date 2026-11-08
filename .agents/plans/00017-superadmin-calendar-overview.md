@@ -1,8 +1,10 @@
 # 00017: Superadmin calendar overview and read-only preview
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
+
+Implementation type: feature
 
 Provide a system-wide calendar table showing each calendar's owner and recipient.
 Let superadmins preview
@@ -128,24 +130,31 @@ None.
 
 ### Work steps
 
-- [ ] **1. Implement backend reads and contract.** Add the two read operations,
+Each numbered step is one implementation iteration and commit. Step 1 verifies
+contract generation, backend build and isolated integration tests. Step 2 verifies
+BFF authorization/validation and route/cache tests; its preview presentation is
+completed in step 3. Step 3 verifies localization, types, build and browser behavior.
+Step 4 runs the complete test/build/quality sequence and committed-head regression
+review, records evidence and publishes the draft PR.
+
+- [x] **1. Implement backend reads and contract.** Add the two read operations,
   paginated DTOs, service/repository methods and thin controller adaptation.
   Join current account names/usernames using stored associations. Verify against
   isolated PostgreSQL with calendars owned by multiple administrators, and prove
   that existing owner-only writes remain denied to superadmins.
-- [ ] **2. Integrate BFF and protected preview.** Add strict Zod inputs, dedicated
+- [x] **2. Integrate BFF and protected preview.** Add strict Zod inputs, dedicated
   server readers/tRPC queries and role-aware preview navigation in
   `src/frontend/src/server/calendars.ts`, `server/trpc.ts`,
   `lib/auth-navigation.ts`, `lib/calendar-navigation.ts` and the preview route.
   Preserve deadline/error behavior, no-store, cache scoping and owner edit guards.
-- [ ] **3. Add the superadmin table and preview presentation.** Implement the
+- [x] **3. Add the superadmin table and preview presentation.** Implement the
   Users/Calendars tabs with one visible panel, the calendar table,
   pagination/refresh and preview links on `routes/my-page.tsx`. Keep existing
   account management in Users. Adapt
   `components/calendar-workspace.tsx` for a read-only superadmin notice and return
   navigation. Reuse `CalendarBoard` and native door selection. Add maintained
   Norwegian/English messages and verify both languages and responsive behavior.
-- [ ] **4. Verify and align documentation.** Extend backend tests, frontend/BFF
+- [x] **4. Verify and align documentation.** Extend backend tests, frontend/BFF
   tests and the existing isolated browser scenarios. Update current capability
   descriptions in `README.md`, `docs/architecture.md`, component READMEs and
   `.agents/rules/authentication-and-calendar-access.md` when implementing the
@@ -191,5 +200,63 @@ None.
   required final quality/health comparisons. Record missing evidence and inherited
   failures rather than claiming unexecuted checks passed.
 
-This plan does not implement the feature. No new superadmin calendar access is
-available until implementation and verification are complete.
+The feature is implemented through dedicated superadmin reads while preserving
+owner-only editing. Recipient calendar access/opening remains separate work.
+
+## Implementation evidence
+
+- Step 1: authored OpenAPI validation and both NSwag consumers generated; Release
+  build passed with zero compiler warnings/errors. All 63 targeted backend
+  integration cases passed against isolated PostgreSQL (20 new system-read cases
+  plus existing owner/recipient protections). Read-only CSharpier 1.3.0 passed.
+  Tests exposed missing early-error no-store coverage on the new path; extending
+  the existing response-protection boundary fixed all eight failures.
+- Step 1 advisory comparison: application health 89.4 to 89.7; tooling 53.2
+  unchanged. One additional six-line declarative test-case overlap repeats the
+  independently required unauthorized-session matrix from owner protections;
+  shared executable authorization/preview mapping is reused. Final regression
+  review will inspect all dimensions and remaining findings.
+- Step 2: all 162 frontend/BFF tests and explicit TypeScript/typecheck build pass.
+  New tests cover strict hostile inputs, anonymous/restricted/role denials,
+  authoritative backend failures after session inspection, concurrent cookie and
+  endpoint isolation, validated access-mode selection, refresh and session-cache
+  clearing. Owner routes remain calendaradmin-only; preview selects its reader
+  from the freshly validated session. Step 3 completes the system-preview notice
+  and return link. Biome and MCP refresh pass; application health is 89.9 with
+  the same declarative test overlap, tooling unchanged at 53.2.
+- Step 3: localized Users/Calendars tabs, semantic horizontally scrollable table,
+  count/paging/refresh and read-only preview/return navigation are implemented.
+  Only the selected panel mounts its controls. Shared calendar list framing,
+  pagination and authorization-failure handling remove duplicated presentation.
+  All 162 unit/BFF tests, Biome, explicit TypeScript and production Nitro build pass.
+  Nine targeted production Edge scenarios pass against isolated PostgreSQL,
+  including both layouts, all 24 doors, mobile/desktop, both languages, all write
+  denials, role/SSR boundaries and revoked/logout/account-switch isolation.
+  Screenshots are under `quality-reports/plan00017/`; full regressions follow in
+  step 4. Browser tests found and fixed an encoding error in new Norwegian texts.
+- Step 4: all 245 isolated PostgreSQL integration cases, 163 frontend/BFF tests,
+  74 production Edge scenarios (including eight smoke scenarios), contract
+  generation, explicit TypeScript, production build, API publish, read-only .NET
+  formatting/analyzers and full MegaLinter/custom checks pass. Production audit
+  reports no known vulnerabilities. Final cache review also clears old privileged
+  data before redirecting a newly restricted session to password change.
+- Shared browser fixtures now avoid credentials reset by earlier scenarios; the
+  successful full run uses one unchanged production build. Backend tests include
+  four queued system-read cases rechecking revocation/role changes under lock
+  800008. Current capability/security documentation is aligned; implemented plans
+  remain unchanged. Detailed evidence and limitations are recorded in
+  [backend verification](../../src/backend/verification.md) and
+  [frontend verification](../../src/frontend/verification.md).
+- Final advisory values: application 89.4 to 90.8; tooling 53.2 to 54.1.
+  Application clones/duplicated lines are 10/81 versus 10/84; tooling remains
+  2/12. Tooling maximum file complexity increases 227 to 228 for the isolated
+  revocation fixture bridge, and complex lines increase by eight. Nine additional
+  heuristic dead lines are the shared cookie/logout helpers, verified through
+  real test callers; finding counts remain unchanged. Shared UI/list helpers
+  remove avoidable duplication. Raw comparisons retain counts, scopes, identities,
+  tool/config versions and partial-analysis limitations. The committed-head
+  comparison and Local QA receipt are generated before publication.
+- The final keyboard-assertion refinement passes separately after the complete
+  74-scenario run. All final source/docs pass full quality checks. Disposable
+  browser/backend test containers are removed; no new images were built.
+  The original development containers and pre-existing build artifacts are preserved.

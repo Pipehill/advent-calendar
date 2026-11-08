@@ -12,18 +12,22 @@ export async function requireSession(context: RouterContext, restricted = false)
     if (errorCode(error) === 'UNAUTHORIZED') throw redirect({ to: '/login' });
     throw error;
   }
-  if (session.mustChangePassword && !restricted) throw redirect({ to: '/change-password' });
   const scope = session.cacheScope;
   if (context.administration.sessionScope !== scope) {
     context.queryClient.clear();
     context.administration.sessionScope = scope;
   }
+  if (session.mustChangePassword && !restricted) {
+    context.queryClient.clear();
+    throw redirect({ to: '/change-password' });
+  }
   return session;
 }
 
-export async function requireCalendarSession(context: RouterContext) {
+export async function requireCalendarSession(context: RouterContext, preview = false) {
   const session = await requireSession(context);
-  if (session.user.role !== 'calendarAdmin') throw redirect({ to: '/my-page' });
+  if (session.user.role !== 'calendarAdmin' && !(preview && session.user.role === 'superadmin'))
+    throw redirect({ to: '/my-page' });
   return session;
 }
 

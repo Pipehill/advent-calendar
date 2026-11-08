@@ -4,13 +4,12 @@ import { ArrowLeft, ArrowRight, RefreshCw, UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import type { AccountAction } from '../lib/account-form-values';
-import { leaveSession } from '../lib/auth-navigation';
+import { useProtectedQuery } from '../lib/use-protected-query';
 import type { RouterContext } from '../router';
 import type { AccountMetadata } from '../server/accounts';
 import { AccountActions, accountActionLabel } from './account-actions';
 import { AccountForm } from './account-form';
 import { RequestFailure } from './auth-feedback';
-import { errorCode } from './error-state';
 import { Button, buttonStyles } from './ui/button';
 
 export function roleLabel(role: string) {
@@ -48,10 +47,7 @@ export function AccountList({ context, actorRole }: { context: RouterContext; ac
       setFocusAfterLoad(undefined);
     }
   }, [focusAfterLoad, selected, query.isFetching]);
-  useEffect(() => {
-    if (query.error && ['UNAUTHORIZED', 'FORBIDDEN'].includes(errorCode(query.error)))
-      leaveSession(context, '/login');
-  }, [query.error, context]);
+  useProtectedQuery(context, query.error);
   return (
     <section className="mt-10" aria-labelledby="accounts-heading">
       <header className="mb-4 flex flex-wrap items-center gap-3">

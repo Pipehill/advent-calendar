@@ -15,15 +15,36 @@ import type {
 import { callBackend } from './backend';
 import type { RequestContext } from './context';
 
-async function requireCalendarAdministrator(client: CalendarClient, signal: AbortSignal) {
+async function requireCalendarRole(
+  client: CalendarClient,
+  signal: AbortSignal,
+  role = 'calendarAdmin',
+) {
   const session = await client.session(signal);
-  if (session.mustChangePassword || session.user.role !== 'calendarAdmin')
+  if (session.mustChangePassword || session.user.role !== role)
     throw new TRPCError({ code: 'FORBIDDEN', message: 'FORBIDDEN' });
+}
+
+export function listSystemCalendars(
+  context: RequestContext,
+  input: z.infer<typeof calendarPageInput>,
+) {
+  return callBackend(context, async (client, signal) => {
+    await requireCalendarRole(client, signal, 'superadmin');
+    return client.listSystemCalendars(input.offset, input.limit, signal);
+  });
+}
+
+export function readSystemPreview(context: RequestContext, id: string) {
+  return callBackend(context, async (client, signal) => {
+    await requireCalendarRole(client, signal, 'superadmin');
+    return client.previewSystemCalendar(id, signal);
+  });
 }
 
 export function readOwnedCalendar(context: RequestContext, id: string) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     return client.get(id, signal);
   });
 }
@@ -33,14 +54,14 @@ export function listOwnedCalendars(
   input: z.infer<typeof calendarPageInput>,
 ) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     return client.listCalendars(input.offset, input.limit, signal);
   });
 }
 
 export function calendarRecipients(context: RequestContext) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     const recipients: { id: string; name: string; username: string }[] = [];
     for (let offset = 0; offset <= 1_000_000; offset += 100) {
       const page = await client.listUsers(offset, 100, signal);
@@ -56,7 +77,7 @@ export function calendarRecipients(context: RequestContext) {
 
 export function createOwnedCalendar(context: RequestContext, input: CreateCalendarInput) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     const backgroundValues = {
       woodland: CreateCalendarRequestBackground.Woodland,
       sleigh: CreateCalendarRequestBackground.Sleigh,
@@ -69,7 +90,7 @@ export function createOwnedCalendar(context: RequestContext, input: CreateCalend
 
 export function saveOwnedDoor(context: RequestContext, input: z.infer<typeof saveDoorInput>) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     return client.updateDoor(
       input.id,
       input.number,
@@ -81,7 +102,7 @@ export function saveOwnedDoor(context: RequestContext, input: z.infer<typeof sav
 
 export function saveOwnedLayout(context: RequestContext, input: z.infer<typeof saveLayoutInput>) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     return client.updateLayout(
       input.id,
       {
@@ -100,7 +121,7 @@ export function saveOwnedRecipient(
   input: z.infer<typeof saveRecipientInput>,
 ) {
   return callBackend(context, async (client, signal) => {
-    await requireCalendarAdministrator(client, signal);
+    await requireCalendarRole(client, signal);
     return client.updateRecipient(input.id, { recipientId: input.recipientId }, signal);
   });
 }
