@@ -10,6 +10,37 @@ Use this workflow when the user asks to implement an existing plan. Read the
 [branch and pull request naming rules](../../rules/pull-requests.md) for supported
 implementation types. Planning uses `plan`; implementation uses its own type.
 
+## Delegate selectively to preserve context
+
+When subagent tools are available and session instructions permit delegation,
+use subagents for bounded work that materially reduces the main agent's context
+load or provides useful independent review. Delegate early, before loading the
+same investigation into the main context. Prefer repository mapping, focused
+failure investigation and review against the plan; delegate implementation only
+when file ownership and dependencies can be separated clearly. Keep small tasks
+and tightly dependent work in the main agent.
+
+Give each subagent a concrete question or deliverable, relevant plan/rule paths,
+the minimum necessary context, and explicit read-only or file-editing scope.
+Have it read the repository entry point and applicable rules. Prefer a fresh
+context for self-contained tasks when supported; pass conversation history only
+when it is needed. Avoid concurrent edits to the same files. Subagents return
+concise findings with file references, changes made, verification results and
+unresolved risks; keep long logs in artifacts rather than copying them into the
+main conversation.
+
+The main agent owns user-facing decisions, integration, plan updates, commits
+and PR publication. Review delegated results and inspect affected boundaries;
+read detailed files or logs when findings or uncertainty require it, rather
+than repeating every delegated investigation. Delegation does not replace
+required verification or expand the task's authorization.
+
+Keep the plan's checklist, material decisions, verification limitations and next
+unfinished step current at iteration boundaries so work can resume after context
+compaction. Subagents reduce incoming context; they do not clear existing context
+and may increase total token use. Continue directly when delegation is unavailable
+or its coordination cost outweighs the benefit.
+
 ## 1. Select and read the plan
 
 Use the plan explicitly identified by the user. A user may identify it with only
