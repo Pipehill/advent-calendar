@@ -1,13 +1,12 @@
 // Bound aggregate tRPC bodies before its JSON adapter buffers or parses them.
 // Unrelated procedures retain the small limit even when callers use batch syntax.
 export async function protectTrpcBody(request: Request): Promise<Request | Response> {
-  if (!request.body) return request;
   const procedures = new URL(request.url).pathname.slice('/api/trpc/'.length).split(',');
   const maximum = procedures.includes('calendar.saveDoor') ? 14_000_000 : 131_072;
   if (Number(request.headers.get('content-length')) > maximum) {
-    void request.body.cancel();
     return uploadTooLarge();
   }
+  if (!request.body) return request;
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -17,7 +16,9 @@ export async function protectTrpcBody(request: Request): Promise<Request | Respo
     if (done) break;
     length += value.byteLength;
     if (length > maximum) {
-      void reader.cancel();
+      // Cancelling Vite's incoming stream resets its response socket. Let the
+      // transport close the connection after delivering the bounded 413 instead.
+      reader.releaseLock();
       return uploadTooLarge();
     }
     chunks.push(value);
@@ -28,7 +29,13 @@ export async function protectTrpcBody(request: Request): Promise<Request | Respo
     body.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new Request(request, { body: body.buffer });
+  // Vite's lazy NodeRequest has public Fetch fields but no native Request state.
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    signal: request.signal,
+    body: body.buffer,
+  });
 }
 
 function uploadTooLarge() {
@@ -44,6 +51,6 @@ function uploadTooLarge() {
         },
       },
     },
-    { status: 413, headers: { 'Cache-Control': 'no-store' } },
+    { status: 413, headers: { 'Cache-Control': 'no-store', Connection: 'close' } },
   );
 }

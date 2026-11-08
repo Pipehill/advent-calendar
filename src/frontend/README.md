@@ -295,6 +295,22 @@ node tools/frontend/pnpm.mjs run build
 node --test tools/frontend/browser/authentication.test.mjs
 ```
 
+Production Nitro is the default. Set `BROWSER_FRONTEND_MODE=development` to run
+the same isolated browser scenarios through an actual Vite development server.
+The suite selects free ports and does not replace an existing local server.
+For example, in PowerShell:
+
+```powershell
+$env:BROWSER_FRONTEND_MODE = 'development'
+node --test --test-name-pattern 'When login|credential form before hydration|door image' tools/frontend/browser/authentication.test.mjs
+```
+
+Unset `BROWSER_FRONTEND_MODE` or select `production` to return to Nitro. Browser
+login waits for client modules before submitting; a separate JavaScript-disabled
+scenario verifies native credential forms use POST without placing fields in URLs.
+Request-body tests cover both native Fetch requests and compatible development
+adapters, preserving cookies, CSRF headers, trace context and cancellation.
+
 It uses the selected container runtime/SDK and installed Edge or Playwright
 Chromium. Fixture credentials remain in runner memory; only isolated `browser_*`
 databases are accepted. The suite covers roles, real cookies/CSRF, temporary

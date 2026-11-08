@@ -104,6 +104,7 @@ export function CredentialForm({
   });
   return (
     <form
+      method="post"
       className="space-y-5"
       noValidate
       onSubmit={(event) => {

@@ -1027,3 +1027,43 @@ ignored `quality-reports/plan00015/browser/`, backend/TRX evidence under
 report owners. Physical devices, assistive technology and native Linux/macOS
 browser execution are not established by this Windows/Edge run. Recipient
 viewing/opening and production hardening remain separate tasks.
+
+## PR 48 follow-up: local Vite login (2026-11-08)
+
+The original positive login coverage used production Nitro. A reported local
+failure was reproduced in an isolated Vite browser run and a focused unit test:
+native `new Request(adapter, ...)` attempts to read private state absent from
+TanStack's lazy `srvx` NodeRequest. The body boundary now rebuilds from public
+URL, method, headers, signal and bounded bytes. Cookies, CSRF, trace context and
+caller cancellation are preserved without depending on adapter internals.
+
+All **193 frontend/BFF tests**, production build/TypeScript, Biome and full quality
+checks pass. **13 selected Vite browser scenarios** pass for all three role
+logins, refresh, CSRF and image lifecycle/display. Two additional Vite scenarios
+repeat native credential submission and the real HTTP size boundary, including
+a chunked upload. **15 matching production Nitro scenarios** pass, also covering
+account creation and maintenance. The running local server's empty login request
+returns protected HTTP 400 instead of the reported internal error. Disposable
+accounts/databases and free ports keep these checks separate from local user data.
+
+Vite verification also exposed that cancelling an oversized incoming stream
+could reset the shared socket before HTTP 413 was delivered. Declared oversized
+bodies remain unread; streamed rejection releases its reader and closes the
+connection after sending structured no-store 413. Real declared, batch and chunked
+HTTP scenarios pass in both runtimes. Credential forms explicitly use POST even
+before hydration; the JavaScript-disabled scenario confirms fields stay out of
+URLs. The login helper waits for client modules before ordinary interaction.
+
+The suite now supports `BROWSER_FRONTEND_MODE=development` alongside its default
+production mode. Vite logs are under ignored
+`quality-reports/pr48-local-login/browser/`; production reports retain their
+existing location. Application health remains **91.7**, tooling improves
+**55.0 to 55.1**, and absolute duplication remains **79 lines/9 clones** and
+**12 lines/2 clones** respectively. Harness maximum file complexity rises
+**228 to 232** for explicit runtime selection, argument factories and invalid-mode
+validation. A separate credential transport scenario keeps that coverage out of
+the already large authentication harness. The required runtime choices are
+retained after replacing repeated conditionals with named configuration; scoring
+and exclusions remain unchanged. Detailed source identities, supported dimensions,
+raw findings and the separate committed-head review remain in
+`quality-reports/health/`.

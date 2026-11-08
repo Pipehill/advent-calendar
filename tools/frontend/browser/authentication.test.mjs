@@ -16,12 +16,26 @@ import { registerCalendarLayoutScenarios } from './calendar-layout.test.mjs';
 import { registerSystemCalendarScenarios } from './system-calendars.test.mjs';
 import { registerDoorImageScenarios } from './door-images.test.mjs';
 import { registerDoorImageSecurityScenarios } from './door-image-security.test.mjs';
+import { registerCredentialTransportScenarios } from './credential-transport.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
 const runtime = process.env.QUALITY_CONTAINER_RUNTIME || settings.runtime || 'podman';
 const dotnet = process.env.DOTNET_EXE || settings.dotnet || 'dotnet';
-const reports = path.join(root, 'quality-reports/plan00015/browser');
+const frontend = {
+  production: {
+    label: 'production Nitro',
+    reports: 'quality-reports/plan00015/browser',
+    arguments: () => ['.output/server/index.mjs'],
+  },
+  development: {
+    label: 'Vite development',
+    reports: 'quality-reports/pr48-local-login/browser',
+    arguments: port => ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
+  },
+}[process.env.BROWSER_FRONTEND_MODE || 'production'];
+if (!frontend) throw new Error('Invalid browser frontend mode');
+const reports = path.join(root, frontend.reports);
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
 const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
 const children = [];
@@ -37,7 +51,7 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe('Authentication through production Nitro and isolated PostgreSQL', { timeout: 360000 }, () => {
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 360000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -59,7 +73,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
     const frontendPort = await freePort();
     frontendUrl = `http://127.0.0.1:${frontendPort}`;
-    launch(process.execPath, ['.output/server/index.mjs'], { ...process.env, HOST: '127.0.0.1', PORT: String(frontendPort), BACKEND_API_URL: apiUrl }, path.join(root, 'src/frontend'), 'frontend');
+    launch(process.execPath, frontend.arguments(frontendPort), { ...process.env, HOST: '127.0.0.1', PORT: String(frontendPort), BACKEND_API_URL: apiUrl }, path.join(root, 'src/frontend'), 'frontend');
     await ready(async () => assert.equal((await fetch(`${frontendUrl}/health/ready`)).status, 200));
     browser = await chromium.launch({ headless: true, channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined) });
   });
@@ -942,6 +956,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
     revoke: revokeSessions,
   });
+  registerCredentialTransportScenarios(calendarEnvironment);
   registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);
@@ -966,6 +981,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
 
 async function signIn(account, destination = '/my-page', target = page) {
   await target.goto(`${frontendUrl}/login`);
+  await target.waitForLoadState('networkidle');
   await target.getByLabel('Brukernavn').fill(account.username);
   await target.getByLabel('Passord', { exact: true }).fill(account.password);
   await target.getByRole('button', { name: 'Logg inn', exact: true }).click();

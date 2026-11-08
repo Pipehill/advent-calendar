@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
 import { test } from 'node:test';
 import { create, owner } from './calendar-fixture.mjs';
+
+function postChunked(url, body) {
+  return new Promise((resolve, reject) => {
+    const outgoing = http.request(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+    }, response => {
+      response.resume();
+      response.on('end', () => resolve({ status: response.statusCode, headers: response.headers }));
+    });
+    outgoing.on('error', reject);
+    outgoing.setTimeout(10000, () => outgoing.destroy(new Error('Chunked upload deadline exceeded')));
+    outgoing.end(body);
+  });
+}
 
 export function registerDoorImageSecurityScenarios(environment) {
   test('Given a door image HTTP boundary, When oversized direct and batched uploads are sent, Then protected 413 errors preserve saved content', async () => {
@@ -27,6 +42,7 @@ export function registerDoorImageSecurityScenarios(environment) {
     const batch = await context.request.post(`${frontendUrl}/api/trpc/calendar.saveDoor,calendar.saveDoor?batch=1`, {
       headers: { 'Content-Type': 'application/json' }, data: `{"0":${body},"1":${body}}`,
     });
+    const streamed = await postChunked(`${frontendUrl}/api/trpc/calendar.saveDoor`, body);
     const csrfDenied = await context.request.put(apiPath, { data: { title: 'Changed', text: '', imageAction: 'remove' } });
     const after = await (await context.request.get(`${apiUrl}/calendars/${calendar.id}`)).json();
 
@@ -36,6 +52,9 @@ export function registerDoorImageSecurityScenarios(environment) {
       assert.match(response.headers()['cache-control'], /no-store/);
     }
     assert.equal(csrfDenied.status(), 400);
+    assert.equal(streamed.status, 413);
+    assert.match(streamed.headers['cache-control'], /no-store/);
+    assert.equal(streamed.headers.connection, 'close');
     assert.equal(after.lastModifiedAt, before.lastModifiedAt);
     assert.deepEqual(after.doors[0], before.doors[0]);
   });
