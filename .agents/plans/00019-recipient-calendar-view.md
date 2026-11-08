@@ -252,7 +252,7 @@ in an owner-approved worktree based on origin/main (43524dc).
 - [x] 2. Add the opening-history migration, dedicated recipient contracts,
   repository/service/controller operations and database-backed authorization,
   persistence, time and image tests; regenerate both API consumers.
-- [ ] 3. Add BFF procedures, recipient route/session guards, scoped queries and
+- [x] 3. Add BFF procedures, recipient route/session guards, scoped queries and
   assigned-calendar list with SSR and protected-data tests.
 - [ ] 4. Implement recipient board states, server opening writes, green opened
   indicators, dialog, hinge/zoom motion, image retrieval and reduced motion.
@@ -276,6 +276,15 @@ additional scoped-list/pagination test passes after rebuilding. Contract
 validation/generation, frontend TypeScript/build and new migration SQL lint pass.
 The generated date-only representation is explicitly DateOnly. MCP reports two
 new import-only clones; recipient service/repository logic adds no clones.
+
+Iteration 3: all 210 frontend/BFF tests, TypeScript, production Nitro packaging
+and Biome pass. Dedicated recipient procedures revalidate role/session/scope;
+tests cover structured failures, no write retries, selected-image versions,
+concurrent request isolation and SSR guards. Assigned lists use scoped pagination
+and SSR safe metadata. The recipient route currently renders the board; opening
+interaction, states, refresh timing and presentation are completed in step 4.
+Production packaging needed filesystem access beyond the sandbox for Nitro's
+dependency tracing; rerunning with that access passed.
 
 - Backend integration tests use actual migrations/PostgreSQL and controlled
   `TimeProvider` values immediately before, exactly at and after 07:00 Oslo.

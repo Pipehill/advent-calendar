@@ -19,6 +19,12 @@ import {
   saveRecipientInput,
 } from '../lib/calendar-input';
 import {
+  recipientCalendarInput,
+  recipientDoorInput,
+  recipientImageInput,
+  recipientPageInput,
+} from '../lib/recipient-input';
+import {
   AdministrationFieldError,
   changeAccountRole,
   changeAccountStatus,
@@ -43,6 +49,12 @@ import {
   saveOwnedRecipient,
 } from './calendars';
 import { logRequest, type RequestContext } from './context';
+import {
+  listRecipientCalendars,
+  openRecipientDoor,
+  readRecipientCalendar,
+  readRecipientImage,
+} from './recipient-calendars';
 
 const t = initTRPC.context<RequestContext>().create({
   errorFormatter({ shape, error }) {
@@ -72,6 +84,20 @@ const procedure = t.procedure.use(async ({ ctx, path, next }) => {
 });
 
 export const appRouter = t.router({
+  recipient: t.router({
+    list: procedure
+      .input(recipientPageInput)
+      .query(({ ctx, input }) => listRecipientCalendars(ctx, input)),
+    get: procedure
+      .input(recipientCalendarInput)
+      .query(({ ctx, input }) => readRecipientCalendar(ctx, input)),
+    image: procedure
+      .input(recipientImageInput)
+      .query(({ ctx, input }) => readRecipientImage(ctx, input)),
+    open: procedure
+      .input(recipientDoorInput)
+      .mutation(({ ctx, input }) => openRecipientDoor(ctx, input)),
+  }),
   auth: t.router({
     csrf: procedure.query(({ ctx }) => callBackend(ctx, (client, signal) => client.csrf(signal))),
     session: procedure.query(({ ctx }) => inspectSession(ctx)),

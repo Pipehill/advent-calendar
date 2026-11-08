@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { AccountList } from '../components/account-list';
 import { AuthRouteError } from '../components/auth-feedback';
 import { CalendarList } from '../components/calendar-list';
+import { RecipientCalendarList } from '../components/recipient-calendar-list';
 import { SessionControls } from '../components/session-controls';
 import { type OverviewTab, SuperadminOverview } from '../components/superadmin-overview';
 import * as m from '../generated/paraglide/messages.js';
@@ -14,7 +15,24 @@ export const Route = createFileRoute('/my-page')({
   gcTime: 0,
   shouldReload: true,
   errorComponent: AuthRouteError,
-  loader: ({ context }) => requireSession(context),
+  loader: async ({ context }) => {
+    const session = await requireSession(context);
+    if (session.user.role === 'calendarUser') {
+      // SSR primes safe list metadata only; recoverable list errors stay in its UI.
+      await context.queryClient
+        .fetchQuery({
+          ...context.trpc.recipient.list.queryOptions({
+            offset: 0,
+            limit: 12,
+            scope: session.cacheScope,
+          }),
+          staleTime: 0,
+          gcTime: 0,
+        })
+        .catch(() => undefined);
+    }
+    return session;
+  },
   pendingComponent: () => <p role="status">{m.auth_pending()}</p>,
   component: PersonalPage,
 });
@@ -57,7 +75,11 @@ function PersonalPage() {
         />
       </header>
       {user.role === 'calendarUser' ? (
-        <p className="mt-10 text-stone-600">{m.no_calendars()}</p>
+        <RecipientCalendarList
+          key={session.cacheScope}
+          context={context}
+          scope={session.cacheScope}
+        />
       ) : user.role === 'calendarAdmin' ? (
         <CalendarList context={context} />
       ) : null}
