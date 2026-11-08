@@ -345,6 +345,51 @@ tooling changes from
 Native host platform follow-ups below remain unchanged; Linux application/runtime
 verification does not establish native macOS/Linux tooling readiness.
 
+## 2026-11-08: Permanent calendar-user passwords
+
+The Windows jscpd 5.4.1 baseline is commit
+`43524dc22b97562745033a9a46a382de70c2a36b`. Baseline/current snapshots use identical
+scope, platform and configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Raw MCP schemas/snippet/refresh/statistics, CLI findings, manifests and the
+whole-repository reference remain under ignored `quality-reports/health/` and
+`quality-reports/plan00020/`.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Health | 91.7 / 92.1 | 55.1 / 55.6 |
+| Duplication score | 96.9 / 97.1 | 94.7 / 94.8 |
+| Complexity score / share | 87.3 / 87.8; 8.4% / 8.1% | 58.2 / 58.6; 43.2% / 42.6% |
+| Dead-code score / share | 90.6 / 90.7; 0.4% / 0.4% | 29.8 / 30.3; 15.5% / 15.2% |
+| Duplication percentage | 0.4828555712% / 0.5917853167% | 0.1398438410% / 0.1375831231% |
+| Duplicated lines / clones | 79 / 101; 9 / 11 | 12 / 12; 2 / 2 |
+| Maximum file complexity | 75 / 75 | 232 / 232 |
+| Heuristic dead-code findings | 2 / 2 | 8 / 8 |
+| Dead-code analysis coverage | 40.0% / 39.0% | 96.7% / 96.7% |
+| Analyzed files / lines | 141 / 145; 16361 / 17067 | 55 / 56; 8581 / 8722 |
+
+Health improves by 0.4 / 0.5 points. Application duplication increases by
+0.1089297455 percentage points, 22 lines and two clones; tooling falls by
+0.0022607179 percentage points with unchanged absolute counts.
+The application duplication increase is two necessary import/namespace/collection
+declaration blocks in separate credential and migration suites; no new duplicated
+application logic remains. Browser setup and reset navigation were extracted
+after reviewing two avoidable test clones, restoring tooling absolute duplication
+to baseline. No scoring or exclusions changed. Required role-derived lifecycle,
+atomic demotion and data migration add branches; component complexity decreases
+through shared role-aware guidance. Larger test/source denominators improve
+shares and are not proof of fewer defects. Existing entry-point and test-helper
+dead-code findings were checked against callers and remain heuristic; C#
+dead-code coverage and inherited native platform/client limitations remain
+unavailable.
+
+Application source SHA-256 changes from
+`3df01ccde1ddbea02e9c1815b50431f119e98b6f4d9cfd174420ec10115ee868` to
+`72f3f6829caf5cb2a01394a180c708cfde4a58b1216027f9a0bbbcf2dfc9e476`;
+tooling changes from
+`50f9570b635590e44a9a72008368ae6c2da4e0700c2c905da7209b0a9859e4fc` to
+`d6cef67f820b061980489189680910ff5b20fea62a858a3213221bfc49528d95`.
+
 ## Pending platform evidence
 
 The owner explicitly deferred native macOS/Linux installation, repeat setup,

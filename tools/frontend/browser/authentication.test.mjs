@@ -17,6 +17,7 @@ import { registerSystemCalendarScenarios } from './system-calendars.test.mjs';
 import { registerDoorImageScenarios } from './door-images.test.mjs';
 import { registerDoorImageSecurityScenarios } from './door-image-security.test.mjs';
 import { registerCredentialTransportScenarios } from './credential-transport.test.mjs';
+import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -51,7 +52,7 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 360000 }, () => {
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 480000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -444,11 +445,11 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     await page.getByLabel('Visningsnavn').fill('Duplicate must not persist');
     await page.getByLabel('Brukernavn', { exact: true }).fill('BROWSER-USER');
     await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(accounts.find(item => item.username === 'browser-admin').id);
-    await page.getByLabel('Mottakerens midlertidige passord').fill('Password123456!');
+    await page.locator('#account-password').fill('Password123456!');
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
     await page.getByRole('alert').filter({ hasText: 'Sjekk de markerte feltene' }).waitFor();
     assert.equal(await page.locator('#account-password[aria-invalid=true]').count(), 1);
-    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+    await page.locator('#account-password').fill(`Temporary!${randomUUID()}`);
 
     // When a duplicate username reaches the API, then the role changes.
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
@@ -476,7 +477,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     await page.getByLabel('Kontotype', { exact: true }).selectOption('calendarAdmin');
     await page.getByLabel('Visningsnavn').fill('Bekreftet Administrator');
     await page.getByLabel('Brukernavn', { exact: true }).fill(`verify-${randomUUID().slice(0, 8)}`);
-    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+    await page.locator('#account-password').fill(`Temporary!${randomUUID()}`);
 
     // When the initial write is rejected and the acting password is verified again.
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
@@ -498,7 +499,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   });
 
   test('Given an authorized account, When reset promotion and demotion run through the list, Then sessions are revoked and fixed responsibility is retained', async () => {
-    // Given a freshly created ordinary target with its own restricted session.
+    // Given a freshly created ordinary target with its own unrestricted session.
     const actor = accounts.find(item => item.username === 'browser-superadmin');
     await signIn(actor);
     const input = { name: 'Vedlikehold Ærlig', username: `aa-maint-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarUser' };
@@ -518,21 +519,21 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
       assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
       await maintain(account, 'Endre til kalenderbruker');
 
-      // Then persisted role/responsibility and temporary credential restriction match the contract.
+      // Then persisted role/responsibility and permanent credential state match the contract.
       const list = await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50, focusId: account.id }))}`);
       const persisted = (await list.json()).result.data.users.find(item => item.id === account.id);
       assert.equal(persisted.role, 'calendarUser');
       assert.equal(persisted.responsibleAdministratorId, account.responsibleAdministratorId);
       const login = await mutation('auth.login', { username: input.username, password: promotionPassword }, recipient.request);
       assert.equal(login.status(), 200);
-      assert.equal((await login.json()).result.data.mustChangePassword, true);
+      assert.equal((await login.json()).result.data.mustChangePassword, false);
       assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
       assert(!(await page.content()).includes(promotionPassword));
     } finally { await recipient.close(); }
   });
 
   test('Given a superadmin and a target account, When disable and enable are confirmed, Then displayed status follows persistence and revoked sessions stay revoked', async () => {
-    // Given a new target signed in with a temporary credential.
+    // Given a new target signed in with a permanent credential.
     const actor = accounts.find(item => item.username === 'browser-superadmin');
     await signIn(actor);
     const input = { name: 'Status Bruker', username: `aa-status-${randomUUID().slice(0, 8)}`, password: `Temporary!${randomUUID()}`, role: 'calendarUser' };
@@ -604,8 +605,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     // When the localized form loads and is canceled.
     await page.getByLabel('Display name').waitFor();
     assert.equal(await page.locator('#account-role').count(), 0);
-    assert.equal(await page.getByLabel("Recipient's temporary password").getAttribute('type'), 'password');
-    await page.getByText(/It expires after 30 minutes/).waitFor();
+    assert.equal(await page.getByLabel("Recipient's password", { exact: true }).getAttribute('type'), 'password');
+    await page.getByText(/keep this password, or change it later/).waitFor();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
     // Then interface text is English and user-authored content stays unchanged.
@@ -623,7 +624,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     const name = `Lost response ${randomUUID().slice(0, 6)}`;
     await page.getByLabel('Visningsnavn').fill(name);
     await page.getByLabel('Brukernavn', { exact: true }).fill(username);
-    await page.getByLabel('Mottakerens midlertidige passord').fill(`Temporary!${randomUUID()}`);
+    await page.locator('#account-password').fill(`Temporary!${randomUUID()}`);
     let writes = 0;
     let release;
     const pending = new Promise(resolve => { release = resolve; });
@@ -738,7 +739,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
       body.result.data.users = body.result.data.users.filter(user => user.id !== account.id);
       await route.fulfill({ response, json: body });
     });
-    await page.getByLabel('Mottakerens midlertidige passord').fill(`Reset!${randomUUID()}`);
+    await page.locator('#account-password').fill(`Reset!${randomUUID()}`);
 
     // When the explicit confirmation succeeds and refresh replaces the rows.
     await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
@@ -957,6 +958,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     revoke: revokeSessions,
   });
   registerCredentialTransportScenarios(calendarEnvironment);
+  registerPasswordLifecycleScenarios(calendarEnvironment);
   registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);
@@ -1009,7 +1011,7 @@ async function createAccount(actor, input) {
     assert.equal(await page.locator('#account-role').count(), 0);
     assert.equal(await page.locator('#account-responsible').count(), 0);
   }
-  await page.getByLabel('Mottakerens midlertidige passord').fill(input.password);
+  await page.locator('#account-password').fill(input.password);
   const response = page.waitForResponse(response => response.url().includes('/api/trpc/accounts.create') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
   const result = await response;
@@ -1024,7 +1026,7 @@ async function createAccount(actor, input) {
 async function maintain(account, action, password, responsibleId) {
   await openAccountAction(account, action);
   await page.locator('#account-action-heading').waitFor();
-  if (password) await page.getByLabel('Mottakerens midlertidige passord').fill(password);
+  if (password) await page.locator('#account-password').fill(password);
   if (responsibleId) await page.getByLabel('Ansvarlig kalenderadministrator', { exact: true }).selectOption(responsibleId);
   await page.getByRole('button', { name: 'Bekreft og lagre' }).click();
   await page.getByRole('status').filter({ hasText: 'Endringen er lagret' }).waitFor();

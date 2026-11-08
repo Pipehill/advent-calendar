@@ -90,11 +90,21 @@ behavior to plan 00008.
   maintained, pinned local source without sending candidates to external services.
   Derive policy from the validated role, including reset, promotion and the hash
   tool. This owner-approved policy does not claim NIST compliance or phishing resistance.
-- Initial API passwords, reset passwords and promotion passwords are temporary.
-  Set the mandatory-change flag and 30-minute credential deadline atomically with
+- Calendar-user creation/reset supplies a permanent password, without mandatory
+  change or a credential deadline. Derive lifecycle from the backend-validated
+  target role inside the committing transaction, never a caller-controlled flag.
+  Calendaradmin creation/reset and promotion retain temporary passwords: set the
+  mandatory-change flag and 30-minute credential deadline atomically with
   creation/replacement. Replacement passwords must differ from the current one.
   Administrators privately hand credentials to identity-verified recipients; do
   not return them or sign the creating administrator into the new account.
+- On demotion to calendar user, preserve the hash, enabled/lockout/failure state,
+  identity and responsibility; clear mandatory-change/deadline metadata, rotate
+  the security version and revoke sessions in the shared transaction. Do not use
+  password replacement merely to clear metadata, since that resets failures.
+  Migration 0007 performs this conversion for existing temporary/expired calendar
+  users, preserving already-permanent users and administrator rows/sessions.
+  Affected users must log in again; never upgrade restricted sessions in place.
 - Temporary-password login grants only session inspection, required CSRF refresh,
   own-password change and logout. Its fixed session expiry is at most ten minutes
   after login and no later than the credential deadline. Role privileges cannot
