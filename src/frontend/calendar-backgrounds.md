@@ -19,5 +19,7 @@ ordinary localized HTML rather than image text.
 | `playtime` | Very young children: soft rounded snowmen, friendly bunny and teddy bear, small decorated tree and large presents; bright, simple pastel paper-cut/gouache illustration. |
 | `aurora` | Older children: atmospheric winter adventure with green/violet northern lights, blue mountains, frozen fjord, warm cabins and tiny explorer silhouette; cinematic painted illustration. |
 
-Door controls use solid pale backgrounds with dark text over every scene. Preview
+Door controls use translucent pale surfaces and dark numerals with a small local
+backing over every scene. Smaller chronological doors and a scattered Random
+layout expose more of the artwork. Preview
 content is rendered as plain text with preserved line breaks in a separate panel.

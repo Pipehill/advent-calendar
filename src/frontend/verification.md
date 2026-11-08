@@ -841,3 +841,85 @@ logs are retained under ignored `quality-reports/health/` and
 `quality-reports/plan00014/adjustments-*`. Lower duplication shares reflect larger
 denominators. Analysis remains partial and heuristic; the inherited dependency,
 platform, physical-device and manual-screen-reader limitations above still apply.
+
+## 2026-11-08: Scattered calendar layouts (plan 00016)
+
+The shared owner administration/preview board now uses 70%-cell chronological
+doors and a deterministic scattered Random canvas. All surface variants remain
+translucent, with opaque dark numerals, local pale backing, selected borders and
+double-contrast keyboard focus. Door 24 has exactly 1.5 times the ordinary area
+only in Random; its centre remains within the central third on both axes.
+The persisted permutation seeds placement; reads, language changes and responsive
+measurement never mutate layout. No API, migration, access or dependency changes
+were needed.
+
+On Windows/Podman/Edge, all **146 frontend/BFF unit tests** pass, including 22
+geometry cases at board widths 248/303/624/1008. These cover adversarial valid
+orders, forced bounded fallback, target clearance, bounds, Christmas Eve area and
+centrality, repeatability after resizing and influence of the complete saved order.
+Explicit TypeScript, production Vite/Nitro packaging, Biome and full repository
+quality pass. Existing upstream contract/bundler warnings remain unchanged.
+
+All **66 production browser scenarios** and **eight public/calendar smoke
+scenarios** pass. Six new scenarios measure actual targets on all four backgrounds
+in both modes at 320/375/768/1280px, including at least 44px targets, 8px scattered
+clearance, canvas bounds, Christmas Eve area/centrality, transparent variants and
+keyboard focus. Refresh, preview and language changes preserve numbered geometry;
+resizing preserves selection and sends zero layout writes. A 320px touch context
+successfully selects all 24 matching editors. Existing owner/foreign/role/session
+denials and plain-text content regressions remain covered; no main-page or
+hydration errors were reported. New touch coverage supplements, rather than
+replaces, physical-device and assistive-technology testing.
+
+Thirty-two before and thirty-two after board screenshots, four comparison sheets,
+per-background rectangle measurements and complete browser/build logs remain under
+ignored `quality-reports/plan00016/`. Visual review of all four sheets and full-size
+mobile/desktop examples confirms smaller ordinary doors, readable numbers, visible
+selection/focus, exposed artwork and an irregular Random arrangement. The original
+grid's background cropping remains responsive; Random has a taller mobile canvas.
+Disposable database containers were removed automatically; existing development
+services, images and database volumes were preserved.
+
+The initial browser measurement run exposed frequent fallback on the shortest
+mobile canvas. Increasing the minimum canvas height to eleven ordinary door
+widths permits more scattered packing; a verified irregular reserve pattern also
+meets every geometry guarantee. Two browser assertions were corrected: distinct
+positions now retain subpixel precision, and preview waits for its loaded notice
+before keyboard selection. The original failed run is retained as
+`quality-reports/plan00016/layout-browser.log`.
+
+### Advisory health and regression review
+
+Application health improves **89.2 to 89.4 (+0.2)**. **Tooling health declines
+53.5 to 53.2 (-0.3)** because heuristic dead-code analysis marks the new
+`calendar-layout-assertions.mjs` helper as unused. It is directly imported and
+executed by the registered production layout scenarios; retaining the cohesive
+measurement/assertion helper keeps those scenarios readable. Caller review found
+no actual unused new code. No exclusions, scoring or analyzer settings changed.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Complexity score / share | 83.0 / 83.2; 12.3% / 12.1% | 55.9 / 56.4; 47.4% / 46.4% |
+| Maximum file complexity | 75 / 75 | 227 / 227 |
+| Duplication percentage | 0.652275% / 0.641026% | 0.154500% / 0.151324% |
+| Clones / duplicated lines | 10 / 10; 84 / 84 | 2 / 2; 12 / 12 |
+| Dead-code score / share | 88.7 / 89.0; 0.6% / 0.6% | 28.3 / 27.7; 16.5% / 16.7% |
+| Heuristic findings | 2 / 2 | 7 / 8 |
+| Dead-code analysis coverage | 38.7% / 39.8% | 96.3% / 96.4% |
+| Analyzed files / lines | 118 / 120; 12878 / 13104 | 49 / 51; 7767 / 7930 |
+
+jscpd **5.4.1**, configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`,
+measures identical application/tooling scopes on Windows. Baseline commit:
+`ec2207177eb20726b5c44602c6dcbccf0de36627`. Application source SHA-256 changes
+from `b4dd26e692252c9f412dfac3fcbf8618f7863c15215867ecbb4df55b4dbf6019`
+to `e42a5b17bdd129f4a343e05d9baba1341d115ae3aa16964840a03c6cbb0b2e35`;
+tooling changes from
+`176cff227b5d04e532bf959a3fdb7a17c16091f8758997dc379b7b8a1c9adf4e`
+to `bb8d0a9a148ac100de0f1e58ba1af7dbcd911a38368844aa82c00277e2acc1d8`.
+Lower duplication shares reflect larger denominators with unchanged absolute
+counts. Raw findings, source identities, MCP schemas/refresh/statistics and the
+whole-repository reference remain in ignored `quality-reports/health/`; working
+source evidence is separate from hook receipts and committed PR comparisons.
+Analysis remains partial and heuristic. Physical-device, screen-reader and
+native Linux/macOS coverage remain outside this Windows/Edge run.

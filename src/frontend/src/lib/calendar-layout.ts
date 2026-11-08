@@ -21,32 +21,32 @@ function overlaps(first: DoorRectangle, second: DoorRectangle) {
   );
 }
 
-// An irregular, verified reserve pattern in door-size units. The central gap
+// An irregular, verified reserve pattern in fractions of the available travel. The central gap
 // accommodates Christmas Eve even at the narrowest supported board width.
 const reservePositions = [
-  [0.04, 0.02],
-  [1.4, 0.06],
-  [2.76, 0],
-  [0, 1.34],
-  [1.38, 1.29],
-  [2.72, 1.37],
-  [4.12, 1.31],
-  [0.06, 2.62],
-  [1.42, 2.67],
-  [2.78, 2.6],
-  [4.08, 2.65],
-  [0.02, 3.94],
-  [4.14, 3.98],
-  [0.07, 5.25],
-  [1.39, 5.22],
-  [2.75, 5.28],
-  [4.1, 5.2],
-  [0.01, 6.56],
-  [1.43, 6.51],
-  [2.79, 6.59],
-  [4.13, 6.54],
-  [1.37, 7.8],
-  [2.73, 7.85],
+  [0.00965853, 0.09355525],
+  [0.28542764, 0.68583486],
+  [0.49976034, 0.81130242],
+  [0.40211876, 0.96765045],
+  [0.58574002, 0.13748762],
+  [0.81965323, 0.52295502],
+  [0.93950143, 0.85988639],
+  [0.46218217, 0.01609678],
+  [0.08899814, 0.87252936],
+  [0.02569514, 0.43433897],
+  [0.84379433, 0.98627394],
+  [0.85234431, 0.64619749],
+  [0.86382298, 0.17850663],
+  [0.97027629, 0.37704688],
+  [0.57291607, 0.35748362],
+  [0.97430605, 0.0057882],
+  [0.32943689, 0.18289593],
+  [0.00584615, 0.29228604],
+  [0.54674903, 0.65865207],
+  [0.01835199, 0.59041305],
+  [0.0252976, 0.72034894],
+  [0.05653791, 0.9927914],
+  [0.28749229, 0.33333598],
 ];
 
 function reserveLayout(order: readonly number[], width: number, height: number, size: number) {
@@ -57,7 +57,7 @@ function reserveLayout(order: readonly number[], width: number, height: number, 
       return { number, x: (width - enlarged) / 2, y: (height - enlarged) / 2, size: enlarged };
     }
     const [x, y] = reservePositions[index++];
-    return { number, x: (x / 4.14) * (width - size), y: (y / 7.85) * (height - size), size };
+    return { number, x: x * (width - size), y: y * (height - size), size };
   });
 }
 
@@ -67,7 +67,7 @@ export function scatteredLayout(
   candidateLimit = 240,
 ): CalendarGeometry {
   const size = Math.max(44, Math.min(78, width * 0.085));
-  const height = Math.max(width * 0.68, size * 9.3);
+  const height = Math.max(width * 0.68, size * 11);
   const random = seededRandom(order);
 
   // Retry a bounded number of complete packings, always reserving door 24 first.

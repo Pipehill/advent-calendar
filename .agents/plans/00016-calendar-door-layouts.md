@@ -112,7 +112,7 @@ None.
   Render chronological cells with smaller buttons and Random with scattered
   positioning. Update scoped surface/focus/selection CSS and preserve background
   rendering, selected-door behavior and administration/preview parity.
-- [ ] **3. Verify the complete experience and document it.** Extend the existing
+- [x] **3. Verify the complete experience and document it.** Extend the existing
   isolated browser scenarios in `tools/frontend/browser/` (the former single
   scenario file has been split by behavior).
   Update layout help in `src/frontend/messages/nb.json` and `en.json` if needed,
@@ -157,10 +157,25 @@ None.
 - The previous advisory baseline is preserved as
   `baseline-before-00016-20261108`; the new baseline was captured before edits.
 - Iteration 2: shared board integration, 70%-width chronological buttons,
-  translucent surface variants and opaque numeral backings with double-contrast
+  translucent surface variants and local numeral backings with double-contrast
   focus/selection. Deterministic initial geometry adapts through ResizeObserver
   without writes. All 146 frontend tests, Biome and the production Vite/Nitro build
   with explicit TypeScript pass. Existing production browser content/preview/
   language and narrow touch/keyboard scenarios pass; no hydration errors.
   MCP refreshed the saved directory before statistics. Final advisory comparison
   and full responsive geometry measurements remain in iteration 3.
+- Iteration 3: all 66 production browser scenarios plus eight smoke scenarios
+  pass, including six new layout scenarios covering actual target rectangles on
+  all four backgrounds at 320/375/768/1280px, stable refresh/preview/language and
+  resizing, zero implicit saves, keyboard focus and all 24 touch selections.
+  All 146 frontend tests, explicit TypeScript, production packaging, Biome and
+  full repository quality pass. All 64 before/after screenshots were reviewed via
+  four comparison sheets and full-size examples. Browser findings led to a taller
+  mobile canvas and a fully irregular verified reserve arrangement; initial test
+  failures and corrections are recorded in frontend verification.
+- Application health improves 89.2 to 89.4. Tooling health declines 53.5 to 53.2
+  because the analyzer misidentifies the imported measurement helper as unused;
+  callers were verified. Absolute duplication, existing complexity maxima and
+  application heuristic findings are unchanged. See
+  [frontend verification](../../src/frontend/verification.md#2026-11-08-scattered-calendar-layouts-plan-00016)
+  for complete metrics, identities, evidence and inherited coverage limitations.

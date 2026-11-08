@@ -123,7 +123,7 @@
   "calendar_layout": "Rekkefølge på lukene",
   "calendar_chronological": "Kronologisk",
   "calendar_random": "Tilfeldig",
-  "calendar_layout_help": "Velg Tilfeldig for å lagre en ny rekkefølge. Lukene beholder nummer og innhold.",
+  "calendar_layout_help": "Velg Tilfeldig for å lagre et spredt oppsett med en større julaftenluke nær midten. Lukene beholder nummer og innhold.",
   "calendar_empty_door": "Denne luken er tom.",
   "calendar_date": "{day}. desember {year}",
   "calendar_unsaved": "Du har endringer som ikke er lagret.",
