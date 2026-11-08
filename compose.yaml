@@ -23,6 +23,7 @@ services:
       dockerfile: src/backend/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      CalendarOpening__DisableTimeCheck: ${LOCAL_NO_TIME_CHECK:-false}
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__Calendar: >-
         Host=database;Database=advent;Username=advent;Password=local-development;Timeout=3;Command Timeout=5

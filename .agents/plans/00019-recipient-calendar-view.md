@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-08
 
+Implementation type: feature
+
 Let calendar users find their assigned calendars, open available doors and view
 their content through a hinged-door animation followed by a zoomed presentation.
 Persist opening history on the server. Add an explicit local startup flag that
@@ -237,7 +239,15 @@ additional user-confirmed product decisions. No new dependency is planned.
 
 ### Work steps
 
-- [ ] 1. Add backend availability policy and local flag plumbing, validation,
+The five steps below are separate implementation commits. Step 1 uses policy
+and launcher tests plus a backend build; step 2 uses migrated PostgreSQL API
+tests and contract generation; step 3 uses BFF tests and TypeScript; step 4 uses
+frontend checks and production browser interaction tests. Step 5 runs the full
+backend/frontend/browser/tooling, lint and advisory comparisons, followed by a
+committed-head regression review and draft PR. Work is isolated from plan 00020
+in an owner-approved worktree based on origin/main (43524dc).
+
+- [x] 1. Add backend availability policy and local flag plumbing, validation,
   startup documentation and focused boundary/launcher tests.
 - [ ] 2. Add the opening-history migration, dedicated recipient contracts,
   repository/service/controller operations and database-backed authorization,
@@ -251,6 +261,11 @@ additional user-confirmed product decisions. No new dependency is planned.
   Complete required quality checks and documentation before marking implemented.
 
 ## Verification
+
+Iteration 1: all 18 policy cases and 30 launcher cases pass; backend Release
+build and generated consumers pass. The captured worktree baseline preserves
+the main workspace's independent measurements. MCP refresh/statistics completed.
+Actual Compose mode/flag transitions are reserved for step 5.
 
 - Backend integration tests use actual migrations/PostgreSQL and controlled
   `TimeProvider` values immediately before, exactly at and after 07:00 Oslo.

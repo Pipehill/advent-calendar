@@ -127,7 +127,7 @@ test('Given no flags, When options are parsed, Then hot reload and build and tes
   const options = parseLocalOptions(args);
 
   // Then dev is the default and neither verification nor image builds are skipped.
-  assert.deepEqual(options, { frontend: 'dev', skipBuild: false, skipTest: false, help: false });
+  assert.deepEqual(options, { frontend: 'dev', skipBuild: false, skipTest: false, noTimeCheck: false, help: false });
 });
 
 for (const argument of ['--frontend=preview', '--skip-tests', '--frontend']) {

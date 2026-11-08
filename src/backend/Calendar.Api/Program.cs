@@ -29,6 +29,11 @@ if (args.Contains("--health-probe", StringComparer.Ordinal))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Reject nonlocal overrides before keys, migrations or readiness are initialized.
+var openingOptions = CalendarOpeningOptions.Read(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton(openingOptions);
+builder.Services.AddSingleton<CalendarOpeningPolicy>();
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options =>
 {
@@ -97,6 +102,8 @@ builder.Services.AddSingleton<MigrationState>();
 builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 var app = builder.Build();
+if (openingOptions.DisableTimeCheck)
+    ApiLog.LocalOpeningBypass(app.Logger);
 _ = app.Services.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>();
 var connectionString =
     app.Configuration.GetConnectionString("Calendar")

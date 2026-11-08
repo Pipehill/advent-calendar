@@ -71,6 +71,14 @@ hooks, full checks, reports, troubleshooting and the owner's merge-check setup.
 
 ## Run the application locally
 
+For local recipient testing, `./run-local.ps1 --no-time-check` or
+`bash run-local.sh --frontend=container --no-time-check` allows any populated
+door to open regardless of date. Empty doors and all authentication/assignment
+checks remain enforced. Restart without the flag to restore the normal December
+07:00 Europe/Oslo schedule. The backend is recreated when the option changes,
+including with `--skip-build`; stored calendars and opening history are retained.
+The option is rejected outside the backend's Development environment.
+
 After developer setup, build and test the backend, start the API and persistent
 PostgreSQL database in containers, and run the frontend with Vite hot reload:
 
