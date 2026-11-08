@@ -198,7 +198,7 @@ with the parallel plan 00019 worktree, which can use 0006. This branch applies 0
   Verify targeted user administration, lifecycle, concurrency and ordinary-password
   integration tests before committing this iteration.
   Completed: 56 targeted PostgreSQL integration cases, Release build, full quality
-  and MCP refresh pass. Application health 91.7 to 91.9; tooling stays 55.0.
+  and MCP refresh pass. Application health 91.7 to 91.9; tooling stays 55.1.
   Application duplication increases from 79 to 90 lines (9 to 10 clones), solely
   the required import/namespace declarations of the separate password lifecycle
   suite; no duplicated application logic was introduced. Tests retain temporary
@@ -211,12 +211,21 @@ with the parallel plan 00019 worktree, which can use 0006. This branch applies 0
   cover retained hashes/business bytes/failures, disabled/locked/expired accounts,
   normal/restricted cookie replay, session lifetimes, rollback and journal retry.
   Full quality found SQL literal casing, corrected and verified with SQLFluff;
-  all other full checks pass. Health is 92.0 / 55.0 with two new import-declaration
+  all other full checks pass. Health is 92.0 / 55.1 with two new import-declaration
   clones overall (101 duplicated application lines versus baseline 79).
-- [ ] 3. Update role-aware frontend labels/help, contract descriptions, generated
+- [x] 3. Update role-aware frontend labels/help, contract descriptions, generated
   consumers, account/login tests and affected browser fixtures.
   Verify generation, frontend/BFF tests, explicit TypeScript/build checks and
   production browser lifecycle/role-switching scenarios.
+  Completed: contract validation/generation, 206 frontend/BFF tests, explicit
+  TypeScript, production Vite/Nitro build, full lint and all 14 affected browser
+  scenarios pass. Both languages cover role switching, creation/reset, direct
+  ordinary login, voluntary change and retained administrator setup restrictions.
+  Browser fixture setup now sets language before navigation instead of racing
+  automatic/manual reloads; earlier interrupted runs were cleaned up. Production
+  dependency audit reports zero vulnerabilities. Application/tooling health is
+  92.0 / 55.6; tooling duplication stays at the baseline 12 lines / 2 clones after
+  extracting shared setup/reset-navigation helpers.
 - [ ] 4. Verify both role lifecycles, voluntary changes and the documented
   transition; update owning rules/docs and complete required quality checks.
   Run the complete backend/frontend/browser suites, full quality, advisory health

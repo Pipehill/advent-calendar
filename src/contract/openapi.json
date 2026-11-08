@@ -652,7 +652,7 @@
     "/users": {
       "post": {
         "operationId": "CreateUser",
-        "summary": "Create an account with a 30-minute temporary password; recent administrator verification required",
+        "summary": "Create an account; recent administrator verification required",
         "tags": [
           "users"
         ],
@@ -715,7 +715,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Calendar users receive permanent passwords and unrestricted login without a credential deadline. Calendar administrators receive temporary passwords valid for 30 minutes and must change them before ordinary use. Responsibility and role authorization are enforced by the backend."
       },
       "get": {
         "operationId": "ListUsers",
@@ -801,7 +802,7 @@
     "/users/{id}/reset-password": {
       "post": {
         "operationId": "ResetPassword",
-        "summary": "Issue a different temporary password for an authorized nonsuperadmin target",
+        "summary": "Replace the password of an authorized nonsuperadmin target",
         "tags": [
           "users"
         ],
@@ -868,7 +869,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "description": "The current backend-validated target role determines the credential lifecycle: a permanent password for a calendar user or a 30-minute temporary password with required change for a calendar administrator. The replacement must differ from the current password. Recent administrator verification is required; all target sessions are revoked and the actor session is retained."
       }
     },
     "/users/{id}/status": {

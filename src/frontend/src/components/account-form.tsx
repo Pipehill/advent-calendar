@@ -40,7 +40,7 @@ export function AccountForm({
   const [failure, setFailure] = useState('');
   const [needsVerification, setNeedsVerification] = useState(false);
   const submitting = useRef(false);
-  const { hasPassword, passwordForAdministrator, responsibilityNeeded, payload, validate } =
+  const { hasPassword, passwordGuidance, responsibilityNeeded, payload, validate } =
     accountFormModel(action, actorRole, target);
   const form = useForm({
     defaultValues: {
@@ -221,37 +221,36 @@ export function AccountForm({
               </>
             )}
             <form.Subscribe selector={(state) => state.values.role}>
-              {(role) => (
-                <>
-                  {responsibilityNeeded(role) && (
-                    <form.Field name="responsibleAdministratorId">
-                      {(input) => (
-                        <ResponsibleSelect
-                          context={context}
-                          excludeId={target?.id}
-                          value={input.state.value}
-                          onChange={input.handleChange}
-                          errors={input.state.meta.errors}
-                        />
-                      )}
-                    </form.Field>
-                  )}
-                  {action === 'role' &&
-                    target?.role === 'calendarAdmin' &&
-                    target.responsibleAdministratorId && <p>{m.admin_responsibility_fixed()}</p>}
-                  {hasPassword && (
-                    <>
-                      <p className="text-sm text-stone-600">
-                        {passwordForAdministrator(role)
-                          ? m.password_policy_admin()
-                          : m.password_policy_user()}
-                      </p>
-                      {field('password', m.admin_temporary_password(), 'password')}
-                      <p className="text-sm text-stone-600">{m.admin_handover()}</p>
-                    </>
-                  )}
-                </>
-              )}
+              {(role) => {
+                const guidance = passwordGuidance(role);
+                return (
+                  <>
+                    {responsibilityNeeded(role) && (
+                      <form.Field name="responsibleAdministratorId">
+                        {(input) => (
+                          <ResponsibleSelect
+                            context={context}
+                            excludeId={target?.id}
+                            value={input.state.value}
+                            onChange={input.handleChange}
+                            errors={input.state.meta.errors}
+                          />
+                        )}
+                      </form.Field>
+                    )}
+                    {action === 'role' &&
+                      target?.role === 'calendarAdmin' &&
+                      target.responsibleAdministratorId && <p>{m.admin_responsibility_fixed()}</p>}
+                    {hasPassword && (
+                      <>
+                        <p className="text-sm text-stone-600">{guidance.policy}</p>
+                        {field('password', guidance.label, 'password')}
+                        <p className="text-sm text-stone-600">{guidance.handover}</p>
+                      </>
+                    )}
+                  </>
+                );
+              }}
             </form.Subscribe>
             {action === 'reset' && <p>{m.admin_reset_effect()}</p>}
             {action === 'status' && (

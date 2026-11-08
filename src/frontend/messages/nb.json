@@ -20,7 +20,7 @@
   "login_introduction": "Logg inn med brukernavnet og passordet ditt.",
   "username_label": "Brukernavn",
   "password_label": "Passord",
-  "login_failed": "Kunne ikke logge inn. Kontroller opplysningene. Hvis et midlertidig passord har utløpt, kontakt administratoren din.",
+  "login_failed": "Kunne ikke logge inn. Kontroller opplysningene. Hvis en administrators midlertidige passord har utløpt, kontakt administratoren din.",
   "session_expired": "Økten er avsluttet. Logg inn på nytt.",
   "auth_rate_limit": "For mange forsøk. Vent litt før du prøver igjen.",
   "auth_unavailable": "Innloggingstjenesten er utilgjengelig. Prøv igjen senere.",
@@ -87,11 +87,11 @@
   "admin_enable": "Aktiver konto",
   "admin_promote": "Gjør til kalenderadministrator",
   "admin_demote": "Endre til kalenderbruker",
-  "admin_reset_effect": "Tilbakestilling avslutter alle mottakerens økter og erstatter tidligere midlertidige passord. Din egen økt beholdes.",
+  "admin_reset_effect": "Tilbakestilling avslutter alle mottakerens økter og erstatter det forrige passordet. Din egen økt beholdes.",
   "admin_disable_effect": "Deaktivering avslutter kontoens økter og hindrer innlogging. Deaktivering av en kalenderadministrator lar brukerne deres forbli aktiverte.",
   "admin_enable_effect": "Kontoen kan logge inn igjen med gyldig passord. Tidligere tilbakekalte økter forblir tilbakekalt.",
   "admin_promote_effect": "Handlingen krever et annet midlertidig passord som oppfyller administratorkravene, og avslutter alle mottakerens økter. Ansvaret forblir fast.",
-  "admin_demote_effect": "Dette avslutter mottakerens økter. Handlingen blokkeres så lenge vanlige brukere er tilknyttet. Et eksisterende ansvar kan ikke byttes ut.",
+  "admin_demote_effect": "Dette avslutter mottakerens økter. Mottakeren beholder passordet sitt og kan bruke det direkte. Handlingen blokkeres så lenge vanlige brukere er tilknyttet. Et eksisterende ansvar kan ikke byttes ut.",
   "admin_calendar_unavailable": "Oppretting av kalendere er ikke tilgjengelig ennå.",
   "calendar_refresh": "Oppdater kalendere",
   "calendar_name": "Kalendernavn",
@@ -150,5 +150,7 @@
   "calendar_image_too_large": "Bildet er for stort. Velg et JPEG- eller PNG-bilde på maksimalt 10 MB.",
   "calendar_image_invalid": "Bildet kunne ikke behandles. Velg et gyldig, stillestående JPEG- eller PNG-bilde. Bildet kan være maksimalt 10 000 piksler på hver side og 40 millioner piksler totalt. Utkastet er beholdt.",
   "calendar_image_processing": "Behandler og lagrer bildet …",
-  "calendar_image_load_failed": "Bildet kunne ikke lastes."
+  "calendar_image_load_failed": "Bildet kunne ikke lastes.",
+  "admin_user_password": "Mottakerens passord",
+  "admin_user_handover": "Overlever passordet privat til mottakeren etter å ha bekreftet identiteten. Mottakeren kan logge inn direkte og beholde passordet, eller bytte det senere. Passordet vises ikke igjen."
 }
