@@ -38,6 +38,14 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 {"layout":"random"}
 
+### Change recipient: another existing ordinary user assigned to this owner
+PUT {{baseUrl}}/calendars/{{calendarId}}/recipient
+Content-Type: application/json
+Cookie: {{sessionCookies}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"recipientId":"{{recipientId}}"}
+
 ### Invalid title: 400 with structured title field errors
 POST {{baseUrl}}/calendars
 Content-Type: application/json

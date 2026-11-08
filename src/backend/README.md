@@ -133,6 +133,14 @@ actor/session, ownership and recipient role/responsibility under security lock
 800008 in the committing transaction shared with account maintenance. No recent
 password check applies to calendar operations. Writes never retry automatically.
 
+Both calendar detail and list responses include `recipientName` and
+`recipientUsername`, read from the stored recipient account rather than inferred
+from a selectable-user list. `PUT /calendars/{id}/recipient` accepts `recipientId`
+and returns the updated calendar. Only the owner can assign an existing ordinary
+user under that owner's fixed responsibility, using the same recipient eligibility
+as creation. Validation and persistence share the security transaction; account
+responsibility, calendar ownership, doors and layout remain unchanged.
+
 ## Contract, build and tests
 
 Exact pins are committed in `global.json`, `.config/dotnet-tools.json`, project

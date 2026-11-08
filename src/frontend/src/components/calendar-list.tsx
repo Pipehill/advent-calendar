@@ -71,9 +71,15 @@ export function CalendarList({ context }: { context: RouterContext }) {
                         className="aspect-[3/2] w-full object-cover"
                         loading="lazy"
                       />
-                      <span className="block break-anywhere p-4 font-serif text-xl">
-                        {calendar.title}{' '}
-                        <span className="text-base text-stone-600">{calendar.year}</span>
+                      <span className="block break-anywhere p-4">
+                        <span className="block font-serif text-xl">
+                          {calendar.title}{' '}
+                          <span className="text-base text-stone-600">{calendar.year}</span>
+                        </span>
+                        <span className="mt-2 block text-sm text-stone-600">
+                          {m.calendar_recipient()}: {calendar.recipientName} (
+                          {calendar.recipientUsername})
+                        </span>
                       </span>
                     </Link>
                   </li>

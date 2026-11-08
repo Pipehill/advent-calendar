@@ -15,6 +15,7 @@ import {
   createCalendarInput,
   saveDoorInput,
   saveLayoutInput,
+  saveRecipientInput,
 } from '../lib/calendar-input';
 import {
   AdministrationFieldError,
@@ -35,6 +36,7 @@ import {
   readOwnedCalendar,
   saveOwnedDoor,
   saveOwnedLayout,
+  saveOwnedRecipient,
 } from './calendars';
 import { logRequest, type RequestContext } from './context';
 
@@ -128,6 +130,9 @@ export const appRouter = t.router({
     saveLayout: procedure
       .input(saveLayoutInput)
       .mutation(({ input, ctx }) => saveOwnedLayout(ctx, input)),
+    saveRecipient: procedure
+      .input(saveRecipientInput)
+      .mutation(({ input, ctx }) => saveOwnedRecipient(ctx, input)),
   }),
 });
 

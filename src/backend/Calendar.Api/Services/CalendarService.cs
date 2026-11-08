@@ -28,13 +28,7 @@ public sealed class CalendarService(
                 ValidateText(normalized, 1, 100, "title");
                 if (background is not ("woodland" or "sleigh" or "playtime" or "aurora"))
                     throw Invalid("background");
-                var recipient = await accounts.FindByIdAsync(recipientId);
-                if (
-                    recipient is null
-                    || recipient.Role != AccountRoles.User
-                    || recipient.ResponsibleAdministratorId != owner
-                )
-                    throw Invalid("recipientId");
+                var recipient = await RequireRecipientAsync(recipientId, owner);
                 var now = Now();
                 var year = TimeZoneInfo
                     .ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo"))
@@ -53,7 +47,9 @@ public sealed class CalendarService(
                     year,
                     background,
                     "chronological",
-                    Enumerable.Range(1, 24).ToArray()
+                    Enumerable.Range(1, 24).ToArray(),
+                    recipient.Name,
+                    recipient.UserName
                 );
                 await repository.InsertAsync(calendar);
                 return calendar;
@@ -126,6 +122,35 @@ public sealed class CalendarService(
             },
             cancellationToken
         );
+
+    public Task<CalendarModel> SaveRecipientAsync(
+        SessionIdentity? identity,
+        Guid id,
+        Guid recipientId,
+        CancellationToken cancellationToken
+    ) =>
+        transaction.RunAsync(
+            async () =>
+            {
+                var calendar = await FindOwnedAsync(identity, id);
+                await RequireRecipientAsync(recipientId, calendar.OwnerId);
+                await repository.SaveRecipientAsync(id, recipientId, Now());
+                return (await repository.GetAsync(id, calendar.OwnerId))!;
+            },
+            cancellationToken
+        );
+
+    private async Task<Account> RequireRecipientAsync(Guid recipientId, Guid ownerId)
+    {
+        var recipient = await accounts.FindByIdAsync(recipientId);
+        if (
+            recipient is null
+            || recipient.Role != AccountRoles.User
+            || recipient.ResponsibleAdministratorId != ownerId
+        )
+            throw Invalid("recipientId");
+        return recipient;
+    }
 
     private async Task<Guid> RequireOwnerAsync(SessionIdentity? identity)
     {

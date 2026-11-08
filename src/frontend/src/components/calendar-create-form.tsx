@@ -14,6 +14,7 @@ import {
 import type { RouterContext } from '../router';
 import { authError, backendFieldErrors, RequestFailure } from './auth-feedback';
 import { backgroundLabel } from './calendar-board';
+import { CalendarRecipientSelect } from './calendar-recipient-select';
 import { errorCode } from './error-state';
 import { Button, buttonStyles } from './ui/button';
 import { Input } from './ui/input';
@@ -112,28 +113,13 @@ export function CalendarCreateForm({ context }: { context: RouterContext }) {
       </form.Field>
       <form.Field name="recipientId">
         {(field) => (
-          <div className="space-y-2">
-            <label htmlFor="calendar-recipient">{m.calendar_recipient()}</label>
-            <select
-              id="calendar-recipient"
-              className="min-h-11 w-full rounded-xl border border-stone-300 bg-white p-3 focus-visible:outline-2 focus-visible:outline-emerald-800"
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.errors.length > 0}
-              aria-describedby="calendar-recipient-error"
-            >
-              <option value="">{m.calendar_choose_recipient()}</option>
-              {recipients.data.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.username})
-                </option>
-              ))}
-            </select>
-            <p id="calendar-recipient-error" className="text-sm text-red-800">
-              {field.state.meta.errors.length > 0 && m.calendar_invalid_field()}
-            </p>
-          </div>
+          <CalendarRecipientSelect
+            value={field.state.value}
+            recipients={recipients.data}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            invalid={field.state.meta.errors.length > 0}
+          />
         )}
       </form.Field>
       <form.Field name="background">

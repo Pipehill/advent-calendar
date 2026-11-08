@@ -1,6 +1,73 @@
 # Frontend verification
 
-Last updated: 2026-11-01
+Last updated: 2026-11-08
+
+## 2026-11-08: Calendar recipient identity and reassignment
+
+Owner calendar cards and administration now show the stored recipient's current
+name and username. Change recipient beside the identity opens an inline editor;
+the selector is initially hidden and loads eligible users only when opened.
+Save recipient commits and returns to the name; Cancel discards the selection
+and errors. Both restore focus to Change recipient, and the loaded selector
+receives focus on opening. Preview has no recipient-edit controls. The form
+reuses creation's assigned-user selector. Successful writes update
+the detail query and remove cached owner list/preview data; failures retain the
+stored identity and show localized field/operation errors. No dependency or
+database migration was introduced.
+
+All **124 frontend/BFF unit tests**, the production Vite/Nitro build with explicit
+TypeScript checking, frontend lint and .NET formatting/analyzers passed.
+The full Windows/Edge production browser run passed 58 of 60 scenarios, including
+the scenario invoking eight public/anonymous-denial smoke tests. Two test
+assumptions required correction: await completed preview navigation before
+checking edit-control absence, and scope repeated door submissions to the door
+form now that recipient editing adds another form. The focused rerun passed all
+three selected scenarios (recipient persistence/list refresh/preview/languages,
+rejected recipient field errors, and repeated door saves). No application change
+was needed for these test corrections. Mobile screenshot inspection confirmed
+the new controls and recipient text fit at 375 CSS pixels.
+
+The subsequent inline-editor refinement verified ten affected production browser
+scenarios: nine passed in the first run, and the remaining recipient scenario
+passed after its focus assertion waited for asynchronous options to load.
+Coverage includes collapsed/expanded state, cancel without a write, restored
+selection/focus, saved identity/list refresh, server field errors, Norwegian and
+English, unchanged creation forms and existing door editing/touch navigation.
+Updated screenshots were inspected for both collapsed and expanded mobile views.
+Recipient text, labels, dropdown and action buttons use 14px text; compact
+controls share a 36px minimum height with 44px targets for coarse pointers.
+Frontend lint, the 124 unit tests and the production build/type check passed;
+the unchanged backend was not rerun for this UI-only refinement.
+
+Advisory health uses jscpd 5.4.1 with unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`, comparing saved
+working-tree source against the preserved baseline at
+`5dde02421b70024fe03e8a143febd710fb19b8e9`.
+
+| Scope | Overall health | Duplication | Duplicated lines | Clones |
+| --- | --- | --- | --- | --- |
+| Application | 88.9 to 89.2 (+0.3) | 0.95037% to 1.30947% (+0.35910 pp) | 117 to 169 (+52) | 12 to 17 (+5) |
+| Tooling | 48.0 to 45.7 (-2.3) | 0.15760% to 0.15510% (-0.00250 pp) | 12 to 12 (0) | 2 to 2 (0) |
+
+**Tooling health regressed**, with complexity share rising from 48.3% to 53.1%
+and heuristic dead-code share from 20.9% to 22.2%. Added browser scenarios extend
+an existing module classified as unused despite its explicit suite registration;
+the unchanged seven tooling findings are heuristic. Application duplication also
+regressed: additional form error/submission patterns and transaction-lock test
+setup match existing code. The selector and recipient authorization rule are
+shared; further form/test infrastructure was not introduced solely to improve
+the score. Application/tooling authored source scopes and exclusions follow
+[advisory health](../../tools/quality/health.md); the whole-repository reference
+is retained in raw artifacts. These are working-tree measurements, not commit
+hook or PR merge evidence.
+
+Detailed input hashes, source manifests, tool schemas, clone locations and
+complexity/dead-code limitations remain in `quality-reports/health/` and
+`quality-reports/recipient-inline-health-final.log`. The feature's initial
+reports remain under `quality-reports/calendar-recipients-*` and refinement
+reports under `quality-reports/recipient-inline-*`. Browser logs retain the
+initial failures and successful focused rerun separately. Native macOS/Linux,
+Docker and the inherited Vite-dev language cases were not reverified.
 
 ## 2026-11-01: Plan 00015 calendar creation and owner administration
 

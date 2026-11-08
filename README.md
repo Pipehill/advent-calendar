@@ -28,6 +28,9 @@ the calendar period. They create calendars for assigned users with the current
 Europe/Oslo year, choose one of four original backgrounds, and save door titles,
 messages and chronological/random arrangements. Random arrangements remain stable
 across visits. Recipient access, content moves and invitation behavior remain future work.
+The administrator sees the recipient's name and username on calendar cards and
+the administration page, and can explicitly save another assigned calendar user
+as recipient while editing, preserving the calendar's content and arrangement.
 
 Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
 so children can open them in the morning. Earlier doors will remain available

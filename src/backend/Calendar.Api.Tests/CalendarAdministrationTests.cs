@@ -388,6 +388,10 @@ public sealed class CalendarAdministrationTests(ApiFixture fixture)
             ),
             await caller.PutAsJsonAsync(path + "/doors/1", new { title = "No", text = "No" }),
             await caller.PutAsJsonAsync(path + "/layout", new { layout = "random" }),
+            await caller.PutAsJsonAsync(
+                path + "/recipient",
+                new { recipientId = context.Recipient.Id }
+            ),
         };
 
         // Then no operation grants calendar authority and every response is no-store.
@@ -432,6 +436,12 @@ public sealed class CalendarAdministrationTests(ApiFixture fixture)
             path + "/layout",
             new { layout = "random" }
         );
+        var assignment = await SendAsync(
+            caller,
+            HttpMethod.Put,
+            path + "/recipient",
+            new { recipientId = recipient.Id }
+        );
         var create = await SendAsync(
             context.Client,
             HttpMethod.Post,
@@ -449,6 +459,7 @@ public sealed class CalendarAdministrationTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.NotFound, read.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, edit.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, layout.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, assignment.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
         Assert.Empty(list.Calendars);
         Assert.Equal(0, list.TotalCount);
@@ -487,6 +498,10 @@ public sealed class CalendarAdministrationTests(ApiFixture fixture)
             await context.Client.PutAsJsonAsync(
                 $"/calendars/{calendar.Id}/layout",
                 new { layout = "random" }
+            ),
+            await context.Client.PutAsJsonAsync(
+                $"/calendars/{calendar.Id}/recipient",
+                new { recipientId = context.Recipient.Id }
             ),
         };
 

@@ -36,4 +36,10 @@ public interface ICalendarService
         string layout,
         CancellationToken cancellationToken
     );
+    Task<CalendarModel> SaveRecipientAsync(
+        SessionIdentity? identity,
+        Guid id,
+        Guid recipientId,
+        CancellationToken cancellationToken
+    );
 }

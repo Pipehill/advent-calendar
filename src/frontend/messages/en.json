@@ -96,6 +96,8 @@
   "calendar_refresh": "Refresh calendars",
   "calendar_name": "Calendar name",
   "calendar_recipient": "Recipient",
+  "calendar_save_recipient": "Save recipient",
+  "calendar_change_recipient": "Change recipient",
   "calendar_choose_recipient": "Choose a user",
   "calendar_background": "Background",
   "calendar_woodland": "Woodland Christmas",

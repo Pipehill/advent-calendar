@@ -1181,6 +1181,83 @@
           }
         }
       }
+    },
+    "/calendars/{id}/recipient": {
+      "put": {
+        "operationId": "UpdateRecipient",
+        "summary": "Assign an owned calendar to another calendar user under the same administrator",
+        "tags": [
+          "calendars"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted owner calendar",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRecipientRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1322,7 +1399,9 @@
           "ownerId",
           "layout",
           "doorOrder",
-          "doors"
+          "doors",
+          "recipientName",
+          "recipientUsername"
         ],
         "properties": {
           "id": {
@@ -1391,6 +1470,16 @@
             "items": {
               "$ref": "#/components/schemas/DoorDto"
             }
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "recipientUsername": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
           }
         }
       },
@@ -1784,7 +1873,9 @@
           "year",
           "background",
           "createdAt",
-          "lastModifiedAt"
+          "lastModifiedAt",
+          "recipientName",
+          "recipientUsername"
         ],
         "properties": {
           "id": {
@@ -1822,6 +1913,16 @@
           "lastModifiedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "recipientUsername": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
           }
         }
       },
@@ -1845,6 +1946,19 @@
             "format": "int32",
             "minimum": 0,
             "maximum": 2147483647
+          }
+        }
+      },
+      "UpdateRecipientRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recipientId"
+        ],
+        "properties": {
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       }

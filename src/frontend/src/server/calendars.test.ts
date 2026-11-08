@@ -17,6 +17,32 @@ const context = () =>
   );
 afterEach(() => vi.restoreAllMocks());
 
+test('Given an owner selecting another recipient, When the change is saved, Then only the recipient ID is written and refreshed display metadata is returned', async () => {
+  // Given a validated owner and the updated calendar returned by the backend.
+  const calendar = {
+    id,
+    recipientId: recipient,
+    recipientName: 'Ærlig Ørn',
+    recipientUsername: 'orn',
+  };
+  const request = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(Response.json(session()))
+    .mockResolvedValueOnce(Response.json(calendar));
+
+  // When the BFF forwards an explicit recipient mutation.
+  const result = await appRouter.createCaller(context()).calendar.saveRecipient({
+    id,
+    recipientId: recipient,
+  });
+
+  // Then the generated contract preserves the field and uses the dedicated write endpoint.
+  expect(result).toEqual(calendar);
+  expect(String(request.mock.calls[1][0])).toContain(`/calendars/${id}/recipient`);
+  expect(request.mock.calls[1][1]?.method).toBe('PUT');
+  expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toEqual({ recipientId: recipient });
+});
+
 function operation(caller: ReturnType<typeof appRouter.createCaller>, name: string) {
   if (name === 'create')
     return caller.calendar.create({
@@ -27,13 +53,14 @@ function operation(caller: ReturnType<typeof appRouter.createCaller>, name: stri
   if (name === 'door')
     return caller.calendar.saveDoor({ id, number: 24, title: 'Gift', text: 'Plain\ntext' });
   if (name === 'layout') return caller.calendar.saveLayout({ id, layout: 'random' });
+  if (name === 'recipient') return caller.calendar.saveRecipient({ id, recipientId: recipient });
   if (name === 'preview') return caller.calendar.preview({ id });
   if (name === 'recipients') return caller.calendar.recipients();
   if (name === 'list') return caller.calendar.list({ offset: 0, limit: 12 });
   return caller.calendar.get({ id });
 }
 
-test.each(['create', 'door', 'layout', 'preview', 'get', 'recipients', 'list'])(
+test.each(['create', 'door', 'layout', 'recipient', 'preview', 'get', 'recipients', 'list'])(
   'Given an anonymous caller, When calendar %s is invoked, Then no privileged backend operation follows session rejection',
   async (name) => {
     // Given a backend rejecting the absent or revoked session.
@@ -61,8 +88,8 @@ test.each(['superadmin', 'calendarUser', 'restricted'])(
 
     // When all direct BFF operations are attempted.
     const results = await Promise.allSettled(
-      ['create', 'door', 'layout', 'preview', 'get', 'recipients', 'list'].map((name) =>
-        operation(caller, name),
+      ['create', 'door', 'layout', 'recipient', 'preview', 'get', 'recipients', 'list'].map(
+        (name) => operation(caller, name),
       ),
     );
 
@@ -111,7 +138,7 @@ test('Given more than one page of assigned users, When recipients are loaded, Th
   expect(String(request.mock.calls[2][0])).toContain('offset=100');
 });
 
-test.each(['create', 'door', 'layout'])(
+test.each(['create', 'door', 'layout', 'recipient'])(
   'Given a backend failure, When calendar %s writes, Then the BFF sends one write and preserves its structured error',
   async (name) => {
     // Given a validated owner followed by an unavailable backend mutation.

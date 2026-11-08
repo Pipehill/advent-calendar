@@ -4,6 +4,7 @@ import {
   doorContentInput,
   saveDoorInput,
   saveLayoutInput,
+  saveRecipientInput,
 } from './calendar-input';
 
 const id = '00000000-0000-4000-8000-000000000001';
@@ -77,6 +78,10 @@ test('Given caller-controlled identity or an invalid layout, When calendar reque
     createCalendarInput.safeParse(creation),
     saveDoorInput.safeParse({ id, number: 25, title: '', text: '' }),
     saveLayoutInput.safeParse({ id, layout: 'shuffle-on-read' }),
+    saveRecipientInput.safeParse({ id, recipientId: 'not-a-uuid' }),
+    saveRecipientInput.safeParse({ id, recipientId: id, ownerId: id }),
+    saveRecipientInput.safeParse({ id, recipientId: null }),
+    saveRecipientInput.safeParse({ id }),
   ];
 
   // Then no invalid request is accepted.

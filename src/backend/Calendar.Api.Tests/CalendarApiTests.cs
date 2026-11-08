@@ -320,7 +320,9 @@ public sealed class CalendarApiTests(ApiFixture fixture)
             dto.Year,
             "woodland",
             "chronological",
-            dto.DoorOrder.ToArray()
+            dto.DoorOrder.ToArray(),
+            dto.RecipientName,
+            dto.RecipientUsername
         );
 
         // When insertion is attempted within the shared transaction.

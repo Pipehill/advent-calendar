@@ -41,8 +41,10 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                 SELECT c.id, c.title, c.created_at AS CreatedAt, c.last_modified_at AS LastModifiedAt,
                     c.owner_id AS OwnerId, c.recipient_id AS RecipientId, c.calendar_year AS Year,
                     c.background, c.layout, c.door_order AS DoorOrder,
+                    recipient.name AS RecipientName, recipient.user_name AS RecipientUsername,
                     d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text
                 FROM calendars c JOIN doors d ON d.calendar_id = c.id
+                JOIN accounts recipient ON recipient.id = c.recipient_id
                 WHERE c.id = @Id AND c.owner_id = @OwnerId ORDER BY d.day_number
                 """,
                 new { Id = id, OwnerId = ownerId }
@@ -62,7 +64,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             first.Year,
             first.Background,
             first.Layout,
-            first.DoorOrder
+            first.DoorOrder,
+            first.RecipientName,
+            first.RecipientUsername
         );
     }
 
@@ -77,10 +81,12 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         var calendars = (
             await transaction.QueryAsync<CalendarSummary>(
                 """
-                SELECT id, title, recipient_id AS RecipientId, calendar_year AS Year, background,
-                    created_at AS CreatedAt, last_modified_at AS LastModifiedAt
-                FROM calendars WHERE owner_id = @OwnerId
-                ORDER BY created_at DESC, id OFFSET @Offset LIMIT @Limit
+                SELECT c.id, c.title, c.recipient_id AS RecipientId, c.calendar_year AS Year,
+                    c.background, c.created_at AS CreatedAt, c.last_modified_at AS LastModifiedAt,
+                    recipient.name AS RecipientName, recipient.user_name AS RecipientUsername
+                FROM calendars c JOIN accounts recipient ON recipient.id = c.recipient_id
+                WHERE c.owner_id = @OwnerId
+                ORDER BY c.created_at DESC, c.id OFFSET @Offset LIMIT @Limit
                 """,
                 parameters
             )
@@ -139,6 +145,22 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             }
         );
 
+    public async Task SaveRecipientAsync(Guid id, Guid recipientId, DateTimeOffset modified)
+    {
+        await transaction.ExecuteAsync(
+            """
+            UPDATE calendars SET recipient_id = @RecipientId, last_modified_at = @Modified
+            WHERE id = @Id
+            """,
+            new
+            {
+                Id = id,
+                RecipientId = recipientId,
+                Modified = modified,
+            }
+        );
+    }
+
     private sealed class CalendarRow
     {
         public Guid Id { get; init; }
@@ -147,6 +169,8 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         public DateTime LastModifiedAt { get; init; }
         public Guid OwnerId { get; init; }
         public Guid RecipientId { get; init; }
+        public string RecipientName { get; init; } = string.Empty;
+        public string RecipientUsername { get; init; } = string.Empty;
         public int Year { get; init; }
         public string Background { get; init; } = string.Empty;
         public string Layout { get; init; } = string.Empty;

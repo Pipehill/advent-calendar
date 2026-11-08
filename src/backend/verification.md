@@ -1,5 +1,28 @@
 # Backend verification
 
+## 2026-11-08: Recipient identity and owner-controlled reassignment
+
+Calendar detail/list contracts now include `recipientName` and
+`recipientUsername` from the stored account association. The new
+`PUT /calendars/{id}/recipient` operation uses the existing owner/session checks
+and creation's recipient role/responsibility validation inside security
+transaction lock 800008. A reassignment preserves calendar ownership, creation
+time, year, background, doors/content and saved layout, while updating recipient
+and modification time. Account responsibility is unchanged.
+
+All **221 backend tests** passed on Windows/Podman with isolated PostgreSQL,
+including ten new recipient tests and expanded ownership, CSRF and unauthorized
+session cases. Coverage includes display metadata after create/read/list/update,
+foreign/nonexistent/administrator recipients, malformed/missing/null/extra input,
+and concurrent actor disablement or target promotion before commit. Release
+solution/fixture builds, authored OpenAPI validation, C#/TypeScript generation
+and read-only .NET formatting/analyzers passed. OpenAPI validation retains its
+four inherited warnings. No migration or package change was needed.
+
+Logs are retained under `quality-reports/calendar-recipients-*`. Frontend/browser
+evidence, advisory health regressions and coverage limits are recorded in
+[frontend verification](../frontend/verification.md#2026-11-08-calendar-recipient-identity-and-reassignment).
+
 ## 2026-10-25: Plan 00013 verification error contract
 
 The optional authored ProblemDetails `verificationRequired` boolean identifies

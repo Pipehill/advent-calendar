@@ -24,7 +24,7 @@ Plan 00013 extends those pages with dedicated account creation, scoped administr
 lists, password reset, status/role maintenance and recoverable recent verification.
 Recipient calendar authorization/opening and
 [database hardening in plan 00009](../plans/00009-database-hardening.md) must be
-completed and verified before production. Recipient opening, reassignment and
+completed and verified before production. Recipient opening and
 content-move rules below remain requirements for that follow-up. Plan 00015
 delivers owner creation, preparation and preview; do not attribute calendar
 behavior to plan 00008.
@@ -187,8 +187,16 @@ behavior to plan 00008.
 - Keep the landing page public and require authentication for calendar use.
   Each calendar has one recipient account; a recipient can access multiple assigned
   calendars. Creation assigns one existing `calendarUser` under the acting
-  calendaradmin's fixed responsibility. Recipient viewing/opening, reassignment
+  calendaradmin's fixed responsibility. Recipient viewing/opening
   and invitation behavior remain separate work.
+  Calendar owners can explicitly change the calendar recipient to another
+  existing ordinary user under that same responsibility. Recheck ownership,
+  actor/session and target role/responsibility in the committing security
+  transaction shared with account maintenance. Apply the same eligibility as
+  creation. Preserve doors, layout, year and ownership; update modification time.
+  List/detail responses include the stored recipient's current name and username,
+  even when that account is no longer selectable as an ordinary user. This does
+  not reassign account responsibility or grant recipient viewing/opening access.
   Do not retain the former public email-registration/invitation-membership flow
   as an approved design or assume an invitation grants identity/admin privileges.
 - Let calendaradmins manage calendars they own. Enforce ownership and assigned
