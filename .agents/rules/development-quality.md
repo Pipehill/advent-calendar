@@ -63,24 +63,53 @@ manual CI dispatch remain available. The protected-branch guard still applies.
    evidence and measurement limitations.
    Keep actual old/new values and deltas, duplication percentages, absolute clone/
    line counts, scope, input identity, tool version and configuration with reports.
-5. When a PR is authorized, fetch its target and regenerate the application,
-   tooling and whole-repository reference merge
-   comparison after each head/base change. GitHub Actions publishes Code health in
-   the same comment as MegaLinter; the PR body retains Description and Local QA.
-   Keep stale/conflicting evidence unavailable. Use the compact comment layout:
-   commit identity above metrics, separate complexity and dead-code findings tables,
-   and detailed explanations/limitations in report artifacts.
-   Preserve the description when updating generated sections; these commands do
-   not authorize publishing a PR.
+5. Before the first push/PR publication and before pushing any later PR update,
+   perform the pre-publication review below. Regenerate it after every head/base
+   change. GitHub Actions publishes Code health in the same comment as MegaLinter;
+   the PR body retains Description and Local QA. Keep stale/conflicting evidence
+   unavailable. Use the compact comment layout: commit identity above metrics,
+   separate complexity and dead-code findings tables, and detailed explanations
+   and limitations in report artifacts. Preserve the description when updating
+   generated sections; these commands do not authorize publishing a PR.
 
-Investigate every introduced regression before accepting the final change. Inspect
-new clone locations and complexity hotspots, consolidate repeated mechanisms within
-architecture boundaries, and split growing test suites by behavior while preserving
-coverage and isolation. Passing tests, additional coverage or a better overall score
-do not by themselves justify avoidable duplication or complexity. Check heuristic
-dead-code findings against real callers; correct test/module organization when
-appropriate without changing scoring, scope or exclusions to improve the report.
-Document any remaining behavior-driven tradeoff only after these corrections.
+## Pre-publication regression review
+
+Run this review automatically without waiting for the user to request a PR review.
+It applies to every code/configuration PR, including direct fixes outside a plan
+and updates whose latest commit contains only Markdown. Only a completely
+Markdown-only PR receives the shared exception.
+
+1. Finish edits and required verification, then commit with hooks enabled. Rebuild
+   and rerun affected tests after any subsequent source cleanup, including imports;
+   earlier build output does not verify the final saved source.
+2. Fetch the actual PR target and run
+   `node tools/quality/health.mjs pr <target-ref> HEAD` on the final committed head,
+   using `origin/main` for the usual target. Measure application, tooling and the
+   whole-repository reference with identical analyzer version, settings, scope and
+   platform for both sides. Do not compare Windows absolute scores with Linux ones.
+3. Read the comparison and raw findings before publishing. Inspect every regressed
+   metric independently: overall health, dimension scores/shares, duplication
+   percentage, absolute duplicated lines/clones, complexity hotspots and heuristic
+   dead-code findings. A better overall score must not hide a contributing decline;
+   a lower percentage must not hide growing absolute counts. Missing/failed or
+   mismatched evidence remains unavailable and requires investigation.
+4. Trace introduced regressions to changed source, verify callers and heuristic
+   findings, and correct avoidable duplication, complexity or unused code within
+   the agreed architecture. Preserve behavior and test coverage. Do not accept a
+   regression merely because tests pass, more coverage was added, or the number
+   seems small. Do not change exclusions, scoring or test names solely to improve
+   metrics. Split growing test suites by behavior when this improves maintenance.
+   Record concrete behavior-driven tradeoffs only when the remaining
+   increase is necessary after investigating reasonable corrections.
+5. After corrections, repeat relevant tests/builds, full final quality checks and
+   committed-head comparison. Continue until no avoidable regressions remain;
+   do not leave them for the user's PR review. Verify target/head identities and
+   regenerate Local QA with `node tools/quality/pr-report.mjs` before publishing.
+   After publication, inspect CI and its health evidence, resolve new failures or
+   regressions, and repeat the review for any further correction.
+
+This is required agent review and corrective work. Scores remain advisory, with
+no numeric minimum, automatic score-based merge gate or new user-approval step.
 
 An overall decline and contributing regressions must remain prominent even when
 other metrics improve. Added complexity can support required behavior; document
