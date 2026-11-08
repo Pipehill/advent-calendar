@@ -7,6 +7,7 @@
 - [x] Add frontend user administration; implemented in
   [plan 00013](00013-user-administration.md).
 - [ ] Let superadmins view a list of all calendars.
+- [ ] Let calendaradmins upload an image to a calendar door.
 - [x] Let calendaradmins view a list of their own calendars; implemented in
   [plan 00015](00015-create-calendars.md).
 - [ ] Add recipient calendar lists/viewing and enable calendar users to open doors
