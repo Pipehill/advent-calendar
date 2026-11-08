@@ -2,12 +2,16 @@ import handler from '@tanstack/react-start/server-entry';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { paraglideMiddleware } from './generated/paraglide/server.js';
 import { createContext, requestContexts } from './server/context';
+import { protectTrpcBody } from './server/request-body';
 import { appRouter } from './server/trpc';
 
 export default {
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/api/trpc/')) {
+      const bounded = await protectTrpcBody(request);
+      if (bounded instanceof Response) return bounded;
+      request = bounded;
       const context = createContext(request);
       const response = await fetchRequestHandler({
         endpoint: '/api/trpc',

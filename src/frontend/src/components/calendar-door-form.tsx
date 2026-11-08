@@ -1,6 +1,6 @@
 import { useForm } from '@tanstack/react-form';
 import { Save } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CalendarDto, DoorDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
@@ -8,6 +8,8 @@ import { doorContentInput } from '../lib/calendar-input';
 import type { RouterContext } from '../router';
 import { authError, backendFieldErrors } from './auth-feedback';
 import { calendarFieldErrors, validateCalendarForm } from './calendar-form-validation';
+import { SavedDoorImage } from './door-image';
+import { DoorImagePicker, imageFileData } from './door-image-picker';
 import { errorCode } from './error-state';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,15 +20,26 @@ export function CalendarDoorForm({
   context,
   id,
   door,
+  scope,
   saved,
 }: {
   context: RouterContext;
   id: string;
   door: DoorDto;
+  scope: string;
   saved: (calendar: CalendarDto) => void;
 }) {
   const [feedback, setFeedback] = useState('');
   const [failure, setFailure] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [imageAction, setImageAction] = useState<'keep' | 'replace' | 'remove'>('keep');
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const form = useForm({
     defaultValues: { title: door.title, text: door.text },
     validators: {
@@ -36,16 +49,35 @@ export function CalendarDoorForm({
       setFeedback('');
       setFailure('');
       try {
-        const calendar = await context.auth.saveDoor({ id, number: door.number, ...value });
+        const imageData = file ? await imageFileData(file) : undefined;
+        if (!active.current) return;
+        const calendar = await context.auth.saveDoor({
+          id,
+          number: door.number,
+          ...value,
+          imageAction,
+          imageData,
+        });
+        if (!active.current) return;
         saved(calendar);
         formApi.reset(value);
+        setFile(null);
+        setImageAction('keep');
         setFeedback(m.calendar_saved());
       } catch (error) {
+        if (!active.current) return;
         if (errorCode(error) === 'UNAUTHORIZED') return leaveSession(context, '/login');
         formApi.setErrorMap({
           onSubmit: calendarFieldErrors(Object.keys(backendFieldErrors(error))),
         });
-        setFailure(`${m.calendar_save_failed()} ${authError(error)}`);
+        const imageError = Object.keys(backendFieldErrors(error)).some((field) =>
+          field.startsWith('image'),
+        );
+        const message =
+          imageError && errorCode(error) !== 'PAYLOAD_TOO_LARGE'
+            ? m.calendar_image_invalid()
+            : authError(error);
+        setFailure(`${m.calendar_save_failed()} ${message}`);
       }
     },
   });
@@ -74,6 +106,35 @@ export function CalendarDoorForm({
           </div>
         )}
       </form.Field>
+      <form.Subscribe selector={(state) => [state.isSubmitting, state.values.title] as const}>
+        {([pending, title]) => (
+          <>
+            {imageAction === 'keep' && (
+              <SavedDoorImage
+                context={context}
+                id={id}
+                door={door}
+                mode="owner-edit"
+                scope={scope}
+              />
+            )}
+            <DoorImagePicker
+              file={file}
+              hasImage={!!file || (imageAction === 'keep' && !!door.image)}
+              pending={pending}
+              title={title}
+              failed={setFailure}
+              changed={(selected) => {
+                setFile(selected);
+                setImageAction(selected ? 'replace' : 'remove');
+                setFeedback('');
+                setFailure('');
+              }}
+            />
+            {pending && file && <p role="status">{m.calendar_image_processing()}</p>}
+          </>
+        )}
+      </form.Subscribe>
       <form.Field name="text">
         {(field) => (
           <div className="space-y-2">
@@ -108,7 +169,9 @@ export function CalendarDoorForm({
               <Save aria-hidden="true" />
               {pending ? m.auth_pending() : m.calendar_save()}
             </Button>
-            {dirty && <p className="text-sm text-stone-600">{m.calendar_unsaved()}</p>}
+            {(dirty || imageAction !== 'keep') && (
+              <p className="text-sm text-stone-600">{m.calendar_unsaved()}</p>
+            )}
           </div>
         )}
       </form.Subscribe>

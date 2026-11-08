@@ -21,6 +21,12 @@ function PreviewPage() {
   return failure ? (
     <ErrorState code={failure} />
   ) : (
-    <CalendarWorkspace context={context} id={id} expiresAt={session.expiresAt} mode={mode} />
+    <CalendarWorkspace
+      context={context}
+      id={id}
+      expiresAt={session.expiresAt}
+      scope={session.cacheScope}
+      mode={mode}
+    />
   );
 }

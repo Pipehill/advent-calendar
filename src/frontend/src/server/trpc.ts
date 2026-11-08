@@ -13,6 +13,7 @@ import {
   calendarIdInput,
   calendarPageInput,
   createCalendarInput,
+  doorImageInput,
   saveDoorInput,
   saveLayoutInput,
   saveRecipientInput,
@@ -34,6 +35,7 @@ import {
   createOwnedCalendar,
   listOwnedCalendars,
   listSystemCalendars,
+  readDoorImage,
   readOwnedCalendar,
   readSystemPreview,
   saveOwnedDoor,
@@ -113,6 +115,7 @@ export const appRouter = t.router({
       .mutation(({ ctx, input }) => changeAccountRole(ctx, input)),
   }),
   calendar: t.router({
+    image: procedure.input(doorImageInput).query(({ input, ctx }) => readDoorImage(ctx, input)),
     systemList: procedure
       .input(calendarPageInput)
       .query(({ input, ctx }) => listSystemCalendars(ctx, input)),

@@ -21,6 +21,11 @@ function AdministrationPage() {
   return failure ? (
     <ErrorState code={failure} />
   ) : (
-    <CalendarWorkspace context={context} id={id} expiresAt={session.expiresAt} />
+    <CalendarWorkspace
+      context={context}
+      id={id}
+      expiresAt={session.expiresAt}
+      scope={session.cacheScope}
+    />
   );
 }

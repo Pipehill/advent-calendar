@@ -12,6 +12,7 @@ import { authError } from './auth-feedback';
 import { CalendarBoard } from './calendar-board';
 import { CalendarDoorForm } from './calendar-door-form';
 import { CalendarRecipientForm } from './calendar-recipient-form';
+import { SavedDoorImage } from './door-image';
 import { ErrorState, errorCode } from './error-state';
 import { SessionControls } from './session-controls';
 import { Button, buttonStyles } from './ui/button';
@@ -35,11 +36,13 @@ export function CalendarWorkspace({
   context,
   id,
   expiresAt,
+  scope,
   mode = 'owner-edit',
 }: {
   context: RouterContext;
   id: string;
   expiresAt: string;
+  scope: string;
   mode?: CalendarMode;
 }) {
   const preview = mode !== 'owner-edit';
@@ -53,6 +56,10 @@ export function CalendarWorkspace({
   const update = (calendar: CalendarDto) => {
     context.queryClient.setQueryData(context.trpc.calendar.get.queryKey({ id }), calendar);
     context.queryClient.removeQueries({ queryKey: context.trpc.calendar.preview.queryKey({ id }) });
+    context.queryClient.removeQueries({
+      queryKey: context.trpc.calendar.image.queryKey(),
+      type: 'inactive',
+    });
   };
   const changeLayout = async (layout: 'chronological' | 'random') => {
     if (layoutBusy.current) return;
@@ -192,14 +199,24 @@ export function CalendarWorkspace({
           {preview ? (
             <div className="break-anywhere whitespace-pre-wrap">
               <h3 className="mb-3 font-serif text-xl">{door.title}</h3>
-              <p>{door.text || m.calendar_empty_door()}</p>
+              <SavedDoorImage
+                key={`${scope}:${selected}:${door.image?.version}`}
+                context={context}
+                id={id}
+                door={door}
+                mode={mode}
+                scope={scope}
+              />
+              {door.text && <p className="mt-3">{door.text}</p>}
+              {!door.title && !door.text && !door.image && <p>{m.calendar_empty_door()}</p>}
             </div>
           ) : (
             <CalendarDoorForm
-              key={`${id}:${selected}`}
+              key={`${scope}:${id}:${selected}`}
               context={context}
               id={id}
               door={door}
+              scope={scope}
               saved={update}
             />
           )}

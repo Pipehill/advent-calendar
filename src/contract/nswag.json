@@ -13,7 +13,8 @@
       "dateTimeType": "String",
       "operationGenerationMode": "SingleClientFromOperationId",
       "useAbortSignal": true,
-      "output": "../frontend/src/generated/backend.ts"
+      "output": "../frontend/src/generated/backend.ts",
+      "nullValue": "Null"
     },
     "openApiToCSharpController": {
       "className": "{controller}",

@@ -1830,7 +1830,8 @@
                 "$ref": "#/components/schemas/DoorImageMetadataDto"
               }
             ],
-            "type": "object"
+            "type": "object",
+            "additionalProperties": false
           }
         }
       },

@@ -213,9 +213,20 @@ Each step is one implementation iteration and commit, following
   added 11-line clone is standard integration-test imports/namespace/collection
   structure, retained for readable, independently discoverable tests. Tooling
   remains 54.1. Production HTTP/body-limit/browser evidence follows steps 3–4.
-- [ ] **3. Integrate BFF and editor/preview.** Add strict inputs, body-size limits,
+- [x] **3. Integrate BFF and editor/preview.** Add strict inputs, body-size limits,
   error translation, scoped image queries and the localized common-save flow.
   Verify focused frontend/BFF cases, types, build and production browser behavior.
+  All 191 frontend/BFF tests, explicit TypeScript, production Vite/Nitro build,
+  Biome and saved-source custom checks pass. Five production browser scenarios
+  verify PNG/JPEG, all three modes, common-save lifecycle, retained invalid drafts,
+  object-URL cleanup, language/keyboard behavior and 320/1280px aspect ratio.
+  Image query scope now comes from validated SSR loader data, rather than mutable
+  server context that is not hydrated into the browser. NSwag's TypeScript null
+  policy is explicitly `Null`, matching the backend's required nullable image
+  metadata; no generated files are edited. Streamed and declared aggregate tRPC
+  body limits have focused tests, including the exact 14,000,000-byte boundary.
+  Application/tooling health is 91.6/54.7. Absolute application clones add four
+  lines overall (standard integration-test headers replace a removed form clone).
 - [ ] **4. Complete verification and documentation.** Run applicable generation,
   tests, builds, production browser scenarios and the shared quality/health
   workflow. Update owning documentation and HTTP examples, record actual evidence
