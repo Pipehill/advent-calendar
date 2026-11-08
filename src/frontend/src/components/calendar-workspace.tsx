@@ -9,6 +9,7 @@ import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
 import { CalendarBoard } from './calendar-board';
 import { CalendarDoorForm } from './calendar-door-form';
+import { CalendarRecipientForm } from './calendar-recipient-form';
 import { ErrorState, errorCode } from './error-state';
 import { SessionControls } from './session-controls';
 import { Button, buttonStyles } from './ui/button';
@@ -109,6 +110,13 @@ export function CalendarWorkspace({
         )}
         <SessionControls context={context} expiresAt={expiresAt} />
       </header>
+      {preview ? (
+        <p className="break-anywhere text-stone-600">
+          {m.calendar_recipient()}: {calendar.recipientName} ({calendar.recipientUsername})
+        </p>
+      ) : (
+        <CalendarRecipientForm context={context} calendar={calendar} saved={update} />
+      )}
       {preview ? (
         <p className="rounded-xl bg-emerald-50 p-3 text-emerald-950">
           {m.calendar_preview_notice()}

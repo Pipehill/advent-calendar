@@ -29,6 +29,8 @@ export const saveLayoutInput = z.strictObject({
   id: z.uuid(),
   layout: z.enum(['chronological', 'random']),
 });
+export const recipientInput = z.strictObject({ recipientId: z.uuid() });
+export const saveRecipientInput = calendarIdInput.extend(recipientInput.shape);
 export type CreateCalendarInput = z.infer<typeof createCalendarInput>;
 
 export function calendarBackgroundPath(background: string, thumbnail = false) {

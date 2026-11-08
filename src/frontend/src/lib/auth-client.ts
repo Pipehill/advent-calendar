@@ -37,5 +37,7 @@ export function browserAuthClient() {
     saveDoor: (input: Inputs['calendar']['saveDoor']) => client.calendar.saveDoor.mutate(input),
     saveLayout: (input: Inputs['calendar']['saveLayout']) =>
       client.calendar.saveLayout.mutate(input),
+    saveRecipient: (input: Inputs['calendar']['saveRecipient']) =>
+      client.calendar.saveRecipient.mutate(input),
   };
 }

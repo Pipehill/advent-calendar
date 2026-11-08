@@ -1,5 +1,11 @@
 # Pull request rules
 
+Before creating or updating a PR, complete the automatic
+[pre-publication regression review](development-quality.md#pre-publication-regression-review).
+Resolve avoidable findings before pushing; do not wait for the user to discover
+them in CI or ask for another review. The shared Markdown-only exception applies
+to the complete PR diff.
+
 When creating or updating a pull request, prefix its title with the work type
 in uppercase square brackets, followed by a colon and a space:
 

@@ -312,10 +312,17 @@ The public landing page remains public. Calendar administration requires login:
 each calendar has one recipient account, and a recipient may access multiple
 assigned calendars. Calendaradmins manage their own calendars, not other
 administrators' calendars merely by role. Creation assigns one of the acting
-administrator's existing calendar users. Recipient access/reassignment and any invitation behavior
+administrator's existing calendar users. Recipient access and any invitation behavior
 are separate calendar work; the former email-registration/invitation-membership
 flow is superseded. User-management superadmin permissions do not define future
 calendar authority.
+
+Calendar owners can change a calendar's recipient to another ordinary user under
+their fixed responsibility. The backend validates ownership and current recipient
+eligibility in the committing security transaction. Calendar list/detail responses
+join the stored recipient account for its current name and username; changing the
+recipient preserves ownership, content and layout and does not reassign account
+responsibility.
 
 Backend accounts and authentication are implemented as described in the
 [backend authentication workflow](../src/backend/authentication.md). Calendar

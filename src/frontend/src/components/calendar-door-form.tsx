@@ -1,16 +1,18 @@
 import { useForm } from '@tanstack/react-form';
 import { Save } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { CalendarDto, DoorDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
 import { doorContentInput } from '../lib/calendar-input';
 import type { RouterContext } from '../router';
 import { authError, backendFieldErrors } from './auth-feedback';
+import { calendarFieldErrors, validateCalendarForm } from './calendar-form-validation';
 import { errorCode } from './error-state';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { useFormSubmit } from './use-form-submit';
 
 export function CalendarDoorForm({
   context,
@@ -23,25 +25,12 @@ export function CalendarDoorForm({
   door: DoorDto;
   saved: (calendar: CalendarDto) => void;
 }) {
-  const submitting = useRef(false);
   const [feedback, setFeedback] = useState('');
   const [failure, setFailure] = useState('');
   const form = useForm({
     defaultValues: { title: door.title, text: door.text },
     validators: {
-      onSubmit: ({ value }) => {
-        const result = doorContentInput.safeParse(value);
-        if (!result.success)
-          return {
-            fields: Object.fromEntries(
-              result.error.issues.map((issue) => [
-                String(issue.path[0]),
-                m.calendar_invalid_field(),
-              ]),
-            ),
-          };
-        return undefined;
-      },
+      onSubmit: ({ value }) => validateCalendarForm(doorContentInput, value),
     },
     onSubmit: async ({ value, formApi }) => {
       setFeedback('');
@@ -54,33 +43,15 @@ export function CalendarDoorForm({
       } catch (error) {
         if (errorCode(error) === 'UNAUTHORIZED') return leaveSession(context, '/login');
         formApi.setErrorMap({
-          onSubmit: {
-            fields: Object.fromEntries(
-              Object.keys(backendFieldErrors(error)).map((field) => [
-                field,
-                m.calendar_invalid_field(),
-              ]),
-            ),
-          },
+          onSubmit: calendarFieldErrors(Object.keys(backendFieldErrors(error))),
         });
         setFailure(`${m.calendar_save_failed()} ${authError(error)}`);
       }
     },
   });
+  const submit = useFormSubmit(form.handleSubmit);
   return (
-    <form
-      className="space-y-4"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (submitting.current) return;
-        submitting.current = true;
-        try {
-          await form.handleSubmit();
-        } finally {
-          submitting.current = false;
-        }
-      }}
-    >
+    <form className="space-y-4" onSubmit={submit}>
       <p className="text-sm text-stone-600">{m.calendar_content_help()}</p>
       <form.Field name="title">
         {(field) => (

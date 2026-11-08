@@ -13,6 +13,13 @@ The backend stores the current Europe/Oslo year, exactly 24 empty doors and a
 chronological order. Explicit Save actions persist plain-text door titles (50
 Unicode code points) and messages (5000), preserving line breaks. Choosing Random
 persists a new permutation; reads/refresh/preview never reshuffle doors.
+Calendar cards and the administration page show the recipient's current name
+and username. In administration, the owner can select another assigned calendar
+user by choosing Change recipient beside the displayed identity. The selector
+appears inline only after that action. Save commits the change; Cancel discards
+the selection. Both return to the recipient's name and username and restore focus
+to Change recipient. Successful saves refresh the visible
+identity and clear cached list/preview data; errors retain the stored assignment.
 Startup does not create sample calendars.
 The browser uses tRPC; the BFF uses the NSwag-generated HTTP client to call the
 ASP.NET Core backend, which reads PostgreSQL. API connection settings stay in

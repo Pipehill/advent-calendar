@@ -101,7 +101,7 @@ Scenario progress is printed while the suite runs.
 | actionlint 1.7.12 | Workflow validation; optional shellcheck/pyflakes disabled in both modes |
 | pre-commit 4.6.2 and pre-commit-hooks 6.0.0 | `.pre-commit-config.yaml`, `tools/quality/requirements.txt` |
 | Mermaid CLI 12.0.0 | `tools/quality/package.json` and npm lockfile |
-| Chromium 155.0.8059.84-r0 | `tools/quality/Dockerfile` |
+| Chromium 156.0.8078.79-r0 | `tools/quality/Dockerfile` |
 | CSharpier 1.3.0 / .NET 10 | Quality Dockerfile; shared authored C#/project checks |
 | SQLFluff 4.3.0 | Quality Dockerfile, PostgreSQL dialect in `.sqlfluff` |
 | Biome 2.5.15 | Quality manifest, shared `biome.json` for TypeScript/TSX/CSS |

@@ -44,6 +44,7 @@ export function getRouter() {
         createCalendar: caller.calendar.create,
         saveDoor: caller.calendar.saveDoor,
         saveLayout: caller.calendar.saveLayout,
+        saveRecipient: caller.calendar.saveRecipient,
       };
     })
     .client(browserAuthClient)();

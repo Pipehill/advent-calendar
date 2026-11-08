@@ -96,6 +96,8 @@
   "calendar_refresh": "Oppdater kalendere",
   "calendar_name": "Kalendernavn",
   "calendar_recipient": "Mottaker",
+  "calendar_save_recipient": "Lagre mottaker",
+  "calendar_change_recipient": "Endre mottaker",
   "calendar_choose_recipient": "Velg en bruker",
   "calendar_background": "Bakgrunn",
   "calendar_woodland": "Jul i skogen",

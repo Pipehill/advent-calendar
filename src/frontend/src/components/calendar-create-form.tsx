@@ -2,7 +2,7 @@ import { useForm } from '@tanstack/react-form';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { CalendarPlus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
 import {
@@ -14,9 +14,12 @@ import {
 import type { RouterContext } from '../router';
 import { authError, backendFieldErrors, RequestFailure } from './auth-feedback';
 import { backgroundLabel } from './calendar-board';
+import { calendarFieldErrors, validateCalendarForm } from './calendar-form-validation';
+import { CalendarRecipientSelect } from './calendar-recipient-select';
 import { errorCode } from './error-state';
 import { Button, buttonStyles } from './ui/button';
 import { Input } from './ui/input';
+import { useFormSubmit } from './use-form-submit';
 
 export function CalendarCreateForm({ context }: { context: RouterContext }) {
   const navigate = useNavigate();
@@ -25,24 +28,11 @@ export function CalendarCreateForm({ context }: { context: RouterContext }) {
     staleTime: 0,
     gcTime: 0,
   });
-  const submitting = useRef(false);
   const [failure, setFailure] = useState('');
   const form = useForm({
     defaultValues: { title: '', recipientId: '', background: 'woodland' } as CreateCalendarInput,
     validators: {
-      onSubmit: ({ value }) => {
-        const result = createCalendarInput.safeParse(value);
-        if (!result.success)
-          return {
-            fields: Object.fromEntries(
-              result.error.issues.map((issue) => [
-                String(issue.path[0]),
-                m.calendar_invalid_field(),
-              ]),
-            ),
-          };
-        return undefined;
-      },
+      onSubmit: ({ value }) => validateCalendarForm(createCalendarInput, value),
     },
     onSubmit: async ({ value, formApi }) => {
       setFailure('');
@@ -53,19 +43,13 @@ export function CalendarCreateForm({ context }: { context: RouterContext }) {
       } catch (error) {
         if (errorCode(error) === 'UNAUTHORIZED') return leaveSession(context, '/login');
         formApi.setErrorMap({
-          onSubmit: {
-            fields: Object.fromEntries(
-              Object.keys(backendFieldErrors(error)).map((field) => [
-                field,
-                m.calendar_invalid_field(),
-              ]),
-            ),
-          },
+          onSubmit: calendarFieldErrors(Object.keys(backendFieldErrors(error))),
         });
         setFailure(authError(error));
       }
     },
   });
+  const submit = useFormSubmit(form.handleSubmit);
   if (recipients.isPending) return <p role="status">{m.loading()}</p>;
   if (recipients.error)
     return <RequestFailure error={recipients.error} retry={() => void recipients.refetch()} />;
@@ -79,19 +63,7 @@ export function CalendarCreateForm({ context }: { context: RouterContext }) {
       </div>
     );
   return (
-    <form
-      className="space-y-6"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (submitting.current) return;
-        submitting.current = true;
-        try {
-          await form.handleSubmit();
-        } finally {
-          submitting.current = false;
-        }
-      }}
-    >
+    <form className="space-y-6" onSubmit={submit}>
       <form.Field name="title">
         {(field) => (
           <div className="space-y-2">
@@ -112,28 +84,13 @@ export function CalendarCreateForm({ context }: { context: RouterContext }) {
       </form.Field>
       <form.Field name="recipientId">
         {(field) => (
-          <div className="space-y-2">
-            <label htmlFor="calendar-recipient">{m.calendar_recipient()}</label>
-            <select
-              id="calendar-recipient"
-              className="min-h-11 w-full rounded-xl border border-stone-300 bg-white p-3 focus-visible:outline-2 focus-visible:outline-emerald-800"
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.errors.length > 0}
-              aria-describedby="calendar-recipient-error"
-            >
-              <option value="">{m.calendar_choose_recipient()}</option>
-              {recipients.data.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.username})
-                </option>
-              ))}
-            </select>
-            <p id="calendar-recipient-error" className="text-sm text-red-800">
-              {field.state.meta.errors.length > 0 && m.calendar_invalid_field()}
-            </p>
-          </div>
+          <CalendarRecipientSelect
+            value={field.state.value}
+            recipients={recipients.data}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            invalid={field.state.meta.errors.length > 0}
+          />
         )}
       </form.Field>
       <form.Field name="background">

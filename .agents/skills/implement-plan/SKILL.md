@@ -147,6 +147,11 @@ without waiting for separate user approval or asking for confirmation. Honor
 explicit session limits on commits, pushing, or PR creation. Leave merging to
 the user.
 
+Before pushing or opening the draft PR, complete the required
+[pre-publication regression review](../../rules/development-quality.md#pre-publication-regression-review)
+on the final committed head. Correct avoidable findings and repeat verification
+before publication. Apply the same review to every subsequent PR update.
+
 Use `[TYPE]: Short English description` with the selected implementation type and
 the repository PR template. Describe the problem and resulting behavior, the
 cohesive implementation steps, final verification against the plan, and material

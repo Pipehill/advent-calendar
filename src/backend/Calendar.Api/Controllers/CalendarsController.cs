@@ -68,6 +68,21 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
             )
         );
 
+    public override async Task<ActionResult<CalendarDto>> UpdateRecipient(
+        Guid id,
+        UpdateRecipientRequest body
+    ) =>
+        Ok(
+            Map(
+                await service.SaveRecipientAsync(
+                    Identity,
+                    id,
+                    body.RecipientId,
+                    HttpContext.RequestAborted
+                )
+            )
+        );
+
     public override async Task<ActionResult<CalendarListDto>> ListCalendars(
         int? offset = 0,
         int? limit = 20
@@ -89,6 +104,8 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
                         Id = calendar.Id,
                         Title = calendar.Title,
                         RecipientId = calendar.RecipientId,
+                        RecipientName = calendar.RecipientName,
+                        RecipientUsername = calendar.RecipientUsername,
                         Year = calendar.Year,
                         Background = Enum.Parse<CalendarSummaryDtoBackground>(
                             calendar.Background,
@@ -111,6 +128,8 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
             LastModifiedAt = calendar.LastModifiedAt,
             OwnerId = calendar.OwnerId,
             RecipientId = calendar.RecipientId,
+            RecipientName = calendar.RecipientName,
+            RecipientUsername = calendar.RecipientUsername,
             Year = calendar.Year,
             Background = Enum.Parse<CalendarDtoBackground>(calendar.Background, true),
             Layout = Enum.Parse<CalendarDtoLayout>(calendar.Layout, true),

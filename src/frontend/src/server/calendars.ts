@@ -10,6 +10,7 @@ import type {
   calendarPageInput,
   saveDoorInput,
   saveLayoutInput,
+  saveRecipientInput,
 } from '../lib/calendar-input';
 import { callBackend } from './backend';
 import type { RequestContext } from './context';
@@ -91,5 +92,15 @@ export function saveOwnedLayout(context: RequestContext, input: z.infer<typeof s
       },
       signal,
     );
+  });
+}
+
+export function saveOwnedRecipient(
+  context: RequestContext,
+  input: z.infer<typeof saveRecipientInput>,
+) {
+  return callBackend(context, async (client, signal) => {
+    await requireCalendarAdministrator(client, signal);
+    return client.updateRecipient(input.id, { recipientId: input.recipientId }, signal);
   });
 }
