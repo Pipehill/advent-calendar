@@ -47,12 +47,20 @@ manual CI dispatch remain available. The protected-branch guard still applies.
    `get_file_clones` when investigating duplication. After saves, call
    `check_current_directory` before `get_statistics`; statistics describe the last
    scan. Verify the tool list, schemas and results before relying on them.
-3. After meaningful edits, run applicable lint checks on saved working-tree source
-   using `node tools/quality/run.mjs full`, and run relevant tests. Staging incomplete
-   edits is unnecessary. Hook verification and receipts still describe staged source.
-4. Before reporting completion, run `node tools/quality/health.mjs compare`, lint and
-   relevant tests on the final saved inputs. Explain metric regressions, remaining
-   findings, supported dimensions, missing evidence and measurement limitations.
+3. After meaningful edits, run targeted lint, relevant tests and necessary type/build
+   checks on saved working-tree source using existing check-only tools and shared
+   configuration. Staging incomplete edits is unnecessary. Broaden checks to
+   affected consumers when integration boundaries change, and run
+   `node tools/quality/run.mjs full` when shared quality configuration/tooling changes
+   or an equivalent targeted check is unavailable. A full lint run is not required
+   for every iteration. Keep required commit hooks enabled; hook verification and
+   receipts still describe staged source.
+4. Before reporting completion, run `node tools/quality/run.mjs full`,
+   `node tools/quality/health.mjs compare`, and all required tests/builds on the
+   final saved inputs. Preserve required security and migration verification;
+   targeted iteration checks do not replace full final or PR verification.
+   Explain metric regressions, remaining findings, supported dimensions, missing
+   evidence and measurement limitations.
    Keep actual old/new values and deltas, duplication percentages, absolute clone/
    line counts, scope, input identity, tool version and configuration with reports.
 5. When a PR is authorized, fetch its target and regenerate the application,
