@@ -37,17 +37,30 @@ internal static class ImageSourceValidation
         if (bytes.Length < 4 || !bytes[^2..].SequenceEqual(new byte[] { 0xff, 0xd9 }))
             throw DoorImageProcessor.Invalid();
         var offset = 2;
-        while (offset < bytes.Length - 4)
+        var entropy = false;
+        while (offset < bytes.Length)
         {
             if (bytes[offset++] != 0xff)
-                throw DoorImageProcessor.Invalid();
+            {
+                if (entropy)
+                    continue;
+                break;
+            }
             while (offset < bytes.Length && bytes[offset] == 0xff)
                 offset++;
-            if (offset >= bytes.Length - 2)
+            if (offset >= bytes.Length)
                 break;
             var marker = bytes[offset++];
-            if (marker == 0xda)
-                return;
+            if (entropy && (marker == 0 || marker is >= 0xd0 and <= 0xd7))
+                continue;
+            if (marker == 0xd9)
+            {
+                if (offset == bytes.Length)
+                    return;
+                break;
+            }
+            if (marker == 0xd8 || bytes.Length - offset < 2)
+                break;
             var length = BinaryPrimitives.ReadUInt16BigEndian(bytes[offset..]);
             if (length < 2 || length > bytes.Length - offset)
                 break;
@@ -59,6 +72,7 @@ internal static class ImageSourceValidation
             )
                 break;
             offset += length;
+            entropy = marker == 0xda;
         }
         throw DoorImageProcessor.Invalid();
     }

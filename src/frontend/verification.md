@@ -991,3 +991,39 @@ whole-repository reference remain in ignored `quality-reports/health/`; working
 source evidence is separate from hook receipts and committed PR comparisons.
 Analysis remains partial and heuristic. Physical-device, screen-reader and
 native Linux/macOS coverage remain outside this Windows/Edge run.
+
+## Plan 00018: optional door images (2026-11-08)
+
+All **191 frontend/BFF tests**, explicit TypeScript checks, production Vite/Nitro
+packaging and Biome pass. The complete production Edge/Windows suite passes
+**81 scenarios**, including the smoke-suite wrapper; its eight separate smoke
+checks also pass. Seven new browser scenarios cover actual JPEG and detailed PNG
+adaptation, image-only content, owner administration/preview and read-only system
+preview, explicit add/keep/replace/remove saves, retained invalid drafts, object-URL
+cleanup, localized keyboard controls and 320/1280px aspect-ratio display.
+Additional HTTP scenarios cover independent API/BFF/batch body limits, no-store,
+CSRF rejection, preserved saved state and a delayed response after door selection
+changes. Screenshots are visually reviewed; the full image fits without cropping
+or horizontal overflow. Native file-dialog wording follows the browser/OS; the
+application-owned labels, help, remove controls and feedback are localized.
+
+An initial browser run exposed missing image requests after SSR hydration:
+mutable server context was not carried into the browser. Image queries now use
+the backend-validated cache scope in loader data, and the BFF verifies it against
+the current session before reading bytes. A shared calendar page renderer keeps
+failure handling, mode and scope wiring consistent across both routes. The
+TypeScript generator explicitly emits `null` for nullable JSON metadata, matching
+the backend contract. Late responses remain separated by scope/mode/door/version;
+removed blobs and all outgoing object URLs are released.
+
+Saved-source full quality passes. Application/tooling health is **91.7/55.0**,
+compared with **90.8/54.1** before the task. The
+[health record](../../tools/quality/health-verification.md#plan-00018-door-images-2026-11-08)
+records absolute duplication, complexity, scope identities and analysis limits.
+Build output retains inherited dependency directive/comment warnings; they do not
+prevent TypeScript or Nitro completion. Browser logs/screenshots remain under
+ignored `quality-reports/plan00015/browser/`, backend/TRX evidence under
+`quality-reports/plan00018/`, and raw health/quality evidence under their existing
+report owners. Physical devices, assistive technology and native Linux/macOS
+browser execution are not established by this Windows/Edge run. Recipient
+viewing/opening and production hardening remain separate tasks.

@@ -10,7 +10,10 @@ import { authError } from './auth-feedback';
 export function useImageUrl(blob: Blob | null) {
   const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null);
   useEffect(() => {
-    if (!blob) return;
+    if (!blob) {
+      setImage(null);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     setImage({ blob, url });
     return () => URL.revokeObjectURL(url);

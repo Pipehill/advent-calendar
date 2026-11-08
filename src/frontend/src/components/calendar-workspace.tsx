@@ -5,7 +5,11 @@ import { useRef, useState } from 'react';
 import type { CalendarDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
-import { type CalendarMode, calendarQueryOptions } from '../lib/calendar-navigation';
+import {
+  type CalendarMode,
+  calendarQueryOptions,
+  type loadCalendarPage,
+} from '../lib/calendar-navigation';
 import { useProtectedQuery } from '../lib/use-protected-query';
 import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
@@ -29,6 +33,28 @@ export function CalendarRouteError({ error }: { error: unknown }) {
         {m.calendar_my_page()}
       </Link>
     </div>
+  );
+}
+
+export function CalendarPage({
+  context,
+  id,
+  state,
+}: {
+  context: RouterContext;
+  id: string;
+  state: Awaited<ReturnType<typeof loadCalendarPage>>;
+}) {
+  return state.failure ? (
+    <ErrorState code={state.failure} />
+  ) : (
+    <CalendarWorkspace
+      context={context}
+      id={id}
+      expiresAt={state.session.expiresAt}
+      scope={state.session.cacheScope}
+      mode={state.mode}
+    />
   );
 }
 

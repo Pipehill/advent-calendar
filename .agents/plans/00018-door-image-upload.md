@@ -1,6 +1,6 @@
 # 00018: Upload images to calendar doors
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
 
@@ -227,11 +227,25 @@ Each step is one implementation iteration and commit, following
   body limits have focused tests, including the exact 14,000,000-byte boundary.
   Application/tooling health is 91.6/54.7. Absolute application clones add four
   lines overall (standard integration-test headers replace a removed form clone).
-- [ ] **4. Complete verification and documentation.** Run applicable generation,
+- [x] **4. Complete verification and documentation.** Run applicable generation,
   tests, builds, production browser scenarios and the shared quality/health
   workflow. Update owning documentation and HTTP examples, record actual evidence
   and remaining limits, and change plan/index status only after implementation
   and verification. Keep recipient viewing/opening as separate work.
+  Final checks pass: 301 backend tests, 191 frontend/BFF tests, 81 production
+  browser scenarios and eight separate smoke checks, with seven affected image
+  scenarios repeated after the final JPEG validation correction. Release build,
+  SDK formatting/analyzers, publish, byte-identical clean contract generation,
+  explicit TypeScript, Vite/Nitro production packaging, Biome and full quality
+  pass. Windows and final Linux runtime decode/encode agree; isolated Linux HTTP
+  saves, restart persistence, declared/chunked body limits and no-store pass.
+  Browser imagery was reviewed at 320/1280px. Owning backend/frontend verification
+  and HTTP examples document actual evidence and inherited platform/tool warnings.
+  Final application/tooling health is 91.7/55.0 (baseline 90.8/54.1); application
+  duplication decreases from 81 lines/10 clones to 79 lines/9 clones, with tooling
+  unchanged at 12 lines/2 clones. Shared route rendering removes avoidable growth.
+  Native host macOS/Linux, physical-device/assistive-technology coverage and
+  production/recipient follow-ups remain separate and are not claimed delivered.
 
 ## Verification
 

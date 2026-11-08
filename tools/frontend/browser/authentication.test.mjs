@@ -15,6 +15,7 @@ import { registerCalendarAccessScenarios } from './calendar-access.test.mjs';
 import { registerCalendarLayoutScenarios } from './calendar-layout.test.mjs';
 import { registerSystemCalendarScenarios } from './system-calendars.test.mjs';
 import { registerDoorImageScenarios } from './door-images.test.mjs';
+import { registerDoorImageSecurityScenarios } from './door-image-security.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -948,6 +949,7 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
   registerCalendarLayoutScenarios(calendarEnvironment);
   registerCalendarAccessScenarios(calendarEnvironment);
   registerDoorImageScenarios(calendarEnvironment);
+  registerDoorImageSecurityScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.

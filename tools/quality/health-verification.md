@@ -304,6 +304,47 @@ Source identities, raw per-group/reference measurements and reports live under
 Generated files, dependencies and documentation remain outside authored-code
 scoring. Unsupported/partial analysis is not evidence of absence of defects.
 
+## Plan 00018: door images (2026-11-08)
+
+Windows jscpd 5.4.1 comparisons use the unchanged configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`
+and identical application/tooling/reference scopes. Baseline commit:
+`975ae858d29d9a0dee7d53f988dcec6f4be4d410`. MCP snippet, refresh/statistics and
+file-clone feedback are retained with raw measurements under ignored
+`quality-reports/health/`; committed-head target/candidate evidence remains
+separate from saved-source results and hook receipts.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Overall health | 90.8 / 91.7 (+0.9) | 54.1 / 55.0 (+0.9) |
+| Complexity score / share | 85.8 / 87.3; 9.7% / 8.4% | 57.3 / 58.2; 44.8% / 43.4% |
+| Maximum file complexity | 75 / 75 | 228 / 228 |
+| Duplication percentage | 0.569740% / 0.485765% | 0.145613% / 0.140845% |
+| Clones / duplicated lines | 10 / 9; 81 / 79 | 2 / 2; 12 / 12 |
+| Dead-code score / share | 89.8 / 90.5; 0.5% / 0.5% | 28.6 / 29.6; 16.2% / 15.6% |
+| Heuristic findings | 2 / 2 | 8 / 8 |
+| Dead-code analysis coverage | 40.9% / 39.6% | 96.5% / 96.7% |
+| Analyzed files / lines | 127 / 141; 14217 / 16263 | 52 / 54; 8241 / 8520 |
+
+The review removed growing route duplication by sharing calendar failure/mode/
+scope presentation, and kept image processing, input validation and display in
+cohesive components. Remaining new integration-test import/namespace/collection
+boilerplate is deliberate; total absolute application duplication still falls.
+Required container/format validation, queue limits and two-phase authorization
+add control flow, while maximum file complexity stays unchanged. No analyzer
+exclusions or scoring changed. Larger test/source denominators contribute to
+improved shares; they are not proof of reduced defects. C# dead-code coverage
+remains unsupported and existing script-entry findings remain heuristic.
+
+Application source SHA-256 changes from
+`64384f50b016d050a983572edf79659023b3c26c0bac4e15e55fdff8b453a67d` to
+`d8cefd2517968935a9f8426b27c690e529da9a8f8be2b85c198ca2721c71da83`;
+tooling changes from
+`afaa38d5e7c9f37874546cf2371dbd4389c6e4faa3f45d95e91edabfa3feb756` to
+`3999bf951f17ea66a0d72caef65d62e6a806670e9923abe1d6fd817605036766`.
+Native host platform follow-ups below remain unchanged; Linux application/runtime
+verification does not establish native macOS/Linux tooling readiness.
+
 ## Pending platform evidence
 
 The owner explicitly deferred native macOS/Linux installation, repeat setup,

@@ -46,6 +46,10 @@ public sealed class DoorImageProcessingTests
     [InlineData("gif")]
     [InlineData("svg")]
     [InlineData("side")]
+    [InlineData("pixels")]
+    [InlineData("animation")]
+    [InlineData("concatenated-jpeg")]
+    [InlineData("concatenated-jpeg-large")]
     public async Task RejectsInvalidImages(string scenario)
     {
         // Given data independent of any supplied filename or MIME declaration.
@@ -58,6 +62,18 @@ public sealed class DoorImageProcessingTests
             "gif" => "GIF89a"u8.ToArray(),
             "svg" => "<svg xmlns='http://www.w3.org/2000/svg'/>"u8.ToArray(),
             "side" => DoorImageFixtures.Create(width: 10001, height: 1),
+            "pixels" => DoorImageFixtures.WithPngDimensions(DoorImageFixtures.Create(), 7000, 6000),
+            "animation" => DoorImageFixtures.AnimatedPng(DoorImageFixtures.Create()),
+            "concatenated-jpeg" =>
+            [
+                .. DoorImageFixtures.Create(SKEncodedImageFormat.Jpeg),
+                .. DoorImageFixtures.Create(SKEncodedImageFormat.Jpeg),
+            ],
+            "concatenated-jpeg-large" =>
+            [
+                .. DoorImageFixtures.Create(SKEncodedImageFormat.Jpeg),
+                .. DoorImageFixtures.Create(SKEncodedImageFormat.Jpeg, 1600, 1000, noise: true),
+            ],
             _ => [],
         };
         var input = scenario == "base64" ? "%%%" : Convert.ToBase64String(source);
@@ -69,6 +85,41 @@ public sealed class DoorImageProcessingTests
         var error = await Assert.ThrowsAsync<AccountFailureException>(action);
         Assert.Equal(AccountFailure.InvalidInput, error.Failure);
         Assert.Equal("imageData", error.Field);
+    }
+
+    [Theory(
+        DisplayName = "Given an oriented JPEG, When pixels are re-encoded, Then orientation is applied and EXIF is discarded"
+    )]
+    [InlineData(1, 120, 60)]
+    [InlineData(2, 120, 60)]
+    [InlineData(3, 120, 60)]
+    [InlineData(4, 120, 60)]
+    [InlineData(5, 60, 120)]
+    [InlineData(6, 60, 120)]
+    [InlineData(7, 60, 120)]
+    [InlineData(8, 60, 120)]
+    public async Task AppliesOrientation(int orientation, int width, int height)
+    {
+        // Given a JPEG carrying an actual EXIF orientation tag.
+        using var processor = new DoorImageProcessor();
+        var source = DoorImageFixtures.WithOrientation(
+            DoorImageFixtures.Create(SKEncodedImageFormat.Jpeg),
+            orientation
+        );
+
+        // When native decode/render/encode processes the image.
+        var result = await processor.ProcessAsync(
+            Convert.ToBase64String(source),
+            CancellationToken.None
+        );
+        using var encoded = SKData.CreateCopy(result.Data);
+        using var codec = SKCodec.Create(encoded);
+
+        // Then output dimensions follow orientation, with no source EXIF left to apply again.
+        Assert.Equal(width, result.Width);
+        Assert.Equal(height, result.Height);
+        Assert.Equal(SKEncodedOrigin.TopLeft, codec.EncodedOrigin);
+        Assert.False(result.Data.AsSpan().IndexOf("Exif"u8) >= 0);
     }
 
     [Fact(
@@ -103,5 +154,48 @@ public sealed class DoorImageProcessingTests
 
         // Then cancellation is preserved rather than mapped to validation.
         await Assert.ThrowsAnyAsync<OperationCanceledException>(action);
+    }
+
+    [Fact(
+        DisplayName = "Given busy native processors, When uploads queue overflow or cancel, Then capacity stays bounded and queued cancellation releases its permit"
+    )]
+    public async Task BoundsQueuedWork()
+    {
+        // Given two substantial native jobs occupying the worker pool.
+        using var processor = new DoorImageProcessor();
+        var data = Convert.ToBase64String(
+            DoorImageFixtures.Create(width: 1600, height: 1000, noise: true)
+        );
+        var first = processor.ProcessAsync(data, CancellationToken.None);
+        var second = processor.ProcessAsync(data, CancellationToken.None);
+        using var cancellation = new CancellationTokenSource();
+
+        // When a queued upload is cancelled and a burst exceeds the remaining bounded capacity.
+        var queued = processor.ProcessAsync(data, cancellation.Token);
+        await cancellation.CancelAsync();
+        var burst = Enumerable
+            .Range(0, 12)
+            .Select(async _ =>
+            {
+                try
+                {
+                    await processor.ProcessAsync(data, CancellationToken.None);
+                    return true;
+                }
+                catch (AccountFailureException error)
+                    when (error.Failure == AccountFailure.ResourceLimit)
+                {
+                    return false;
+                }
+            })
+            .ToArray();
+        var outcomes = await Task.WhenAll(burst);
+        var cancelled = () => queued;
+
+        // Then overflow is rejected, queued work cancels, and both original jobs finish normally.
+        Assert.Contains(false, outcomes);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(cancelled);
+        Assert.NotNull(await first);
+        Assert.NotNull(await second);
     }
 }

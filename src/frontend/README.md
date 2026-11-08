@@ -53,6 +53,37 @@ reader rather than accepting a caller-supplied mode. Preview shares the existing
 board and plain-text door content, with a localized read-only notice and return
 link to Calendars. No edit form, layout controls or owner-editor link is present.
 
+## Door images
+
+The owner can select one optional JPEG/PNG image per door, replace it or choose
+Remove image. Selection/removal only changes the draft. The existing Save button
+persists title, message and image together; failed saves retain the draft.
+Source files allow at most 10 MB (10,000,000 bytes). The backend detects and
+processes the image, automatically adapting it to at most 1 MB (1,000,000 bytes),
+applying orientation and preserving PNG transparency. Help, validation, processing
+and save feedback are localized. Authored titles/messages remain plain text.
+
+Administration and both privileged previews show the saved output without
+cropping. Image-only and title-only doors do not show an empty-door notice.
+Local draft previews use object URLs that are revoked on replacement, removal
+and unmount. Changing doors disposes the outgoing draft. No image bytes enter
+localStorage, route parameters, logs or public asset paths.
+
+Calendar details contain only optional image metadata, never 24 image payloads.
+The selected door's protected tRPC query includes the backend-validated session
+scope from SSR loader data, access mode, calendar, number and image version.
+The BFF independently validates session/mode/scope, chooses the dedicated backend
+authority from that session and rejects conflicting versions. Zero garbage
+collection time and session cache clearing remove outgoing protected bytes;
+late responses cannot populate a different numbered/versioned query.
+
+Production Nitro and the BFF bound streamed/declared tRPC request bodies before
+JSON parsing: 14,000,000 bytes for door saves, including aggregate batches, and
+131,072 for other procedures. The independent backend has matching upload limits.
+Structured HTTP 413 maps to localized feedback; writes retain CSRF and never retry.
+Image reads, errors, SSR and hydration retain no-store. Recipient viewing/opening
+remains separate work.
+
 ## Sign-in and personal pages
 
 `/login` accepts username and password through a TanStack Form/Zod form.

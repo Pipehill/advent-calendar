@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { CalendarRouteError, CalendarWorkspace } from '../components/calendar-workspace';
-import { ErrorState } from '../components/error-state';
+import { CalendarPage, CalendarRouteError } from '../components/calendar-workspace';
 import * as m from '../generated/paraglide/messages.js';
 import { loadCalendarPage } from '../lib/calendar-navigation';
 
@@ -15,17 +14,11 @@ export const Route = createFileRoute('/calendars/$id')({
 });
 
 function AdministrationPage() {
-  const context = Route.useRouteContext();
-  const { session, failure } = Route.useLoaderData();
-  const { id } = Route.useParams();
-  return failure ? (
-    <ErrorState code={failure} />
-  ) : (
-    <CalendarWorkspace
-      context={context}
-      id={id}
-      expiresAt={session.expiresAt}
-      scope={session.cacheScope}
+  return (
+    <CalendarPage
+      context={Route.useRouteContext()}
+      id={Route.useParams().id}
+      state={Route.useLoaderData()}
     />
   );
 }
