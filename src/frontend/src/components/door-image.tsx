@@ -36,7 +36,7 @@ export function DoorImageView({
   return (
     <img
       src={src}
-      alt={title || m.calendar_image_alt()}
+      alt={title.trim() ? title : m.calendar_image_alt()}
       className={clsx(
         'h-auto max-w-full rounded-lg object-contain',
         thumbnail ? 'max-h-40' : 'mx-auto max-h-[70vh]',

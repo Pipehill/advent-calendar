@@ -3,13 +3,13 @@
 [![pre-commit][pre-commit-badge]](https://pre-commit.com/)
 [![MegaLinter][megalinter-badge]](https://megalinter.io/)
 
-A planned online advent calendar for invited users, including children. This
+An online advent calendar for administrator-created accounts, including children. This
 repository includes a runnable backend and a frontend showing stored calendar
 titles and 24 numbered doors, with PostgreSQL persistence. The interface supports
 Norwegian by default and English selection; user-authored content stays as written.
 Backend accounts, website login, personal pages, account administration and
 owner-protected calendar preparation and superadmin calendar oversight are
-implemented. Recipient viewing, timed opening and deployment remain planned.
+implemented, together with recipient viewing and timed opening. Deployment remains planned.
 
 Accounts use a username and password, with no public registration. Through the
 website or backend API, superadmins create calendar administrators and ordinary users;
@@ -27,7 +27,7 @@ manage their own calendars and preview/edit every door before and during
 the calendar period. They create calendars for assigned users with the current
 Europe/Oslo year, choose one of four original backgrounds, and save door titles,
 messages and chronological/random arrangements. Random arrangements remain stable
-across visits. Recipient access, content moves and invitation behavior remain future work.
+across visits. Content moves and invitation behavior remain future work.
 The administrator sees the recipient's name and username on calendar cards and
 the administration page, and can explicitly save another assigned calendar user
 as recipient while editing, preserving the calendar's content and arrangement.
@@ -37,11 +37,14 @@ calendar table lists all calendars with owner and recipient names/usernames,
 pagination and refresh. Superadmins can preview every saved door and arrangement
 without editing the calendar or opening doors for its recipient.
 
-Doors will open at 07:00 Norwegian time (Europe/Oslo) on their assigned dates,
-so children can open them in the morning. Earlier doors will remain available
-to assigned recipients; future content stays hidden until opening. Ordinary users
-will stay signed in for up to 30 days and administrators for up to eight hours from login,
-unless they log out or their session is invalidated. Activity will not extend
+Recipients find assigned calendars on their personal page. Populated doors become
+available at 07:00 Norwegian time (Europe/Oslo) on December 1–24 in the saved
+calendar year. Earlier doors remain available after December; empty doors cannot
+be opened. A numbered flap swings open and its content zooms into a readable
+dialog, with reduced motion supported. Green frames and check marks record doors
+opened by that recipient across sessions and devices. Future content stays hidden.
+Ordinary users stay signed in for up to 30 days and administrators for up to eight hours from login,
+unless they log out or their session is invalidated. Activity does not extend
 these periods.
 
 See the [technology stack and architecture](docs/architecture.md) for the agreed
@@ -105,8 +108,8 @@ Calendar administrators use `/my-page` to list their own calendars and open
 `/create-calendar`. `/calendars/<id>` administers an owned calendar and
 `/calendar-preview/<id>` previews all 24 doors. Editing requires the current owner's
 unrestricted session; preview also permits an unrestricted superadmin through a
-separate read-only flow. Recipient calendar access remains deferred.
-Recipient access/opening and production database hardening remain production gates.
+separate read-only flow. Recipients use `/my-calendars/<id>` for their currently
+assigned calendars. Production database hardening remains a production gate.
 See [backend authentication](src/backend/authentication.md) for the direct API
 exchange and intentional manual superadmin provisioning.
 The protected API accepts `POST /calendars` with title, recipient UUID and a

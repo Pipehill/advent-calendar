@@ -13,6 +13,45 @@ namespace Calendar.Api.Tests;
 [Collection("PostgreSQL")]
 public sealed class RecipientSecurityTests(ApiFixture fixture)
 {
+    [Fact(
+        DisplayName = "Given unavailable session persistence, When recipient list board open and image reads are requested, Then every path fails closed with no-store"
+    )]
+    public async Task PersistenceOutageFailsClosed()
+    {
+        // Given a valid recipient cookie/token and populated content before a persistence outage.
+        await using var context = await RecipientTestContext.CreateAsync(fixture);
+        await context.PopulateAsync(image: true);
+        var csrf = (await context.Client.GetFromJsonAsync<CsrfDto>("/auth/csrf"))!;
+        context.Client.DefaultRequestHeaders.Add(csrf.HeaderName, csrf.RequestToken);
+        await context.Auth.ExecuteAsync(
+            "ALTER TABLE account_sessions RENAME TO unavailable_sessions"
+        );
+
+        // When every protected recipient route tries to validate the otherwise valid cookie.
+        var responses = new[]
+        {
+            await context.Client.GetAsync("/recipient/calendars"),
+            await context.Client.GetAsync(context.Path),
+            await context.Client.PostAsync(context.Path + "/doors/1/open", null),
+            await context.Client.GetAsync(
+                $"{context.Path}/doors/1/image?version={context.ImageVersion}"
+            ),
+        };
+
+        // Then no route falls back to stale authority or returns cacheable protected data.
+        foreach (var response in responses)
+        {
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            Assert.True(response.Headers.CacheControl?.NoStore);
+            Assert.DoesNotContain(
+                "Secret",
+                await response.Content.ReadAsStringAsync(),
+                StringComparison.Ordinal
+            );
+        }
+        Assert.Equal(0, await context.HistoryCountAsync());
+    }
+
     [Theory(
         DisplayName = "Given excluded role or invalid recipient authority, When direct recipient endpoints are called, Then content and image metadata remain protected"
     )]

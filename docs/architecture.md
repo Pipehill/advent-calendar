@@ -12,8 +12,9 @@ assigned ordinary users, edit plain-text door titles/messages, persist layouts
 and preview every door through tRPC and the generated backend client, with
 Norwegian/English translations. Superadmins have a separate calendar overview
 and full read-only preview. Owner API operations require the current unrestricted
-owner session; mutations also require CSRF. Recipient access/opening
-and deployment remain future work. See [backend workflows](../src/backend/README.md).
+owner session; mutations also require CSRF. Assigned recipients have safe board
+reads, timed opening and persistent personal history. Deployment remains future
+work. See [backend workflows](../src/backend/README.md).
 
 Application source belongs under root `src/`: the backend is in `src/backend`,
 the authored OpenAPI contract and generator settings in the sibling `src/contract`,
@@ -313,8 +314,8 @@ The public landing page remains public. Calendar administration requires login:
 each calendar has one recipient account, and a recipient may access multiple
 assigned calendars. Calendaradmins manage their own calendars, not other
 administrators' calendars merely by role. Creation assigns one of the acting
-administrator's existing calendar users. Recipient access and any invitation behavior
-are separate calendar work; the former email-registration/invitation-membership
+administrator's existing calendar users. Recipient access follows the current
+stored assignment; invitation behavior remains separate work. The former email-registration/invitation-membership
 flow is superseded. User-management superadmin permissions do not define future
 calendar authority.
 
@@ -330,7 +331,7 @@ Backend accounts and authentication are implemented as described in the
 POST/GET and editing/listing operations are protected in the backend and BFF.
 Only current unrestricted calendaradmin owners have editing authority. Dedicated
 system list/preview endpoints also permit unrestricted superadmin reads;
-recipients do not gain calendar access. Frontend login, required password change,
+recipients use their separate assigned-calendar endpoints. Frontend login, required password change,
 logout and `/my-page` use backend-validated sessions through the BFF. Every
 account has a required single display name, trimmed to 1-100 Unicode code points,
 independent of its unique username and role. Existing usernames are backfilled.
@@ -353,8 +354,8 @@ doors with 0-50/0-5000-code-point titles/messages and a chronological order.
 Random layout selection stores a permutation; reads never reshuffle it. Protected
 SSR/hydration/errors use no-store, query caches separate administration/preview
 and session changes discard protected data. Migration 0004 journaled removal of
-legacy test calendars/doors preserves accounts and sessions. Recipient viewing,
-opening and production database hardening remain production gates.
+legacy test calendars/doors preserves accounts and sessions. Production database
+hardening remains a production gate.
 
 Superadmins use Users/Calendars tabs on `/my-page`, with only the selected panel
 mounted. The calendar table pages through all calendars and joins current names
@@ -368,7 +369,7 @@ its return link restores Calendars. Owner edit, owner preview, system list and
 system preview keep separate query keys within the validated session's cache;
 all authorized data/errors/SSR use no-store and session changes clear them.
 
-The end-to-end sequence below includes the deferred recipient authorization.
+The end-to-end sequence below includes the dedicated recipient authorization.
 
 ### Credentials and manual provisioning
 
@@ -533,6 +534,35 @@ remain available to assigned recipients. Future content must be absent from reci
 API responses, SSR HTML, hydration data, and prefetched/browser caches. Direct
 API calls and changed browser clocks cannot bypass opening rules. Opening at
 07:00 avoids encouraging children to wait until midnight.
+
+Recipients list their assignments on `/my-page` and open `/my-calendars/<id>`.
+Dedicated `/recipient/calendars` operations recheck ordinary role, unrestricted
+session and current assignment under the same committing security lock 800008.
+List/board contracts withhold all door titles, messages and image metadata.
+Board states include scheduled UTC instants, backend current time and the next
+opening. Only an explicit CSRF-protected open returns selected populated content.
+Title, message and image independently count as content; whitespace alone is empty.
+Protected images independently revalidate authority, time, content and version.
+
+Migration 0006 stores first-opened UTC history by calendar, recipient and door,
+with a unique key and foreign keys to accounts/doors. Concurrent/repeated openings
+preserve one first timestamp without changing calendar modification time.
+History survives sessions/devices but never overrides current permission, time
+or empty content. Reassignment does not expose another recipient's history.
+
+The local launcher's explicit `--no-time-check` sets a backend-only Development
+option on every run. Restarting without it restores enforcement while preserving
+calendars and history. Startup rejects enabled bypass outside Development before
+migrations/readiness. Only time is bypassed; empty doors and all security checks
+remain enforced. Launcher details belong to the root run instructions.
+
+Recipient queries use separate session-scoped keys. A backend-relative boundary
+timer, 30-second visible-page polling and focus/reconnect reads discover changes.
+Changed calendar revisions, empty/locked doors or denials clear selected content;
+logout/navigation discards late openings. A successful explicit write drives a
+hinged flap and content zoom into a native modal dialog, with keyboard focus
+containment/return, responsive images and reduced-motion presentation. Green
+frames and check marks indicate personal history independently of availability.
 
 Calendaradmins have full preview and editing access to calendars they own before
 and during the calendar period, including future doors. They can prepare the

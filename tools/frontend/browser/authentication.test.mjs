@@ -18,6 +18,7 @@ import { registerDoorImageScenarios } from './door-images.test.mjs';
 import { registerDoorImageSecurityScenarios } from './door-image-security.test.mjs';
 import { registerCredentialTransportScenarios } from './credential-transport.test.mjs';
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
+import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -52,7 +53,8 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 360000 }, () => {
+// Include recipient motion/refresh and the full background/layout/language matrix.
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 600000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -729,8 +731,12 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
   test('Given a completed maintenance write, When the target disappears from the refreshed page, Then focus returns to the account heading', async () => {
     // Given a selected reset form and a list refresh that no longer includes the target.
-    await signIn(accounts.find(item => item.username === 'browser-admin'));
-    const account = accounts.find(item => item.username === 'browser-user');
+    const actor = accounts.find(item => item.username === 'browser-admin');
+    await signIn(actor);
+    const account = await createAccount(actor, {
+      name: 'Reset focus target', username: `focus-${randomUUID().slice(0, 8)}`,
+      password: `Temporary!${randomUUID()}`, role: 'calendarUser',
+    });
     await openAccountAction(account, 'Tilbakestill passord');
     await page.route('**/api/trpc/accounts.list**', async route => {
       const response = await route.fetch();
@@ -968,6 +974,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerDoorImageScenarios(calendarEnvironment);
   registerDoorImageSecurityScenarios(calendarEnvironment);
   registerRecipientOpeningScenarios(calendarEnvironment);
+  registerRecipientRefreshScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.

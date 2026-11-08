@@ -447,6 +447,8 @@ test('Given missing Node on Windows, When PowerShell doctor starts, Then it fail
 
   // Then Node is reported missing and the dependency directory remains empty.
   assert.equal(result.status, 1);
-  assert.match(`${result.stdout}${result.stderr}`, /Node is missing/);
+  // PowerShell can wrap a diagnostic inside a word after a long worktree path.
+  const diagnostic = `${result.stdout}${result.stderr}`.replace(/\r?\n/g, '');
+  assert.match(diagnostic, /Node is missing/);
   assert.deepEqual(fs.readdirSync(path.join(directory, '.quality-cache')), []);
 });

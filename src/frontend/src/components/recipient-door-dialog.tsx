@@ -68,7 +68,11 @@ export function RecipientDoorDialog({
       aria-labelledby="recipient-door-heading"
       aria-modal="true"
       className="recipient-door-dialog rounded-2xl bg-white text-emerald-950 shadow-2xl"
-      onClose={close}
+      onClose={(event) => {
+        // StrictMode rehearses cleanup/reopen; its queued close event must not
+        // dismiss the dialog after the next effect has already opened it again.
+        if (!event.currentTarget.open) close();
+      }}
       onKeyDown={containFocus}
       onCancel={(event) => {
         event.preventDefault();
@@ -80,7 +84,7 @@ export function RecipientDoorDialog({
           id="recipient-door-heading"
           className="mr-auto whitespace-pre-wrap break-anywhere font-serif text-2xl"
         >
-          {door.title || m.door_label({ number: String(door.number) })}
+          {door.title.trim() ? door.title : m.door_label({ number: String(door.number) })}
         </h2>
         <Button variant="secondary" className="min-h-11" onClick={close}>
           {m.recipient_close()}

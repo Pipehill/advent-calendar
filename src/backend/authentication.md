@@ -14,7 +14,15 @@ All calendar mutations require CSRF;
 successful/error responses are no-store. The service joins actor/session/recipient
 checks and persistence in the shared security transaction (advisory lock 800008),
 without recent-password verification or password-hashing concurrency limits.
-Recipient viewing/opening and database hardening remain required before production.
+Dedicated `/recipient/calendars` list/board/open/image operations require a current
+unrestricted ordinary user and stored recipient assignment. They recheck authority
+inside the same committing transaction. Boards contain no door content/image
+metadata; explicit CSRF-protected opens and independently authorized versioned
+image reads enforce current backend time and nonempty content. First-open history
+is personal and never grants authority after reassignment, revocation or time
+changes. The backend-only `CalendarOpening:DisableTimeCheck` option is accepted
+only in Development, before migration/readiness, and bypasses only time.
+Database hardening remains required before production.
 
 ## Code boundaries
 

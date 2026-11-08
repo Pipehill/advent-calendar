@@ -4,20 +4,20 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { owner, recipient, logout } from './calendar-fixture.mjs';
 
-const door = (page, number) => page.locator(`[data-door-number="${number}"]`);
-const dialog = page => page.locator('dialog[open]');
+export const door = (page, number) => page.locator(`[data-door-number="${number}"]`);
+export const dialog = page => page.locator('dialog[open]');
 async function capture(state, name) {
   const directory = path.resolve(state.reports, '../../plan00019');
   fs.mkdirSync(directory, { recursive: true });
   await state.page.screenshot({ path: path.join(directory, `${name}.png`), fullPage: true });
 }
-const read = async (state, operation, input) => {
+export const read = async (state, operation, input) => {
   const query = input === undefined ? '' : `?input=${encodeURIComponent(JSON.stringify(input))}`;
   const response = await state.context.request.get(`${state.frontendUrl}/api/trpc/${operation}${query}`);
   assert.equal(response.status(), 200, await response.text());
   return (await response.json()).result.data;
 };
-async function prepare(state, { future = false, image = false, background = 'aurora', random = false } = {}) {
+export async function prepare(state, { future = false, image = false, background = 'aurora', random = false } = {}) {
   await state.signIn(owner(state.accounts));
   const response = await state.mutation('calendar.create', { title: 'Recipient gifts ÆØÅ', recipientId: recipient(state.accounts).id, background });
   assert.equal(response.status(), 200, await response.text());
@@ -33,7 +33,7 @@ async function prepare(state, { future = false, image = false, background = 'aur
       canvas.getContext('2d').fillRect(0, 0, 120, 60);
       return canvas.toDataURL('image/png').split(',')[1];
     });
-    const savedImage = await state.mutation('calendar.saveDoor', { id: calendar.id, number: 2, title: '', text: '', imageAction: 'replace', imageData });
+    const savedImage = await state.mutation('calendar.saveDoor', { id: calendar.id, number: 2, title: ' \t', text: '\n', imageAction: 'replace', imageData });
     assert.equal(savedImage.status(), 200, await savedImage.text());
   }
   if (random) assert.equal((await state.mutation('calendar.saveLayout', { id: calendar.id, layout: 'random' })).status(), 200);
@@ -118,17 +118,25 @@ export function registerRecipientOpeningScenarios(environment) {
     // When the door opens and the user retries the failed protected image read.
     await door(state.page, 2).click();
     await state.page.getByText('Bildet kunne ikke lastes.', { exact: false }).waitFor();
+    await state.page.getByRole('heading', { name: 'Luke 2', exact: true }).waitFor();
     const animation = await dialog(state.page).evaluate(element => getComputedStyle(element).animationName);
     await state.page.unroute('**/api/trpc/recipient.image*');
     await state.page.getByRole('button', { name: 'Prøv igjen', exact: true }).click();
     await state.page.waitForFunction(() => document.querySelector('dialog img')?.naturalWidth > 0);
     const ratio = await dialog(state.page).locator('img').evaluate(element => element.naturalWidth / element.naturalHeight);
+    const centered = await dialog(state.page).evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return Math.abs(rect.left + rect.width / 2 - innerWidth / 2) < 1 &&
+        Math.abs(rect.top + rect.height / 2 - innerHeight / 2) < 1;
+    });
     await capture(state, 'dialog-image-mobile');
     await state.page.getByRole('button', { name: 'Lukk', exact: true }).click();
 
     // Then spatial motion is omitted, aspect ratio is preserved and image failure never clears the opening.
     assert.equal(animation, 'none');
     assert.equal(ratio, 2);
+    assert.equal(await dialog(state.page).count(), 0);
+    assert(centered);
     assert.equal(await door(state.page, 2).getAttribute('data-opened'), 'true');
     assert.equal(await state.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   });
@@ -155,31 +163,37 @@ export function registerRecipientOpeningScenarios(environment) {
     assert.equal(await dialog(state.page).count(), 0);
   });
 
-  for (const background of ['woodland', 'sleigh', 'playtime', 'aurora']) {
-    test(`Given recipient ${background} Random layout, When viewport sizes and languages change, Then all saved doors retain accessible geometry and authored content`, async () => {
-      // Given one saved Random recipient layout using this background.
+  const appearances = ['woodland', 'sleigh', 'playtime', 'aurora'].flatMap(background =>
+    ['chronological', 'random'].map(layout => ({ background, layout })));
+  for (const { background, layout } of appearances) {
+    test(`Given recipient ${background} ${layout} layout, When viewport sizes and languages change, Then all saved doors retain accessible geometry and authored content`, async () => {
+      // Given one saved recipient layout using this background and arrangement.
       const state = environment();
-      const calendar = await prepare(state, { background, random: true });
+      const calendar = await prepare(state, { background, random: layout === 'random' });
 
-      // When each required viewport displays the persisted layout.
-      for (const width of [320, 375, 768, 1280]) {
-        await state.page.setViewportSize({ width, height: 900 });
-        await state.page.waitForFunction(() => [...document.querySelectorAll('.door-tile')].length === 24);
-        const boxes = await state.page.locator('.door-tile').evaluateAll(elements => elements.map(element => {
-          const rect = element.getBoundingClientRect();
-          return { width: rect.width, height: rect.height, right: rect.right, left: rect.left };
-        }));
-        await capture(state, `${background}-${width}`);
+      // When both interface languages and all required viewports display the same saved layout.
+      for (const language of ['nb', 'en']) {
+        if (language === 'en') {
+          await state.page.getByLabel('Språk').selectOption('en');
+          await state.page.waitForLoadState('networkidle');
+        }
+        for (const width of [320, 375, 768, 1280]) {
+          await state.page.setViewportSize({ width, height: 900 });
+          await state.page.waitForFunction(() => [...document.querySelectorAll('.door-tile')].length === 24);
+          const boxes = await state.page.locator('.door-tile').evaluateAll(elements => elements.map(element => {
+            const rect = element.getBoundingClientRect();
+            return { width: rect.width, height: rect.height, right: rect.right, left: rect.left };
+          }));
+          await capture(state, `${background}-${layout}-${language}-${width}`);
 
-        // Then every numbered target fits the viewport and remains at least 44px.
-        assert(boxes.every(box => box.width >= 43.9 && box.height >= 43.9 && box.left >= 0 && box.right <= width));
+          // Then every numbered target fits the viewport and remains at least 44px.
+          assert(boxes.every(box => box.width >= 43.9 && box.height >= 43.9 && box.left >= 0 && box.right <= width));
+        }
       }
-      await state.page.getByLabel('Språk').selectOption('en');
-      await state.page.waitForLoadState('networkidle');
       await door(state.page, 1).click();
       await state.page.getByRole('button', { name: 'Close', exact: true }).waitFor();
       assert.equal(await state.page.getByRole('heading', { name: 'Gave <b>ÆØÅ</b>', exact: true }).count(), 1);
-      assert.equal((await read(state, 'recipient.get', { id: calendar.id, scope: calendar.scope })).layout, 'random');
+      assert.equal((await read(state, 'recipient.get', { id: calendar.id, scope: calendar.scope })).layout, layout);
     });
   }
 }

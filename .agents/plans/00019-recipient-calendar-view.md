@@ -1,6 +1,6 @@
 # 00019: Recipient calendar viewing and animated door opening
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
 
@@ -256,13 +256,13 @@ in an owner-approved worktree based on origin/main (43524dc).
   assigned-calendar list with SSR and protected-data tests.
 - [x] 4. Implement recipient board states, server opening writes, green opened
   indicators, dialog, hinge/zoom motion, image retrieval and reduced motion.
-- [ ] 5. Verify time-boundary refresh, account/assignment/content changes,
+- [x] 5. Verify time-boundary refresh, account/assignment/content changes,
   cross-device history, both launcher frontend modes and responsive motion.
   Complete required quality checks and documentation before marking implemented.
 
 ## Verification
 
-Iteration 1: all 18 policy cases and 30 launcher cases pass; backend Release
+Iteration 1: all 18 policy cases and 29 launcher cases pass; backend Release
 build and generated consumers pass. The captured worktree baseline preserves
 the main workspace's independent measurements. MCP refresh/statistics completed.
 Actual Compose mode/flag transitions are reserved for step 5. Full quality passed;
@@ -295,6 +295,40 @@ were captured at 320/375/768/1280px with saved Random geometry and 44px targets;
 English controls preserve the authored Norwegian content. The browser fixture's
 stale lockfile omitted existing SkiaSharp references; it is refreshed and locked
 restore passes. A native-dialog Tab edge needed explicit containment, now verified.
+
+Iteration 5: all 359 backend tests, 218 frontend/BFF tests, 99 production browser
+scenarios plus eight smoke checks, and 94 development/snapshot tests pass (one
+POSIX bootstrap case is skipped on Windows). The final centered presentation is
+rechecked by all 17 recipient scenarios; four further focused cases verify
+image-only gifts with whitespace titles, and two final Vite scenarios pass.
+The 64 visual captures cover four backgrounds, both layouts, two languages and
+four widths, with touch, focus, reduced-motion and content/assignment refresh
+coverage. StrictMode's queued native close event is handled without dismissing a
+reopened dialog. An older reset-focus test now uses an independent account.
+
+Actual Windows/Podman launcher orchestration passes container/bypass-on,
+Vite/bypass-on, Vite/bypass-off and container/bypass-off with the same calendar ID
+and first-open timestamp. Root PowerShell and Windows Git Bash help both forward
+the option. All application builds, generation, SDK formatting, native publish,
+full lint, production audits and the final advisory comparison pass. Test
+containers, networks, application images/key volume and 40 content-verified unused
+recipient build-cache images are removed; existing data and shared images remain.
+
+Application/tooling health improves 91.7 to 92.6 / 55.1 to 56.5. Application
+duplication rises 79 to 123 lines and 9 to 13 clones, entirely inspected declaration
+and import boilerplate. Tooling duplication stays 12 lines/2 clones and maximum
+harness file complexity rises 232 to 233 for required restart control. Shared
+door mapping/cards avoid substantive duplication; scoring/exclusions are unchanged.
+See the [health evidence](../../tools/quality/health-verification.md),
+[backend evidence](../../src/backend/verification.md),
+[frontend evidence](../../src/frontend/verification.md) and
+[launcher evidence](../../tools/development/verification.md).
+
+Remaining limits: other-device updates use a 30-second bounded refresh; native
+macOS/Linux tooling/browser and local Docker execution, physical devices and
+assistive technology are not established by Windows/Edge/Podman emulation.
+Inherited platform follow-ups and production database hardening remain separate.
+Implemented plans 00001-00018 are unchanged.
 
 - Backend integration tests use actual migrations/PostgreSQL and controlled
   `TimeProvider` values immediately before, exactly at and after 07:00 Oslo.
@@ -339,5 +373,4 @@ restore passes. A native-dialog Tab edge needed explicit containment, now verifi
 - During implementation, run contract validation/generation, relevant backend,
   frontend/BFF and launcher tests, explicit TypeScript checks, production builds,
   existing account/owner/superadmin browser regressions and required full quality/
-  health checks under the repository's normal workflow. This planning-only change
-  uses the Markdown-only quality exception and does not claim implementation tests.
+  health checks under the repository's normal workflow.

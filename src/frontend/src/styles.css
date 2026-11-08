@@ -291,6 +291,9 @@ body {
 }
 
 .recipient-door-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(42rem, calc(100vw - 2rem));
   max-height: min(85dvh, 56rem);
   padding: 0;
