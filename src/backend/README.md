@@ -7,14 +7,13 @@ contracts and consume service interfaces. Services apply business and authorizat
 rules through repositories, which use Npgsql/Dapper with parameterized SQL.
 The frontend/BFF
 implements creation, administration and full owner preview. Backend authentication,
-user management and owner-only calendar administration are implemented. Recipient
-viewing and scheduled opening remain future features. Owner calendar endpoints
+user management, owner-only calendar administration and assigned-recipient
+viewing/scheduled opening are implemented. Owner calendar endpoints
 require an unrestricted current calendaradmin session. Dedicated system-wide
 calendar list/preview endpoints require an unrestricted current superadmin and
 grant no writes. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
-Recipient authorization/opening and production database hardening remain
-production gates.
+Production database hardening remains a production gate.
 See [backend authentication](authentication.md) for the protected API, manual
 superadmin provisioning, role-specific password handover, session lifecycle and key
 configuration. The frontend/BFF implements login, password changes, logout and
@@ -202,6 +201,29 @@ work never holds that lock. The pinned SkiaSharp 4.155.0 dependency uses matchin
 Linux.NoDependencies native assets in the executable project, as described in the
 [upstream package guide](https://github.com/mono/SkiaSharp/blob/main/documentation/dev/packages.md).
 See [verification](verification.md) for Windows and Linux runtime evidence.
+
+## Recipient calendars
+
+Unrestricted ordinary users use `GET /recipient/calendars?offset=0&limit=12` and
+`GET /recipient/calendars/{id}` for current assignments. List rows contain safe
+navigation metadata; boards contain all 24 numbered date/state/history entries,
+backend UTC time and next opening, with no door title/message/image metadata.
+The same security transaction/lock 800008 coordinates assignment/account changes.
+
+`POST /recipient/calendars/{id}/doors/{number}/open` requires principal-bound CSRF,
+current assignment, the inclusive December N 07:00 Europe/Oslo boundary in the
+saved year, and nonempty title/message/image. It returns only selected content.
+Whitespace alone is empty. Migration 0006 stores a unique first-opened timestamp
+for calendar/recipient/door; concurrent/repeated opens preserve it without changing
+content modification time. History never overrides current permissions or time.
+
+`GET /recipient/calendars/{id}/doors/{number}/image?version={uuid}` independently
+rechecks role, session, assignment, availability and current version. Missing
+versions return 400, unavailable doors 409 and absent images/calendars 404.
+All protected successes/errors are no-store. The explicit local override and
+restart instructions belong to the [root launcher](../../README.md#run-the-application-locally).
+Enabled `CalendarOpening:DisableTimeCheck` is rejected outside Development before
+keys/migrations/readiness; it changes only recipient time availability.
 
 ## Contract, build and tests
 

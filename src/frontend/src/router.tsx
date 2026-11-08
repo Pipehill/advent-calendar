@@ -33,6 +33,7 @@ export function getRouter() {
       const caller = appRouter.createCaller(() => currentContext(getRequest()));
       return {
         session: () => caller.auth.session(),
+        openRecipientDoor: caller.recipient.open,
         login: caller.auth.login,
         changePassword: caller.auth.changePassword,
         logout: () => caller.auth.logout(),

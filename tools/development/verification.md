@@ -237,3 +237,37 @@ The saved-source jscpd 5.4.1 comparison retains application/tooling health at
 90.7 / 51.5. Tooling grows from 43 files / 6663 lines to 44 files / 6698 lines
 with zero clones or duplicated lines. Raw source/configuration identities,
 coverage limitations and measurements remain under `quality-reports/health/`.
+
+## Recipient time-check override and worktrees (2026-11-08)
+
+The development/snapshot suites pass **94 tests**, with one POSIX bootstrap case
+skipped on Windows. Launcher tests cover default enforcement, explicit option
+parsing, ambient-override removal from test/Vite children, explicit Compose
+true/false, both frontend modes and skip-build transitions. Actual PowerShell
+and Windows Git Bash wrappers both forward `--no-time-check` in their help.
+This is not evidence of native macOS/Linux setup or launcher readiness.
+
+An isolated Compose project exercises actual container mode with bypass enabled,
+Vite with bypass enabled, Vite without it and container mode without it. Each
+transition preserves one saved calendar, its content and exactly the same
+first-opened timestamp; populated future doors become locked again when the flag
+is omitted. The backend is recreated from changed Compose environment, including
+with `--skip-build`. Its database is disposable tmpfs and service ports are free
+test ports, preserving the existing development containers/volumes. Normal test
+subprocesses never receive the override. Transcripts and observations are under
+ignored `quality-reports/plan00019/`.
+
+The isolated project's containers/network, two application images and test key
+volume are removed. Content inspection identifies and removes 40 unused
+recipient-specific build-cache images without force; the original/shared images,
+active containers and every database volume remain preserved. Cleanup evidence
+is retained with the launcher reports.
+
+Verification found two worktree-specific tooling issues. Inherited hook Git
+paths could make the disposable QA index use the caller's repository; snapshot
+initialization now removes Git-local environment variables, with a regression
+test preserving the original index. A long absolute PowerShell error prefix could
+wrap the expected missing-Node message inside a word; its test now checks the
+same diagnostic independent of console line wrapping. Full quality and real
+worktree commit hooks pass. The browser fixture lockfile is refreshed for the
+existing pinned SkiaSharp project references, and locked restore passes.

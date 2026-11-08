@@ -345,6 +345,38 @@ tooling changes from
 Native host platform follow-ups below remain unchanged; Linux application/runtime
 verification does not establish native macOS/Linux tooling readiness.
 
+## Recipient calendar implementation (2026-11-08)
+
+Windows x64 measurements use the unchanged jscpd 5.4.1 configuration and the
+preserved worktree baseline at main `43524dc`. Application health improves
+**91.7 to 92.6 (+0.9)** and tooling **55.1 to 56.5 (+1.4)**. Raw per-scope and
+whole-repository reports retain source/configuration hashes, tool identities,
+supported dimensions and exact metric values under ignored `quality-reports/health/`.
+
+Application duplication regresses **0.48286% to 0.66329% (+0.18043 percentage
+points)**, **79 to 123 lines (+44)** and **9 to 13 clones (+4)**. Every introduced
+clone was inspected: controller imports/security declarations, two test files'
+imports/namespace/PostgreSQL collection declarations, and calendar-list imports.
+These keep separate generated controller inheritance and independently readable
+security/database test suites. Recipient service/repository logic adds no clones;
+shared door contract mapping and calendar cards avoid copying substantive behavior.
+No import reordering, analyzer exclusions or scoring changes were made for metrics.
+
+Tooling duplication improves **0.13984% to 0.13276%**, with **12 lines/2 clones
+unchanged**. Maximum application file complexity remains **75**; tooling maximum
+is **232 to 233 (+1)** in the existing browser harness. The remaining increase
+supports explicit API restart/flag control needed to verify durable security
+state; new recipient suites stay in separate files. An older reset test now uses
+an independent target rather than invalidating the shared recipient fixture.
+
+Heuristic dead-code findings remain **2 application / 8 tooling**. Existing
+build/script entry points have verified callers; C# dead-code coverage remains
+unsupported. Better aggregate scores and denominator growth do not erase the
+duplication/complexity regressions above. Source review and relevant tests support
+the retained declaration/lifecycle tradeoffs. The committed-head comparison is
+regenerated after final commits before publication; development MCP statistics
+are separate from hook receipts and PR evidence.
+
 ## 2026-11-08: Permanent calendar-user passwords
 
 The Windows jscpd 5.4.1 baseline is commit
@@ -389,6 +421,23 @@ Application source SHA-256 changes from
 tooling changes from
 `50f9570b635590e44a9a72008368ae6c2da4e0700c2c905da7209b0a9859e4fc` to
 `d6cef67f820b061980489189680910ff5b20fea62a858a3213221bfc49528d95`.
+
+## Recipient integration with updated main (2026-11-08)
+
+Before publication, main advanced to `c90e43c` with plan 00020. The merged saved
+source measures application **92.8** and tooling **57.0** against the original
+task baseline **91.7 / 55.1** at `43524dc`; that development comparison includes
+both tasks and must not be attributed solely to recipient work. Application
+duplication is **145 lines / 15 clones / 0.75325%**, including the two credential
+suite declaration clones already present on the new main. Tooling remains
+**12 lines / 2 clones / 0.13010%**, with maximum file complexity **233**.
+Application maximum stays **75** and heuristic findings stay **2 / 8**.
+
+MCP confirms no clones in the new recipient credential-lifecycle suite. The
+pre-publication committed-head comparison uses the actual new target, with raw
+base/head/merge-tree identities, so its attribution is separate from the
+preserved original development baseline. No analyzer settings/exclusions change.
+Published plan records and both earlier measurement histories remain unchanged.
 
 ## Pending platform evidence
 

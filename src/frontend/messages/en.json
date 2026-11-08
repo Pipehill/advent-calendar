@@ -152,5 +152,14 @@
   "calendar_image_processing": "Processing and saving the image …",
   "calendar_image_load_failed": "The image could not be loaded.",
   "admin_user_password": "Recipient's password",
-  "admin_user_handover": "Privately hand this password to the identity-verified recipient. They can sign in directly and keep this password, or change it later. The password will not be displayed again."
+  "admin_user_handover": "Privately hand this password to the identity-verified recipient. They can sign in directly and keep this password, or change it later. The password will not be displayed again.",
+  "recipient_calendars": "Your calendars",
+  "recipient_available": "Available",
+  "recipient_empty": "This door is empty",
+  "recipient_locked": "Opens {date} (Oslo)",
+  "recipient_opened": "Opened",
+  "recipient_opening": "Opening the door …",
+  "recipient_close": "Close",
+  "recipient_open_failed": "The door could not be opened. Try again.",
+  "recipient_hint": "Choose an available door. A green frame and check mark show doors you have opened."
 }

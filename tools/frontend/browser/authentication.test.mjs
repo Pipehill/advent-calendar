@@ -17,6 +17,8 @@ import { registerSystemCalendarScenarios } from './system-calendars.test.mjs';
 import { registerDoorImageScenarios } from './door-images.test.mjs';
 import { registerDoorImageSecurityScenarios } from './door-image-security.test.mjs';
 import { registerCredentialTransportScenarios } from './credential-transport.test.mjs';
+import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
+import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -52,7 +54,8 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 480000 }, () => {
+// Include recipient motion/refresh and the full background/layout/language matrix.
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 600000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -69,6 +72,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
       ...environment, ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: apiUrl,
       ConnectionStrings__Calendar: environment.BROWSER_TEST_CONNECTION,
       Authentication__KeyDirectory: path.join(reports, `keys-${suffix}`),
+      CalendarOpening__DisableTimeCheck: 'false',
     };
     apiProcess = startApi();
     await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
@@ -82,9 +86,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   beforeEach(async () => {
     // Each independent scenario gets fresh aggregate rate budgets; persisted
     // accounts, lockouts and sessions survive the process replacement unchanged.
-    await stopChild(apiProcess);
-    apiProcess = startApi();
-    await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
+    await restartApi(false);
     errors = [];
     context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     page = await context.newPage();
@@ -730,8 +732,12 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
   test('Given a completed maintenance write, When the target disappears from the refreshed page, Then focus returns to the account heading', async () => {
     // Given a selected reset form and a list refresh that no longer includes the target.
-    await signIn(accounts.find(item => item.username === 'browser-admin'));
-    const account = accounts.find(item => item.username === 'browser-user');
+    const actor = accounts.find(item => item.username === 'browser-admin');
+    await signIn(actor);
+    const account = await createAccount(actor, {
+      name: 'Reset focus target', username: `focus-${randomUUID().slice(0, 8)}`,
+      password: `Temporary!${randomUUID()}`, role: 'calendarUser',
+    });
     await openAccountAction(account, 'Tilbakestill passord');
     await page.route('**/api/trpc/accounts.list**', async route => {
       const response = await route.fetch();
@@ -956,6 +962,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
   const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
     revoke: revokeSessions,
+    restartApi,
+    fixture: (...args) => command(dotnet, [fixtureDll, ...args], environment),
   });
   registerCredentialTransportScenarios(calendarEnvironment);
   registerPasswordLifecycleScenarios(calendarEnvironment);
@@ -967,6 +975,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerCalendarAccessScenarios(calendarEnvironment);
   registerDoorImageScenarios(calendarEnvironment);
   registerDoorImageSecurityScenarios(calendarEnvironment);
+  registerRecipientOpeningScenarios(calendarEnvironment);
+  registerRecipientRefreshScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
@@ -1053,6 +1063,13 @@ function command(executable, args, env = process.env) {
 
 function startApi() {
   return launch(dotnet, [path.join(root, 'src/backend/Calendar.Api/bin/Release/net10.0/Calendar.Api.dll')], apiEnvironment, path.join(root, 'src/backend/Calendar.Api'), 'backend');
+}
+
+async function restartApi(noTimeCheck) {
+  await stopChild(apiProcess);
+  apiEnvironment.CalendarOpening__DisableTimeCheck = String(noTimeCheck);
+  apiProcess = startApi();
+  await ready(async () => assert.equal((await fetch(`${apiUrl}/health/ready`)).status, 200));
 }
 
 async function stopChild(child) {

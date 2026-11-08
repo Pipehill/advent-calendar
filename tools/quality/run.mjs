@@ -8,7 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectRuntime } from './local-settings.mjs';
 import { onlyMarkdownChanges } from './change-scope.mjs';
-import { gitOutput, splitGitPaths, copyRepositorySnapshot, selectFilesToCheck, createSnapshotMetadata } from './snapshot.mjs';
+import { gitOutput, splitGitPaths, copyRepositorySnapshot, selectFilesToCheck, createSnapshotMetadata, initializeSnapshotIndex } from './snapshot.mjs';
 
 const toolingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
@@ -156,12 +156,6 @@ function requireQualityImage(image) {
   if (result.status !== 0) {
     throw new Error('Quality image missing or stale. Run: node tools/quality/run.mjs setup');
   }
-}
-
-function initializeSnapshotIndex(snapshotDirectory) {
-  // Official filename hooks need the complete candidate tree in a disposable index.
-  execFileSync('git', ['init', '-q', snapshotDirectory]);
-  execFileSync('git', ['-C', snapshotDirectory, '-c', 'core.autocrlf=false', 'add', '-f', '--', '.']);
 }
 
 // Reports identify the exact revision, index and copied contents that were checked.

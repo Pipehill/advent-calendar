@@ -23,6 +23,19 @@ export function splitGitPaths(output) {
   return output.split('\0').filter(Boolean);
 }
 
+export function initializeSnapshotIndex(directory, environment = process.env) {
+  // Hooks export worktree/index paths. The disposable repository must never use
+  // those paths, or git init/add can touch the caller's repository instead.
+  const env = { ...environment };
+  const localNames = execFileSync('git', ['rev-parse', '--local-env-vars'], {
+    cwd: directory, env, encoding: 'utf8',
+  });
+  for (const name of localNames.trim().split(/\r?\n/)) delete env[name];
+  const options = { cwd: directory, env };
+  execFileSync('git', ['init', '-q'], options);
+  execFileSync('git', ['-c', 'core.autocrlf=false', 'add', '-f', '--', '.'], options);
+}
+
 // Copy inputs without modifying the source files or the original Git index.
 export function copyRepositorySnapshot(root, snapshotDirectory, mode) {
   const indexEntries = splitGitPaths(gitOutput(root, ['ls-files', '--stage', '-z']));

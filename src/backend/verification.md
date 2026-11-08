@@ -649,6 +649,48 @@ Evidence is retained in ignored `quality-reports/plan00018/`,
 [frontend verification](../frontend/verification.md) for production UI coverage.
 Recipient access/opening and production database hardening remain separate tasks.
 
+## Recipient calendars and persisted openings (2026-11-08)
+
+All **359 backend tests** pass against isolated PostgreSQL with the actual six
+migrations. Release build, generated C#/TypeScript contracts, DateOnly wire
+representation, SDK formatting/analyzers and native publish pass. NuGet reports
+no known direct/transitive vulnerabilities in the solution's current packages.
+
+Coverage includes inclusive December 1/24 07:00 Oslo boundaries, stored years,
+November/after-December dates, whitespace/title/message/image-only content,
+explicit Development bypass and rejection in Production/Staging/Testing before
+database startup. Boards withhold title/message/image metadata. Opening and
+versioned image endpoints independently authorize current assignment and session;
+CSRF, excluded roles, revocation, disabled/restricted sessions, invalid paging/
+numbers, reassignment and lock-800008 races fail safely. Renaming the session
+validity table proves no-store HTTP 503 on all four recipient operations.
+
+Concurrent/repeated openings preserve one first timestamp across devices and
+logout/login without changing calendar modification time. Emptying content and
+restoring time enforcement retain history without granting access. Migration
+0006 is additive; published scripts remain unchanged and journaled restarts pass.
+Actual Linux backend/Compose restarts retain the same calendar and first opening
+through container/Vite mode changes and bypass-on/off transitions. The isolated
+launcher database uses disposable tmpfs; the existing development stack is preserved.
+
+Raw evidence is under ignored `quality-reports/final-backend-tests.log`,
+`quality-reports/final-outage-tests.log`, `quality-reports/final-build.log`,
+`quality-reports/final-publish.log` and `quality-reports/plan00019/`.
+
+## Recipient and permanent-password integration (2026-11-08)
+
+During pre-publication review, `origin/main` advanced to `c90e43c` with plan 00020.
+The implementation branch integrates that base while preserving its published
+migration 0007 unchanged and retaining recipient migration 0006. All **376 backend
+tests** pass with all seven actual migrations, including both credential
+conversion and recipient access/history coverage. Resource-order/journal tests
+include both scripts; the image migration test checks its own journal entry.
+Release build, generation, SDK format/analyzers and native publish pass again.
+Implemented plan records are preserved; this verification records the later merge.
+Evidence is under ignored `quality-reports/integration-backend.log`,
+`quality-reports/integration-build.log`, `quality-reports/integration-publish.log`
+and the existing advisory comparison reports.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

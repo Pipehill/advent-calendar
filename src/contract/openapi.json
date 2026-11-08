@@ -3,7 +3,7 @@
   "info": {
     "title": "Advent calendar API",
     "version": "1.2.0",
-    "description": "Backend username/password accounts, user management, owner-only calendar administration and superadmin read-only calendar overview/preview. Recipient viewing and timed opening are deferred.",
+    "description": "Backend accounts, owner administration, superadmin preview and assigned-recipient calendars with server-authorized timed opening.",
     "license": {
       "name": "Private"
     }
@@ -29,6 +29,10 @@
     {
       "name": "users",
       "description": "Authorized account administration; no API superadmin provisioning"
+    },
+    {
+      "name": "recipient",
+      "description": "Assigned recipient boards, explicit opening history and protected images"
     }
   ],
   "paths": {
@@ -1566,6 +1570,327 @@
         ],
         "description": "Independently authorizes the calendar and numbered door. Never grants recipient access."
       }
+    },
+    "/recipient/calendars": {
+      "get": {
+        "operationId": "ListRecipientCalendars",
+        "summary": "List only calendars currently assigned to this ordinary user",
+        "tags": [
+          "recipient"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized recipient data; no-store",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientCalendarListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/recipient/calendars/{id}": {
+      "get": {
+        "operationId": "GetRecipientCalendar",
+        "summary": "Read a safe board without any door title, message or image metadata",
+        "tags": [
+          "recipient"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized recipient data; no-store",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientCalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/recipient/calendars/{id}/doors/{number}/open": {
+      "post": {
+        "operationId": "OpenRecipientDoor",
+        "summary": "Authorize populated currently available content and persist first opening",
+        "tags": [
+          "recipient"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized recipient data; no-store",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientOpeningDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/recipient/calendars/{id}/doors/{number}/image": {
+      "get": {
+        "operationId": "GetRecipientDoorImage",
+        "summary": "Independently authorize the currently available image and selected version",
+        "tags": [
+          "recipient"
+        ],
+        "security": [
+          {
+            "AuthCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized recipient data; no-store",
+            "headers": {
+              "Cache-Control": {
+                "description": "no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoorImageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2437,6 +2762,209 @@
             "minLength": 1,
             "maxLength": 1333336,
             "description": "Base64 encoded processed image, at most 1000000 decoded bytes."
+          }
+        }
+      },
+      "RecipientCalendarSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "year",
+          "background"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "background": {
+            "type": "string",
+            "enum": [
+              "woodland",
+              "sleigh",
+              "playtime",
+              "aurora"
+            ]
+          }
+        }
+      },
+      "RecipientCalendarListDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "calendars",
+          "totalCount"
+        ],
+        "properties": {
+          "calendars": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/RecipientCalendarSummaryDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        }
+      },
+      "RecipientDoorDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "date",
+          "opensAt",
+          "state",
+          "openedAt"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 24
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "opensAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "locked",
+              "empty",
+              "available"
+            ]
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RecipientCalendarDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "year",
+          "background",
+          "layout",
+          "doorOrder",
+          "lastModifiedAt",
+          "serverTime",
+          "nextOpeningAt",
+          "doors"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "background": {
+            "type": "string",
+            "enum": [
+              "woodland",
+              "sleigh",
+              "playtime",
+              "aurora"
+            ]
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "chronological",
+              "random"
+            ]
+          },
+          "doorOrder": {
+            "type": "array",
+            "minItems": 24,
+            "maxItems": 24,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 24
+            }
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextOpeningAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "doors": {
+            "type": "array",
+            "minItems": 24,
+            "maxItems": 24,
+            "items": {
+              "$ref": "#/components/schemas/RecipientDoorDto"
+            }
+          }
+        }
+      },
+      "RecipientOpeningDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "door",
+          "openedAt",
+          "lastModifiedAt"
+        ],
+        "properties": {
+          "door": {
+            "$ref": "#/components/schemas/DoorDto"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

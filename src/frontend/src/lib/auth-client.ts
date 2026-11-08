@@ -20,6 +20,7 @@ export function browserAuthClient() {
   });
   return {
     session: () => client.auth.session.query(),
+    openRecipientDoor: (input: Inputs['recipient']['open']) => client.recipient.open.mutate(input),
     login: (input: { username: string; password: string }) => client.auth.login.mutate(input),
     changePassword: (input: { currentPassword: string; newPassword: string }) =>
       client.auth.changePassword.mutate(input),

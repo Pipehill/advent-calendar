@@ -152,5 +152,14 @@
   "calendar_image_processing": "Behandler og lagrer bildet …",
   "calendar_image_load_failed": "Bildet kunne ikke lastes.",
   "admin_user_password": "Mottakerens passord",
-  "admin_user_handover": "Overlever passordet privat til mottakeren etter å ha bekreftet identiteten. Mottakeren kan logge inn direkte og beholde passordet, eller bytte det senere. Passordet vises ikke igjen."
+  "admin_user_handover": "Overlever passordet privat til mottakeren etter å ha bekreftet identiteten. Mottakeren kan logge inn direkte og beholde passordet, eller bytte det senere. Passordet vises ikke igjen.",
+  "recipient_calendars": "Dine kalendere",
+  "recipient_available": "Tilgjengelig",
+  "recipient_empty": "Luken er tom",
+  "recipient_locked": "Åpnes {date} (Oslo)",
+  "recipient_opened": "Åpnet",
+  "recipient_opening": "Åpner luken …",
+  "recipient_close": "Lukk",
+  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen.",
+  "recipient_hint": "Velg en tilgjengelig luke. En grønn ramme og hake viser luker du har åpnet."
 }

@@ -10,24 +10,27 @@ import { baseline, compatible } from './requirements.mjs';
 
 export { waitForReady } from './local-readiness.mjs';
 
-export const localUsage = `Usage: run-local [--frontend=dev|container] [--skip-build] [--skip-test]
+export const localUsage = `Usage: run-local [--frontend=dev|container] [--skip-build] [--skip-test] [--no-time-check]
 
   --frontend=dev        Run Vite with hot reload in this terminal (default).
   --frontend=container  Run the built frontend in a detached container.
   --skip-build          Reuse existing application images; fail if missing.
   --skip-test           Skip backend integration and frontend unit tests.
+  --no-time-check       Allow populated recipient doors at any time locally.
   --help, -h            Show this help without starting services.
 
 Tests and dev contract generation can still compile source with --skip-build.
 Ctrl+C stops Vite; backend/database stay running and retain development data.`;
 
 export function parseLocalOptions(args = []) {
-  const options = { frontend: 'dev', skipBuild: false, skipTest: false, help: false };
+  const options = { frontend: 'dev', skipBuild: false, skipTest: false, noTimeCheck: false, help: false };
   for (const argument of args) {
     if (argument === '--skip-build') {
       options.skipBuild = true;
     } else if (argument === '--skip-test') {
       options.skipTest = true;
+    } else if (argument === '--no-time-check') {
+      options.noTimeCheck = true;
     } else if (argument === '--help' || argument === '-h') {
       options.help = true;
     } else if (argument.startsWith('--frontend=')) {
@@ -94,6 +97,17 @@ export async function runLocal(
     throw new Error(`Node ${baseline.node} is required; detected ${process.version}. Select Node ${baseline.node} on PATH, restart the terminal and run setup/doctor.`);
   }
   const config = localConfiguration(env);
+  const composeEnv = { ...env, LOCAL_NO_TIME_CHECK: String(options.noTimeCheck) };
+  // Ambient backend overrides must never alter ordinary tests or Vite.
+  const normalEnv = { ...env };
+  for (const name of Object.keys(normalEnv)) {
+    if (['calendaropening__disabletimecheck', 'local_no_time_check'].includes(name.toLowerCase())) {
+      delete normalEnv[name];
+    }
+  }
+  console.log(options.noTimeCheck
+    ? 'Local recipient time checks disabled; empty doors and access checks remain enforced.'
+    : 'Recipient doors follow the normal 07:00 Europe/Oslo schedule.');
   for (const args of [['info'], ['compose', 'version']]) {
     const result = run(config.runtime, args, false, env);
     if (result.status !== 0) throw new Error(`Missing engine/Compose provider: ${result.output}. Run setup/doctor.`);
@@ -104,11 +118,11 @@ export async function runLocal(
   }
   if (!options.skipBuild) {
     console.log(`Building application images: ${services.join(', ')}.`);
-    checkedCommand(run, config.runtime, [...config.args, 'build', ...services], env, 'Compose build failed.');
+    checkedCommand(run, config.runtime, [...config.args, 'build', ...services], composeEnv, 'Compose build failed.');
   }
   if (!options.skipTest) {
     console.log('Running backend integration and frontend unit tests.');
-    const testsEnv = testEnvironment(config.runtime, env, run);
+    const testsEnv = testEnvironment(config.runtime, normalEnv, run);
     checkedCommand(run, process.execPath, [
       path.join(config.root, 'tools/development/dotnet.mjs'),
       'test', 'src/backend/Calendar.slnx', '-c', 'Release', '-p:RestoreLockedMode=true',
@@ -122,12 +136,14 @@ export async function runLocal(
     checkedCommand(run, config.runtime, [...config.args, 'stop', 'frontend'], env, 'Could not stop the container frontend.');
   }
   const startArgs = [...config.args, 'up', '--no-build', '--detach', 'database', ...services];
-  checkedCommand(run, config.runtime, startArgs, env, 'Compose start failed. Check ports, images and container logs.');
+  // Compose recreates the backend when the explicit true/false environment changes,
+  // including --skip-build and frontend-mode transitions; volumes are retained.
+  checkedCommand(run, config.runtime, startArgs, composeEnv, 'Compose start failed. Check ports, images and container logs.');
   try {
     await waitForReady(config.url, config.timeout, request);
     console.log(`Local API ready: ${config.url}`);
     if (options.frontend === 'dev') {
-      const frontendEnv = { ...env, BACKEND_API_URL: config.url };
+      const frontendEnv = { ...normalEnv, BACKEND_API_URL: config.url };
       const pnpm = path.join(config.root, 'tools/frontend/pnpm.mjs');
       checkedCommand(run, process.execPath, [pnpm, 'run', 'generate:contract'], frontendEnv, 'Frontend generation failed. Run setup/doctor.');
       await develop(config, frontendEnv, request);

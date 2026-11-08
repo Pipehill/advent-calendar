@@ -22,10 +22,10 @@ verification. Plan 00011 adds frontend/BFF login, password change, logout and
 protected personal pages with a read-only superadmin account list.
 Plan 00013 extends those pages with dedicated account creation, scoped administrator
 lists, password reset, status/role maintenance and recoverable recent verification.
-Recipient calendar authorization/opening and
-[database hardening in plan 00009](../plans/00009-database-hardening.md) must be
-completed and verified before production. Recipient opening and
-content-move rules below remain requirements for that follow-up. Plan 00015
+Plan 00019 adds assigned-recipient viewing, scheduled opening and personal server
+history. [Database hardening in plan 00009](../plans/00009-database-hardening.md)
+remains required before production. Content moves remain a separate feature;
+their rules below apply when that feature is implemented. Plan 00015
 delivers owner creation, preparation and preview; do not attribute calendar
 behavior to plan 00008.
 
@@ -197,8 +197,9 @@ behavior to plan 00008.
 - Keep the landing page public and require authentication for calendar use.
   Each calendar has one recipient account; a recipient can access multiple assigned
   calendars. Creation assigns one existing `calendarUser` under the acting
-  calendaradmin's fixed responsibility. Recipient viewing/opening
-  and invitation behavior remain separate work.
+  calendaradmin's fixed responsibility. Unrestricted ordinary users can view and
+  open their current assignments through dedicated recipient operations.
+  Invitation behavior remains separate work.
   Calendar owners can explicitly change the calendar recipient to another
   existing ordinary user under that same responsibility. Recheck ownership,
   actor/session and target role/responsibility in the committing security
@@ -206,7 +207,7 @@ behavior to plan 00008.
   creation. Preserve doors, layout, year and ownership; update modification time.
   List/detail responses include the stored recipient's current name and username,
   even when that account is no longer selectable as an ordinary user. This does
-  not reassign account responsibility or grant recipient viewing/opening access.
+  not reassign account responsibility. Current assignment determines recipient access.
   Do not retain the former public email-registration/invitation-membership flow
   as an approved design or assume an invitation grants identity/admin privileges.
 - Let calendaradmins manage calendars they own. Enforce ownership and assigned
@@ -215,7 +216,8 @@ behavior to plan 00008.
   not imply owner editing or recipient access. Plan 00017 grants only explicit
   system-wide calendar listing and full read-only preview.
 - Plan 00015 closes anonymous creation/read and adds owner-only list/edit/preview.
-  Calendar users and restricted sessions have no calendar authority. Superadmins
+  Calendar users have only assigned-recipient authority; restricted sessions have
+  no calendar authority. Superadmins
   use dedicated `/administration/calendars` list and `/{id}/preview` GET operations,
   never owner reads or writes. Recheck current actor/session, ownership and recipient
   eligibility in the committing security transaction under lock 800008. Calendar
@@ -253,6 +255,31 @@ behavior to plan 00008.
 - For recipients, enforce opening using current backend server time plus valid session
   and recipient assignment. Keep earlier doors available; direct API access and altered
   browser clocks must not bypass future-door restrictions.
+- Use dedicated `/recipient/calendars` list/detail/open/image operations and
+  `recipient` BFF queries bound to the validated session scope. Recheck ordinary
+  role, unrestricted session and current stored assignment in the committing
+  security transaction under lock 800008. Do not derive assignment from account
+  responsibility or let administrator previews create recipient history.
+- Board/list responses contain no door titles, messages or image metadata.
+  Only an explicit CSRF-protected open returns selected content, after checking
+  current time and nonempty title, message or image. Whitespace alone is empty;
+  preserve authored display text. Independently check image reads and selected
+  versions. All successes/errors and protected SSR/hydration remain no-store.
+- Store first-opened UTC history uniquely by calendar, recipient and door.
+  Concurrent/repeated opens retain the first timestamp and do not change calendar
+  modification time. Reassignment isolates personal history. History never
+  overrides current assignment, session, time or content requirements.
+- The explicit root local launcher flag `--no-time-check` bypasses only recipient
+  time checks. Bind a backend-only option, reject it outside Development before
+  migrations/readiness, and log enabled bypass once. Empty doors and all other
+  authorization remain enforced. Set Compose true/false on every launch; never
+  persist the option or leak an ambient override into tests or frontend bundles.
+- Recipient timers schedule backend reads using server time/next opening, with
+  30-second visible-page refresh and focus/reconnect revalidation. Clear selected
+  content on changed calendar revision, empty/locked state or denied reads. Scope
+  images by recipient session/calendar/door/version and ignore late opening
+  responses after navigation/logout. Use green frames plus a check mark, an
+  accessible modal with focus containment/return, and reduced-motion support.
 - Give calendaradmins full preview/edit access to owned calendars before and during
   the period, including future content. Allow moves only while both source and
   destination are before scheduled opening, determined by backend time rather than

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { gitOutput, copyRepositorySnapshot, selectFilesToCheck, createSnapshotMetadata } from './snapshot.mjs';
+import { gitOutput, copyRepositorySnapshot, selectFilesToCheck, createSnapshotMetadata, initializeSnapshotIndex } from './snapshot.mjs';
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'quality snapshot test '));
@@ -21,6 +21,29 @@ function commit(root) {
   gitOutput(root, ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
     '-c', 'core.hooksPath=disabled-fixture-hooks', 'commit', '-qm', 'Snapshot fixture']);
 }
+
+test('Given inherited worktree hook paths, When the snapshot index is initialized, Then only the disposable repository is indexed', t => {
+  // Given an original repository and hook-style Git paths pointing at it.
+  const { root, output } = fixture(t);
+  fs.writeFileSync(path.join(root, 'original.md'), '# Original\n');
+  commit(root);
+  const originalIndex = gitOutput(root, ['ls-files', '--stage']);
+  fs.writeFileSync(path.join(output, 'candidate.md'), '# Candidate\n');
+  const environment = {
+    ...process.env,
+    GIT_DIR: path.join(root, '.git'),
+    GIT_WORK_TREE: root,
+    GIT_INDEX_FILE: path.join(root, '.git/index'),
+  };
+
+  // When QA initializes the independent candidate repository.
+  initializeSnapshotIndex(output, environment);
+
+  // Then the caller's index is preserved and the candidate has its own Git data.
+  assert(fs.statSync(path.join(output, '.git')).isDirectory());
+  assert.equal(gitOutput(output, ['ls-files']).trim(), 'candidate.md');
+  assert.equal(gitOutput(root, ['ls-files', '--stage']), originalIndex);
+});
 
 test('Given saved edits and deleted or new files, When a full snapshot is copied, Then saved contents and Git state are preserved', t => {
   // Given tracked source with a saved edit, a deletion and an untracked path.

@@ -37,6 +37,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
 
     public Task<CalendarModel?> GetSystemPreviewAsync(Guid id) => ReadAsync(id, null);
 
+    public Task<CalendarModel?> GetForRecipientAsync(Guid id, Guid recipientId) =>
+        ReadAsync(id, null, recipientId);
+
     public async Task<DoorImage?> GetDoorImageAsync(Guid id, int number) =>
         (
             await transaction.QueryAsync<DoorImage>(
@@ -49,7 +52,7 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             )
         ).SingleOrDefault();
 
-    private async Task<CalendarModel?> ReadAsync(Guid id, Guid? ownerId)
+    private async Task<CalendarModel?> ReadAsync(Guid id, Guid? ownerId, Guid? recipientId = null)
     {
         var rows = (
             await transaction.QueryAsync<CalendarRow>(
@@ -64,9 +67,15 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                 FROM calendars c JOIN doors d ON d.calendar_id = c.id
                 JOIN accounts recipient ON recipient.id = c.recipient_id
                 WHERE c.id = @Id AND (@OwnerId::uuid IS NULL OR c.owner_id = @OwnerId)
+                    AND (@RecipientId::uuid IS NULL OR c.recipient_id = @RecipientId)
                 ORDER BY d.day_number
                 """,
-                new { Id = id, OwnerId = ownerId }
+                new
+                {
+                    Id = id,
+                    OwnerId = ownerId,
+                    RecipientId = recipientId,
+                }
             )
         ).ToArray();
         if (rows.Length == 0)

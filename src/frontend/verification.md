@@ -1101,3 +1101,61 @@ retained after replacing repeated conditionals with named configuration; scoring
 and exclusions remain unchanged. Detailed source identities, supported dimensions,
 raw findings and the separate committed-head review remain in
 `quality-reports/health/`.
+
+## Recipient viewing and animated opening (2026-11-08)
+
+All **218 frontend/BFF tests**, explicit TypeScript checking, production Nitro
+packaging and Biome pass. Production dependency audit reports no known
+vulnerabilities. Tests cover recipient-only role/session/scope checks, paging,
+structured errors, principal-bound CSRF, no write retries, concurrent request
+isolation, SSR guards, image versions, backend-relative timers and stale-content
+visibility independent of opening history.
+
+The complete isolated production run passes **99 scenarios plus eight smoke
+checks**. It exercises safe future SSR, explicit
+keyboard opening, hinge/zoom effects, long plain text, Escape/Close and focus
+containment/return, persisted green frames, image-only content, image retry and
+reduced motion. Additional scenarios prove timer-driven backend refresh, bounded
+invalidation after another device empties/reassigns a calendar, and rejection of
+duplicate/late openings across navigation/logout. All four backgrounds, both
+layouts, Norwegian/English and 320/375/768/1280px produce 64 responsive captures.
+Mobile geometry includes actual coarse-pointer/touch emulation and 44px targets.
+The suite budget is ten minutes for the expanded matrix; individual action
+timeouts remain bounded. The existing reset-focus scenario now creates its own
+target instead of replacing the shared recipient fixture's credential.
+
+Two focused **Vite development browser scenarios** pass after reproducing and
+fixing StrictMode's cleanup/reopen close event. The dialog now ignores queued
+close events while it is open, so development mode displays authorized content
+like production. This does not depend on animation completion. Actual root
+launcher orchestration also passes container/dev with bypass enabled/disabled,
+preserving the same calendar ID and first-open timestamp throughout.
+
+Targeted rechecks cover final dialog centering and image-only gifts whose title
+contains only whitespace: the modal/image retain localized accessible names,
+while meaningful authored text remains unchanged.
+
+Evidence is under ignored `quality-reports/final-frontend.log`,
+`quality-reports/step5-vite-browser.log`, `quality-reports/final-stable-browser.log`,
+`quality-reports/final-recipient-browser.log`,
+`quality-reports/final-accessible-browser.log` and
+`quality-reports/plan00019/`. Physical devices, assistive technology and native
+macOS/Linux browser execution remain unverified; touch/reduced motion are browser
+emulation. Other-device changes use a bounded 30-second refresh rather than push.
+
+## Integration with permanent calendar-user passwords (2026-11-08)
+
+The updated base `c90e43c` contains plan 00020. After integrating both features,
+all **231 frontend/BFF tests** and **108 production browser scenarios plus eight
+smoke checks** pass with a stable production build. TypeScript, Nitro packaging
+and Biome pass. Both recipient interface translations and the new role-aware
+password labels are retained. A dedicated cross-plan browser case creates a
+permanent-password recipient, assigns populated content, opens it, resets the
+password and signs in directly again; the old session is revoked while the same
+first-opened timestamp remains. Current recipient/session authorization is
+independent of credential lifecycle. Historical implemented plans remain unchanged.
+
+Evidence is under ignored `quality-reports/integration-frontend.log`,
+`quality-reports/integration-browser.log` and
+`quality-reports/integration-vite-browser.log`. The earlier verification above
+records the original base; these counts record the integrated result.

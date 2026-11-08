@@ -7,6 +7,8 @@ import type { CalendarMode } from '../lib/calendar-navigation';
 import { useProtectedQuery } from '../lib/use-protected-query';
 import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
+import { errorCode } from './error-state';
+import { Button } from './ui/button';
 
 export function useImageUrl(blob: Blob | null) {
   const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null);
@@ -34,7 +36,7 @@ export function DoorImageView({
   return (
     <img
       src={src}
-      alt={title || m.calendar_image_alt()}
+      alt={title.trim() ? title : m.calendar_image_alt()}
       className={clsx(
         'h-auto max-w-full rounded-lg object-contain',
         thumbnail ? 'max-h-40' : 'mx-auto max-h-[70vh]',
@@ -49,26 +51,44 @@ export function SavedDoorImage({
   door,
   mode,
   scope,
+  onUnavailable,
 }: {
   context: RouterContext;
   id: string;
   door: DoorDto;
   mode: CalendarMode;
   scope: string;
+  onUnavailable?: () => void;
 }) {
+  const options =
+    mode === 'recipient'
+      ? context.trpc.recipient.image.queryOptions({
+          id,
+          number: door.number,
+          version: door.image?.version ?? id,
+          scope,
+        })
+      : context.trpc.calendar.image.queryOptions({
+          id,
+          number: door.number,
+          version: door.image?.version ?? id,
+          mode,
+          scope,
+        });
   const query = useQuery({
-    ...context.trpc.calendar.image.queryOptions({
-      id,
-      number: door.number,
-      version: door.image?.version ?? id,
-      mode,
-      scope,
-    }),
+    ...options,
     enabled: !!door.image && !!scope,
     staleTime: 0,
     gcTime: 0,
   });
   useProtectedQuery(context, query.error);
+  useEffect(() => {
+    if (
+      query.error &&
+      ['UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT'].includes(errorCode(query.error))
+    )
+      onUnavailable?.();
+  }, [query.error, onUnavailable]);
   const data = query.data?.metadata.version === door.image?.version ? query.data : undefined;
   const blob = useMemo(() => {
     if (!data) return null;
@@ -79,9 +99,12 @@ export function SavedDoorImage({
   if (!door.image) return null;
   if (query.error)
     return (
-      <p role="alert">
+      <div role="alert">
         {m.calendar_image_load_failed()} {authError(query.error)}
-      </p>
+        <Button variant="secondary" onClick={() => void query.refetch()}>
+          {m.retry_label()}
+        </Button>
+      </div>
     );
   if (!url) return <p role="status">{m.loading()}</p>;
   return <DoorImageView src={url} title={door.title} thumbnail={mode === 'owner-edit'} />;

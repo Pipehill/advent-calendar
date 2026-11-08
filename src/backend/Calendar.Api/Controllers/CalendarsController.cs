@@ -73,7 +73,7 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
 
     public override async Task<ActionResult<DoorImageDto>> GetDoorImage(Guid id, int number) =>
         Ok(
-            MapImage(
+            DoorContractMapper.MapImage(
                 await service.ReadDoorImageAsync(
                     Identity,
                     id,
@@ -89,7 +89,7 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
         int number
     ) =>
         Ok(
-            MapImage(
+            DoorContractMapper.MapImage(
                 await service.ReadDoorImageAsync(
                     Identity,
                     id,
@@ -99,19 +99,6 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
                 )
             )
         );
-
-    private static DoorImageDto MapImage(DoorImage image) =>
-        new()
-        {
-            Data = Convert.ToBase64String(image.Data),
-            Metadata = new DoorImageMetadataDto
-            {
-                Version = image.Version,
-                MediaType = image.MediaType,
-                Width = image.Width,
-                Height = image.Height,
-            },
-        };
 
     [RequestSizeLimit(14_000_000)]
     public override async Task<ActionResult<CalendarDto>> UpdateDoor(
@@ -215,22 +202,6 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
             Background = Enum.Parse<CalendarDtoBackground>(calendar.Background, true),
             Layout = Enum.Parse<CalendarDtoLayout>(calendar.Layout, true),
             DoorOrder = calendar.DoorOrder.ToList(),
-            Doors = calendar
-                .Doors.Select(door => new DoorDto
-                {
-                    Number = door.Number,
-                    Title = door.Title,
-                    Text = door.Text,
-                    Image = door.Image is { } image
-                        ? new Image
-                        {
-                            Version = image.Version,
-                            MediaType = image.MediaType,
-                            Width = image.Width,
-                            Height = image.Height,
-                        }
-                        : null,
-                })
-                .ToList(),
+            Doors = calendar.Doors.Select(DoorContractMapper.Map).ToList(),
         };
 }

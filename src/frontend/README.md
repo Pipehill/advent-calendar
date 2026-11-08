@@ -39,8 +39,8 @@ supplies a SHA-256 fingerprint of the opaque authentication cookie as a
 non-credential cache scope; even simultaneous same-account sessions with equal
 expiry remain distinct without exposing the HttpOnly ticket. Calendar routes disable prefetch and
 reload current session/ownership rather than reuse another user's route output.
-Protected SSR, hydration transport and errors use no-store. Recipients still have
-no calendar access; superadmins cannot use owner administration or mutations.
+Protected SSR, hydration transport and errors use no-store. Recipients use their
+dedicated assigned-calendar route; superadmins cannot use owner administration or mutations.
 
 On `/my-page`, unrestricted superadmins switch between Users and Calendars using
 accessible tabs with arrow/Home/End navigation. Only the selected panel mounts
@@ -81,8 +81,34 @@ Production Nitro and the BFF bound streamed/declared tRPC request bodies before
 JSON parsing: 14,000,000 bytes for door saves, including aggregate batches, and
 131,072 for other procedures. The independent backend has matching upload limits.
 Structured HTTP 413 maps to localized feedback; writes retain CSRF and never retry.
-Image reads, errors, SSR and hydration retain no-store. Recipient viewing/opening
-remains separate work.
+Image reads, errors, SSR and hydration retain no-store. Recipient images use a
+dedicated independently authorized endpoint and separate query keys.
+
+## Recipient calendars
+
+Unrestricted ordinary users see their assigned calendars on `/my-page`, with
+12-row pagination and loading, empty, refresh and recoverable error states.
+`/my-calendars/<id>` revalidates the session on SSR/navigation and fetches only
+safe board metadata through dedicated `recipient` tRPC procedures. Browser inputs
+carry the validated session scope. Boards never contain door titles, messages or
+image metadata; explicit opening is a CSRF-protected mutation without retries.
+
+Locked/empty/available states come from the backend. A successful opening swings
+the numbered flap and zooms selected content into a native modal dialog in about
+740ms. Green frames and check marks reflect server-persisted personal history.
+Reopening remains explicit. Escape/Close returns focus to the originating door;
+Tab/Shift+Tab stays in the modal. Reduced motion displays content directly.
+Authored text keeps line breaks and images keep their aspect ratios. Only the
+selected image is read; image errors can be retried without repeating an opening.
+
+Availability refresh uses backend current/next-opening instants, 30-second
+visible-page polling and focus/reconnect revalidation. Other-device content,
+emptying and assignment changes are discovered within this interval or on the
+next read. Changed revisions or denied/unavailable states clear selected content.
+Session changes/navigation discard protected data and late responses. Recipient
+lists, boards and images have separate session/calendar/door/version keys and
+zero stale/garbage-collection times. The local test option belongs to the
+[root launch instructions](../../README.md#run-the-application-locally).
 
 ## Sign-in and personal pages
 
@@ -95,13 +121,13 @@ Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
 
 The personal page displays the backend-validated name and a circle with initials.
-Calendar users see the initial calendar placeholder. Calendaradmins can create
+Calendar users see their assigned calendar list. Calendaradmins can create
 calendar users and list/reset their assigned ordinary accounts. Superadmins see
 all accounts and can create either assignable role, reset nonsuperadmin passwords,
 enable/disable accounts and change between calendaradmin/calendar-user roles.
 Superadmin targets remain view-only. Lists show name, username, localized role
 and enabled state, with pagination and refresh. Calendaradmins also see their own
-calendars with a link to create another; recipient lists/opening remain deferred.
+calendars with a link to create another.
 
 Compact session actions sit beside the signed-in name, and account creation sits
 beside the list heading. Eligible rows expose a keyboard-accessible three-dot
@@ -131,7 +157,7 @@ changes; first demotion requires assignment and attached ordinary users block de
 Demotion retains the current password as permanent and revokes prior sessions.
 Existing temporary/expired calendar-user passwords are retained by migration
 0007, but affected users must log in again. Disabled/locked accounts stay denied.
-Profile editing, deletion and recipient calendar access are separate work.
+Profile editing and deletion are separate work.
 
 Sensitive operations require backend recent password verification. An explicit
 `verificationRequired` error opens a separate acting-administrator password field;
