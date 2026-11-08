@@ -73,6 +73,15 @@ manual CI dispatch remain available. The protected-branch guard still applies.
    Preserve the description when updating generated sections; these commands do
    not authorize publishing a PR.
 
+Investigate every introduced regression before accepting the final change. Inspect
+new clone locations and complexity hotspots, consolidate repeated mechanisms within
+architecture boundaries, and split growing test suites by behavior while preserving
+coverage and isolation. Passing tests, additional coverage or a better overall score
+do not by themselves justify avoidable duplication or complexity. Check heuristic
+dead-code findings against real callers; correct test/module organization when
+appropriate without changing scoring, scope or exclusions to improve the report.
+Document any remaining behavior-driven tradeoff only after these corrections.
+
 An overall decline and contributing regressions must remain prominent even when
 other metrics improve. Added complexity can support required behavior; document
 that tradeoff. Dead-code analysis is heuristic: verify actual entry points/callers

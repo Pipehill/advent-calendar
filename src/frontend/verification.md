@@ -2,6 +2,41 @@
 
 Last updated: 2026-11-08
 
+## 2026-11-08: PR 43 quality regression follow-up
+
+Repeated calendar submission guards and localized field-error mapping now share
+small implementations. Recipient/responsible selectors share account options;
+their existing labels, selection, accessibility and focus behavior are preserved.
+The browser suite registers separate recipient, creation/list, editing and access
+modules within its existing isolated production-stack lifecycle. No original
+scenario actions or assertions were removed.
+
+All **60 production browser scenarios** passed on Windows/Edge, including the
+scenario running **eight public/calendar smoke scenarios**. This complete rerun
+also verifies existing account creation/maintenance through the shared options,
+both languages, mobile controls, recipient persistence/cancel/field errors,
+protected caching, SSR/hydration, repeated pending submissions and explicit retry.
+All **124 frontend/BFF tests**, frontend lint, production Vite/Nitro build with
+explicit TypeScript checking and .NET formatting/analyzers passed. Nitro's first
+build hit the filesystem sandbox's home-directory readlink restriction; the build
+passed with the required filesystem access, without a source workaround.
+
+The avoidable application duplication and tooling health regressions are removed:
+application duplicated lines/clones fall from **169/17 to 84/10**, below target
+**117/12**. Tooling health rises from **45.7 to 53.5**, above target **48.0**;
+application health remains **89.2**, above target **88.9**. The
+[quality verification record](../../tools/quality/health-verification.md#2026-11-08-pr-43-regression-corrections)
+contains all scopes, absolute counts, dimensions, input hashes, classification
+effects and measurement limitations. Analyzer configuration/exclusions are unchanged.
+The development-quality rule now requires investigating introduced regressions
+and removing avoidable repetition/complexity before accepting the result.
+
+The independent CI image failure was corrected by updating the unavailable
+Chromium package pin; image setup and offline Mermaid rendering passed.
+Logs are retained under ignored `quality-reports/pr43-*` and
+`quality-reports/health/pr43-mcp-final.json`. Native macOS/Linux, Docker and the
+inherited Vite-dev language cases were not reverified.
+
 ## 2026-11-08: Calendar recipient identity and reassignment
 
 Owner calendar cards and administration now show the stored recipient's current

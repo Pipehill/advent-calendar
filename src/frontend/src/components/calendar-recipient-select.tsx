@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import type { Ref } from 'react';
 import * as m from '../generated/paraglide/messages.js';
+import { AccountOptions } from './account-options';
 
 export function CalendarRecipientSelect({
   value,
@@ -46,11 +47,7 @@ export function CalendarRecipientSelect({
         aria-describedby={!compact || invalid ? 'calendar-recipient-error' : undefined}
       >
         <option value="">{m.calendar_choose_recipient()}</option>
-        {recipients.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.name} ({user.username})
-          </option>
-        ))}
+        <AccountOptions accounts={recipients} />
       </select>
       {(!compact || invalid) && (
         <p id="calendar-recipient-error" className="basis-full text-sm text-red-800">

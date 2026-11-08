@@ -1,5 +1,21 @@
 # Backend verification
 
+## 2026-11-08: PR 43 quality regression follow-up
+
+Calendar detail rows reuse the existing summary metadata instead of repeating
+recipient/list properties. Creation and recipient concurrency tests share a
+disposable security scope for session lookup, service lifetime and independent
+transaction-lock setup. Each test still starts its mutation, commits the competing
+security change and verifies the rejection and persisted state explicitly.
+
+Release build, all **221 integration tests** against isolated PostgreSQL on Windows
+Podman, and .NET formatting/analyzers passed. The production browser suite also
+passed all **60 scenarios**, including recipient/list persistence and ownership
+denials. No contract, migration or authorization behavior changes in this follow-up.
+See [frontend verification](../frontend/verification.md#2026-11-08-pr-43-quality-regression-follow-up)
+and [health measurements](../../tools/quality/health-verification.md#2026-11-08-pr-43-regression-corrections)
+for the full regression analysis and unchanged analyzer settings/limitations.
+
 ## 2026-11-08: Recipient identity and owner-controlled reassignment
 
 Calendar detail/list contracts now include `recipientName` and

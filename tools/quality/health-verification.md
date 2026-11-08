@@ -1,5 +1,70 @@
 # Code health verification
 
+## 2026-11-08 PR 43 regression corrections
+
+The original recipient change at `c02766ce93e1e2512c6adb6db8fd5227732e370a`
+added repeated form submission, field-error mapping, account options, calendar-row
+metadata and security-lock test setup. Shared implementations now own those
+mechanisms. Calendar browser scenarios are organized into recipient, creation/list,
+editing and access test modules, retaining the same production-stack lifecycle.
+All 12 original scenario blocks, including parameterized cases, were checked to
+exist exactly once after extraction. No analyzer settings or exclusions changed.
+
+| Metric | Main target | Original PR | Corrected saved source |
+| --- | --- | --- | --- |
+| Application health | 88.9 | 89.2 | 89.2 |
+| Application duplication | 0.950370% | 1.309468% | 0.652377% |
+| Application duplicated lines / clones | 117 / 12 | 169 / 17 | 84 / 10 |
+| Application analyzed files / lines | 111 / 12311 | 114 / 12906 | 118 / 12876 |
+| Tooling health | 48.0 | 45.7 | 53.5 |
+| Tooling complexity share | 48.3% | 53.1% | 47.4% |
+| Tooling heuristic dead-code share | 20.9% | 22.2% | 16.5% |
+| Tooling duplication | 0.157604% | 0.155099% | 0.154500% |
+| Tooling duplicated lines / clones | 12 / 2 | 12 / 2 | 12 / 2 |
+| Tooling analyzed files / lines | 45 / 7614 | 45 / 7737 | 49 / 7767 |
+
+Against the original PR, application duplication falls by 0.657092 percentage
+points, 85 duplicated lines and seven clones; tooling health rises by 7.8.
+Against target `5dde02421b70024fe03e8a143febd710fb19b8e9`, application duplication
+falls by 0.297993 percentage points, 33 lines and two clones; tooling health rises
+by 5.5. Application complexity share remains 12.3%, maximum file complexity 75,
+and two heuristic findings remain. Tooling maximum file complexity remains 227
+in the existing authentication suite; its seven heuristic findings remain.
+
+The tooling score partly improves because actual browser tests now use the
+standard `.test.mjs` module convention. The analyzer had classified the entire
+437-line scenario registration module as unused despite its explicit import.
+Its smaller shared fixture remains a 70%-confidence test-only-module finding.
+This is a classification effect alongside the smaller behavior-specific modules,
+not deletion of unreachable production code. Tooling complexity lines are 3681
+versus target 3674: the lower share also reflects the larger denominator.
+Dead-code coverage is 38.7% for application source and 96.3% for tooling;
+unsupported/heuristic findings and rounded scores retain their normal limitations.
+
+jscpd remains **5.4.1**, configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Original/corrected application input hashes are
+`83a9326277332a975114e81f353044a8ad020d47c80aacdd0f4938401b72709f` /
+`14337f3eef6eddb687d12463d04e4e09ded516d5a69d812bf8ba7ddd1568b617`;
+tooling hashes are
+`3a80227b2474323ca1fc4f0bbace44746e5d4dbc5261649c373e596f71ae4a18` /
+`176cff227b5d04e532bf959a3fdb7a17c16091f8758997dc379b7b8a1c9adf4e`.
+The original PR baseline, current comparison, whole-repository reference and
+MCP schemas/refresh/statistics remain under ignored `quality-reports/health/`;
+the prior target baseline is archived as `baseline-before-pr43-review-20261108`.
+
+The independent CI failure in run `42474721269` occurred before lint:
+`apk add chromium=155.0.8059.84-r0` could no longer resolve that exact package.
+The ICU conflict was secondary solver output. Updating only the Chromium pin
+to **156.0.8078.79-r0** built image
+`localhost/advent-quality:313696a2437a6e4f52b5` successfully; Alpine replaced
+English-only ICU data automatically. Offline repository Mermaid rendering passed
+with that browser. Bundled Node is 26.5.1, covered by the existing quality-image
+runtime exception; host Node is 24.20.0 on Windows x64 with Podman.
+Exact Alpine pins still require maintenance when rolling package indexes replace
+builds. Retaining a built dependency image by digest would address package
+retention separately; this change does not add an image publication workflow.
+
 ## 2026-10-25 Markdown-only quality exception
 
 The owner approved skipping automatic checks for plans and other Markdown-only

@@ -8,7 +8,10 @@ import { after, afterEach, before, beforeEach, describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../../src/frontend/node_modules/playwright/index.mjs';
 import { readLocalSettings } from '../../quality/local-settings.mjs';
-import { registerCalendarScenarios } from './calendar-scenarios.mjs';
+import { registerCalendarRecipientScenarios } from './calendar-recipient.test.mjs';
+import { registerCalendarCreationScenarios } from './calendar-creation.test.mjs';
+import { registerCalendarEditingScenarios } from './calendar-editing.test.mjs';
+import { registerCalendarAccessScenarios } from './calendar-access.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -932,7 +935,11 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2 av 3');
   });
 
-  registerCalendarScenarios(() => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation }));
+  const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation });
+  registerCalendarRecipientScenarios(calendarEnvironment);
+  registerCalendarCreationScenarios(calendarEnvironment);
+  registerCalendarEditingScenarios(calendarEnvironment);
+  registerCalendarAccessScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.

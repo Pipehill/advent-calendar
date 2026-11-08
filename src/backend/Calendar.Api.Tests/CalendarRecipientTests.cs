@@ -2,11 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Calendar.Api.Generated;
 using Calendar.Api.Models;
-using Calendar.Api.Services;
 using Calendar.Security;
 using Dapper;
-using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using Xunit;
 
 namespace Calendar.Api.Tests;
@@ -160,35 +157,24 @@ public sealed class CalendarRecipientTests(ApiFixture fixture)
         await using var context = await CalendarTestContext.CreateAsync(fixture);
         var calendar = await CreateCalendarAsync(context);
         var next = await context.Auth.ProvisionAsync(AccountRoles.User, context.Owner.Id);
-        var sessionId = await context.Auth.ScalarAsync<Guid>(
-            "SELECT id FROM account_sessions WHERE account_id = @Id AND NOT revoked",
-            new { context.Owner.Id }
-        );
-        using var scope = context.Application.Services.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<ICalendarService>();
-        await using var connection = new NpgsqlConnection(context.Auth.ConnectionString);
-        await connection.OpenAsync();
-        await using var transaction = await connection.BeginTransactionAsync();
-        await connection.ExecuteAsync(
-            "SELECT pg_advisory_xact_lock(800008)",
-            transaction: transaction
-        );
+        await using var security = new CalendarSecurityScope(context);
+        await security.AcquireAsync();
 
         // When a queued update runs after a committed actor disablement or recipient promotion.
-        var update = service.SaveRecipientAsync(
-            new SessionIdentity(context.Owner.Id, sessionId),
+        var update = security.Service.SaveRecipientAsync(
+            security.Identity,
             calendar.Id,
             next.Id,
             CancellationToken.None
         );
-        await connection.ExecuteAsync(
+        await security.Connection.ExecuteAsync(
             scenario == "actor"
                 ? "UPDATE accounts SET enabled = false WHERE id = @Id"
                 : "UPDATE accounts SET account_role = 'calendarAdmin' WHERE id = @Id",
             new { Id = scenario == "actor" ? context.Owner.Id : next.Id },
-            transaction
+            security.Transaction
         );
-        await transaction.CommitAsync();
+        await security.Transaction.CommitAsync();
         var action = () => update;
 
         // Then stale authority cannot change the persisted recipient.

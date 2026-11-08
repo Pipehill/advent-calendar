@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as m from '../generated/paraglide/messages.js';
 import type { RouterContext } from '../router';
+import { AccountOptions } from './account-options';
 import { RequestFailure } from './auth-feedback';
 
 export function ResponsibleSelect({
@@ -38,11 +39,7 @@ export function ResponsibleSelect({
         aria-describedby={errors.length ? 'account-responsible-error' : undefined}
       >
         <option value="">{m.admin_select_responsible()}</option>
-        {administrators?.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.name} ({user.username})
-          </option>
-        ))}
+        <AccountOptions accounts={administrators ?? []} />
       </select>
       {query.isFetching ? (
         <p role="status">{m.accounts_loading()}</p>

@@ -11,6 +11,7 @@ import { authError, backendFieldErrors, RequestFailure } from './auth-feedback';
 import { CalendarRecipientSelect } from './calendar-recipient-select';
 import { errorCode } from './error-state';
 import { Button } from './ui/button';
+import { useFormSubmit } from './use-form-submit';
 
 export function CalendarRecipientForm({
   context,
@@ -38,7 +39,6 @@ export function CalendarRecipientForm({
       restoreFocus.current = false;
     }
   }, [editing, recipients.isPending]);
-  const submitting = useRef(false);
   const [feedback, setFeedback] = useState('');
   const [failure, setFailure] = useState('');
   const form = useForm({
@@ -70,6 +70,7 @@ export function CalendarRecipientForm({
       }
     },
   });
+  const submit = useFormSubmit(form.handleSubmit);
   const closeEditor = () => {
     form.reset({ recipientId: calendar.recipientId });
     setFailure('');
@@ -114,19 +115,7 @@ export function CalendarRecipientForm({
         ...choices,
       ];
   return (
-    <form
-      className="space-y-3 text-sm"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (submitting.current) return;
-        submitting.current = true;
-        try {
-          await form.handleSubmit();
-        } finally {
-          submitting.current = false;
-        }
-      }}
-    >
+    <form className="space-y-3 text-sm" onSubmit={submit}>
       <form.Subscribe selector={(state) => [state.isSubmitting, state.isDirty] as const}>
         {([pending, dirty]) => (
           <div className="flex flex-wrap items-center gap-2 text-sm">

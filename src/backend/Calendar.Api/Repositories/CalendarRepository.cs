@@ -161,18 +161,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         );
     }
 
-    private sealed class CalendarRow
+    private sealed class CalendarRow : CalendarSummary
     {
-        public Guid Id { get; init; }
-        public string Title { get; init; } = string.Empty;
-        public DateTime CreatedAt { get; init; }
-        public DateTime LastModifiedAt { get; init; }
         public Guid OwnerId { get; init; }
-        public Guid RecipientId { get; init; }
-        public string RecipientName { get; init; } = string.Empty;
-        public string RecipientUsername { get; init; } = string.Empty;
-        public int Year { get; init; }
-        public string Background { get; init; } = string.Empty;
         public string Layout { get; init; } = string.Empty;
         public int[] DoorOrder { get; init; } = [];
         public int Number { get; init; }

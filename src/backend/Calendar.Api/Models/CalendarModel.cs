@@ -20,7 +20,7 @@ public sealed record DoorModel(int Number, string Title, string Text);
 
 public sealed record CalendarPage(IReadOnlyList<CalendarSummary> Calendars, int TotalCount);
 
-public sealed class CalendarSummary
+public class CalendarSummary
 {
     public Guid Id { get; init; }
     public string Title { get; init; } = string.Empty;
