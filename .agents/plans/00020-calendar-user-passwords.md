@@ -99,6 +99,10 @@ None.
 These are routine technical choices for the confirmed scope. No new library,
 endpoint, authentication mechanism or deployment setting is needed.
 
+The owner confirmed migration 0007 for this implementation to avoid colliding
+with the parallel plan 00019 worktree, which can use 0006. This branch applies 0007 after
+0005 without requiring the recipient schema; DbUp journals by resource identity.
+
 #### Role-specific credential lifecycle
 
 - In `UserAdministrationService`, derive initial credential state from the
@@ -199,10 +203,16 @@ endpoint, authentication mechanism or deployment setting is needed.
   the required import/namespace declarations of the separate password lifecycle
   suite; no duplicated application logic was introduced. Tests retain temporary
   administrator expiry/recovery and add a concurrent reset/promotion rejection.
-- [ ] 2. Add the existing-user conversion migration and database-backed transition,
+- [x] 2. Add the existing-user conversion migration and database-backed transition,
   restart, revoked-session, expired-credential and disabled/locked-account tests.
   Verify actual embedded scripts, atomic rollback, retained business data and
   journal-based restart against isolated PostgreSQL.
+  Completed: all 12 migration cases and Release build pass. Actual startup tests
+  cover retained hashes/business bytes/failures, disabled/locked/expired accounts,
+  normal/restricted cookie replay, session lifetimes, rollback and journal retry.
+  Full quality found SQL literal casing, corrected and verified with SQLFluff;
+  all other full checks pass. Health is 92.0 / 55.0 with two new import-declaration
+  clones overall (101 duplicated application lines versus baseline 79).
 - [ ] 3. Update role-aware frontend labels/help, contract descriptions, generated
   consumers, account/login tests and affected browser fixtures.
   Verify generation, frontend/BFF tests, explicit TypeScript/build checks and
