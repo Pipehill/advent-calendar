@@ -58,8 +58,9 @@ leave it undecided for the implement-plan workflow. A plan's work type remains
 Use the user's description, or ask them to describe the task if they have not
 done so. Inspect relevant repository files to understand existing behavior.
 
-Ask focused follow-up questions about any unclear requirements, scope, expected
-behavior, acceptance criteria, or implementation choices needed for the plan.
+Ask focused follow-up questions about unclear requirements, scope, expected
+behavior, acceptance criteria, or consequential implementation choices needed
+for the plan, using the decision boundaries below.
 Record unanswered questions in the plan's `Outstanding questions` section,
 including proposed options without presenting them as agreed choices. A draft
 plan may be written while clarification is ongoing; clearly report that it still
@@ -75,9 +76,18 @@ open and ask a focused follow-up. Record explicit deferrals and their destinatio
 under implementation details. Wait for actual answers; silence or elapsed time
 is not an answer.
 
-Do not invent requirements, choose unspecified solutions, or fill gaps with
-assumptions. If the repository does not establish a technical choice the plan
-needs, ask the user. Present possible options as questions, not as decisions.
+### Decision boundaries
+
+Make routine technical choices within the requested scope, existing requirements
+and architecture without asking for confirmation. These include file placement,
+internal names, reuse of established patterns, and implementation order. Record
+material choices together in the implementation details as agent-selected choices;
+do not present them as user-confirmed decisions.
+
+Ask before deciding unresolved product behavior, access rules, destructive data
+changes, new dependencies, or major architecture choices. Do not invent requirements
+or override an explicit user decision. Present unresolved consequential options as
+questions, and wait for an answer or explicit deferral before dependent work.
 Avoid asking again about information the user or repository already provides.
 
 ## 5. Create the task branch
@@ -120,7 +130,8 @@ for both human and agent readers. Use this order:
 6. An `Outstanding questions` section listing unresolved choices, or stating
    `None` when all questions have been answered or explicitly deferred.
 7. A detailed implementation description: affected files or components,
-   required changes, agreed implementation choices, dependencies, and work order.
+   required changes, confirmed and agent-selected implementation choices,
+   dependencies, and work order.
 8. Verification steps tied to the requirements.
 
 Update `Last updated` whenever the plan is edited, including changes to its
@@ -128,10 +139,11 @@ requirements, implementation steps, progress, or status.
 
 Include enough detail for someone to implement the task without reconstructing
 the conversation. Keep requirements separate from implementation steps. Record
-only clarified decisions and repository facts as requirements and implementation
-choices. If writing or reviewing the plan reveals a new uncertainty, add it to
-`Outstanding questions` and return to clarification before presenting the plan
-as fully clarified.
+only confirmed decisions and repository facts as requirements; identify routine
+agent-selected implementation choices separately. If writing or reviewing the
+plan reveals a new consequential uncertainty under the decision boundaries above,
+add it to `Outstanding questions` and return to clarification before presenting
+the plan as fully clarified.
 
 Keep the status `Not implemented` until the task has been implemented and verified;
 writing or merging a plan does not implement it. The implement-plan workflow

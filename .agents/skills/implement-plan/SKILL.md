@@ -1,6 +1,6 @@
 ---
 name: implement-plan
-description: Implement an existing project task plan identified by title, path, or plan number in verified iterations with one commit per step, then verify the complete result and publish a draft PR. Use a separate branch with the agreed implementation type and track plan progress. Does not apply merely because the user is creating or editing this skill.
+description: Implement an existing project task plan identified by title, path, or plan number in verified iterations with one commit per step, then verify the complete result and publish a draft PR. Use a separate branch with the selected implementation type and track plan progress. Does not apply merely because the user is creating or editing this skill.
 ---
 
 # Implement a plan
@@ -25,8 +25,10 @@ Otherwise inspect the
 plan to implement and wait for the answer.
 
 Read its requirements, confirmed decisions, outstanding questions, work order,
-verification steps, and linked repository rules. Resolve questions needed for
-the requested implementation or obtain explicit deferral before dependent work.
+verification steps, and linked repository rules. Apply the
+[decision boundaries](../plan-task/SKILL.md#decision-boundaries) when resolving
+questions: make routine choices autonomously, and obtain answers or explicit
+deferral for consequential unresolved questions before dependent work.
 After preparing the implementation branch, record answers in the plan using the
 clarification workflow in [plan-task](../plan-task/SKILL.md). Respect its scope
 and deferred work; a documentation plan does not authorize creating the
@@ -49,11 +51,11 @@ or synchronization failure with the user before branching. Confirm the selected
 plan exists on the chosen base. If it is only available on a planning branch,
 clarify the base or integration of that plan instead of merging its PR implicitly.
 
-Use the implementation type explicitly supplied by the user or recorded in the
-plan's `Implementation type` field. Supported types are listed in the naming
-rules, including `chore`, `feature`, `bugfix`, `documentation`, and `ci`; exclude
-`plan`. If no type has been agreed, ask the user to select one and wait. Do not
-infer it from a planning branch, a PR's `[PLAN]` prefix, or a plan number/filename.
+Select the implementation type using the naming rules: preserve a type supplied
+by the user or recorded in the plan's `Implementation type` field; otherwise
+choose a supported type from the actual task scope and report the choice without
+waiting for confirmation. Do not infer it from a planning branch, a PR's `[PLAN]`
+prefix, or a plan number/filename. `plan` is not an implementation type.
 
 Create `<type>/<short-english-description>` from the chosen base after rechecking
 Git state and checking for local/remote name collisions. Respect an explicitly
@@ -61,7 +63,7 @@ requested branch name. If the name exists, ask whether to continue that branch
 or choose another; do not overwrite it.
 Verify the active branch before making implementation changes. Resume an
 explicitly authorized implementation branch without restarting branch setup.
-On that branch, record the agreed `Implementation type` and any clarification
+On that branch, record the selected `Implementation type` and any clarification
 answers in the plan, and update `Last updated`.
 
 ## 3. Divide the plan into implementation iterations
@@ -81,8 +83,9 @@ distinguished from unintended regressions.
 ## 4. Implement, verify, and commit each iteration
 
 For coding work, follow the [development quality rules](../../rules/development-quality.md):
-capture a baseline before edits, check saved source after meaningful changes, and
-produce the final advisory comparison alongside relevant lint/tests. Readiness
+capture a baseline before edits, use targeted checks on saved source during
+iterations, and perform full final verification with the advisory comparison.
+The shared rules own check scope and when to broaden it. Readiness
 failures and unsupported metrics must remain visible. Keep working-tree feedback
 separate from staged receipts and PR merge comparisons.
 
@@ -90,9 +93,11 @@ For each iteration:
 
 1. Implement the related changes within the plan's scope. Read relevant repository
    rules before changing their components.
-2. Verify the saved changes with applicable existing repository tools and relevant
-   tests, following the quality rules and their Markdown-only exception. Keep
-   required hooks enabled. When later iterations are needed for a build or test,
+2. Verify the saved changes with targeted lint, relevant tests, and necessary
+   type/build checks, following the quality rules and their Markdown-only
+   exception. Broaden checks when integration boundaries or shared configuration
+   change; full lint is not required for every iteration. Keep required hooks
+   enabled. When later iterations are needed for a build or test,
    record the dependency and actual failed or unavailable check; do not describe
    it as passing. Resolve unexpected failures before proceeding.
 3. Review the diff and available quality feedback against the baseline and previous
@@ -106,9 +111,12 @@ For each iteration:
    commit before starting the next step. Preserve the iteration commits through
    publication; do not squash them into a single final commit.
 
-If new evidence requires a change to an agreed requirement or technical choice,
-record the question and obtain clarification before dependent work. Adjust the
-remaining iteration breakdown when dependencies or findings require it.
+If new evidence requires changing a user-confirmed requirement or technical choice,
+or raises another consequential question under the decision boundaries, record
+the question and obtain clarification before dependent work. Adjust routine
+agent-selected choices within those boundaries without another approval, and
+record material changes in the plan. Adjust the remaining iteration breakdown
+when dependencies or findings require it.
 
 ## 5. Verify the complete implementation against the plan
 
@@ -116,7 +124,10 @@ After all iterations, compare the final implementation with every requirement,
 confirmed decision, deliverable, and verification criterion in the plan. Check
 that the parts work together and resolve temporary integration gaps from earlier
 iterations. Run the complete required verification on the final saved inputs,
-including the final advisory comparison where applicable. Assess the overall
+following the shared quality rules and their Markdown-only exception. For coding
+work, this includes full lint, all required tests/builds and security/migration
+checks, and the final advisory comparison. Targeted iteration checks do not
+replace this final verification or the existing full PR checks. Assess the overall
 code-health change as well as individual iteration findings. Correct omissions
 or regressions in further verified iteration commits.
 
@@ -134,7 +145,7 @@ pushing all implementation commits to the implementation branch, and creating
 a draft PR targeting the agreed base. Honor explicit session limits on commits,
 pushing, or PR creation; do not ask again for actions already authorized.
 
-Use `[TYPE]: Short English description` with the agreed implementation type and
+Use `[TYPE]: Short English description` with the selected implementation type and
 the repository PR template. Describe the problem and resulting behavior, the
 cohesive implementation steps, final verification against the plan, and material
 limitations or code-health tradeoffs. Link the plan and include the required
