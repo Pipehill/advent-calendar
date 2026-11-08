@@ -1,6 +1,6 @@
 # 00020: Permanent administrator-set passwords for calendar users
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Implementation type: feature
 
@@ -238,8 +238,13 @@ with the parallel plan 00019 worktree, which can use 0006. This branch applies 0
   with 0007 in isolated PostgreSQL, retaining existing opening history. The
   combined recipient-opening browser smoke remains supplementary while plan
   00019 is unimplemented. Final full quality passes. Application/tooling health
-  is 92.1 / 55.6, with the documented import-declaration duplication tradeoff;
-  committed-head regression review remains before publication.
+  is 92.1 / 55.6, with the documented import-declaration duplication tradeoff.
+  Committed-head regression review against origin/main confirms identical
+  configuration/platform, unchanged maximum complexity and heuristic findings,
+  and no avoidable new clones after shared browser helpers. All own disposable
+  containers are removed; concurrent plan 00019 artifacts are preserved. Inherited
+  contract/build warnings, C# dead-code coverage and native platform/client
+  verification limits remain documented in their existing owners.
 
 ## Verification
 
