@@ -16,7 +16,7 @@ grant no writes. See the agreed
 Recipient authorization/opening and production database hardening remain
 production gates.
 See [backend authentication](authentication.md) for the protected API, manual
-superadmin provisioning, temporary-password handover, session lifecycle and key
+superadmin provisioning, role-specific password handover, session lifecycle and key
 configuration. The frontend/BFF implements login, password changes, logout and
 session-protected personal pages and authorized account creation/maintenance lists.
 
@@ -87,6 +87,13 @@ calendars/doors once, then adds required ownership, recipient, stored year,
 background and layout/order constraints. Accounts, credentials, sessions and
 unrelated data survive. Journaled repeat startup preserves new calendars.
 Startup, migrations, setup and deployment must never seed user accounts.
+Migration 0007 retains existing calendar-user passwords, including expired
+temporary ones, and removes their mandatory-change/deadline state. Only affected
+users get rotated security versions and revoked sessions; they log in again with
+the same password. Disabled/locked accounts remain denied, and administrator or
+already-permanent credentials/sessions are unchanged. Stop the old backend before
+applying the migration. Code rollback does not reverse this conversion or restore
+expired deadlines; see [the transition workflow](authentication.md#existing-user-conversion).
 The superadmin provisioning path is an intentional
 manual database operation using an offline password-hash tool that cannot connect
 to the database or create an account.

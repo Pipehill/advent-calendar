@@ -226,10 +226,20 @@ with the parallel plan 00019 worktree, which can use 0006. This branch applies 0
   dependency audit reports zero vulnerabilities. Application/tooling health is
   92.0 / 55.6; tooling duplication stays at the baseline 12 lines / 2 clones after
   extracting shared setup/reset-navigation helpers.
-- [ ] 4. Verify both role lifecycles, voluntary changes and the documented
+- [x] 4. Verify both role lifecycles, voluntary changes and the documented
   transition; update owning rules/docs and complete required quality checks.
   Run the complete backend/frontend/browser suites, full quality, advisory health
   comparison and committed-head regression review before draft PR publication.
+  Final application evidence: 318 backend and 206 frontend/BFF tests, 90 production
+  browser scenarios plus eight smoke scenarios, clean builds/publish, explicit
+  TypeScript, formatting and zero production dependency vulnerabilities. The
+  expanded browser suite needs an eight-minute aggregate budget; its clean repeat
+  completed in 369.5 seconds. Actual plan 00019 migration 0006 was also tested
+  with 0007 in isolated PostgreSQL, retaining existing opening history. The
+  combined recipient-opening browser smoke remains supplementary while plan
+  00019 is unimplemented. Final full quality passes. Application/tooling health
+  is 92.1 / 55.6, with the documented import-declaration duplication tradeoff;
+  committed-head regression review remains before publication.
 
 ## Verification
 
@@ -274,5 +284,5 @@ with the parallel plan 00019 worktree, which can use 0006. This branch applies 0
 - During implementation run contract validation/generation, backend migration/
   authentication tests, frontend/BFF tests, affected production browser scenarios,
   explicit TypeScript checks, builds and required full quality/health checks.
-  This Markdown-only planning change skips automated application checks under
-  the repository exception and does not claim those checks have run.
+  Implementation evidence and inherited platform/tool limitations are recorded in
+  the backend/frontend and advisory-health verification owners.

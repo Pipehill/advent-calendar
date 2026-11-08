@@ -2,6 +2,40 @@
 
 Last updated: 2026-11-08
 
+## 2026-11-08: Permanent calendar-user passwords
+
+All **206 frontend/BFF unit tests**, explicit TypeScript checking, authored
+contract validation/generation, production Vite/Nitro build and Biome pass.
+The production dependency audit reports zero known vulnerabilities. Existing
+Redocly recommendations and dependency directive warnings remain advisory.
+
+All **90 production browser scenarios plus eight smoke scenarios** pass on
+Windows Edge against an isolated PostgreSQL/API/Nitro stack. Eight new cases
+exercise Norwegian/English role switching, ordinary-user creation/reset through
+both administrator roles, direct `/my-page` login, 30-day sessions, voluntary
+password change, revoked sessions and unchanged administrator setup restrictions.
+Existing account maintenance, SSR/cache isolation, authorization, calendar/image
+and responsive/keyboard/touch regressions remain green. Passwords stay masked,
+absent from returned metadata/storage and cleared after success or role changes.
+
+Role-aware guidance reuses the form model's effective target role; the backend
+continues to determine credential lifecycle without a caller-controlled flag.
+Only administrator credentials claim temporary status, 30-minute expiry and
+required replacement. Ordinary help explains direct use, optional later change,
+private identity-verified handover and that passwords are not shown again.
+BFF tests preserve the backend's mandatory-change decision across cookie/CSRF
+exchange rather than overriding it for users.
+
+Test setup now sets locale before reset-page navigation to avoid competing
+automatic/manual reloads. The expanded full suite passed all individual cases
+but exceeded its old six-minute aggregate budget; increasing that budget to eight
+minutes produced a clean repeat in 369.5 seconds. Interrupted exploratory
+processes and their isolated databases were explicitly cleaned up. Raw results
+remain under ignored `quality-reports/plan00020/`; screenshots and nested smoke
+evidence use the existing browser report owner. The combined recipient-opening
+flow remains supplementary integration work with plan 00019; schema compatibility
+was separately verified as recorded in [backend verification](../backend/verification.md).
+
 ## 2026-11-08: Superadmin calendar overview and read-only preview
 
 All **163 frontend/BFF unit tests**, explicit TypeScript checking, production

@@ -52,7 +52,7 @@ let errors;
 let apiProcess;
 let apiEnvironment;
 
-describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 360000 }, () => {
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 480000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);

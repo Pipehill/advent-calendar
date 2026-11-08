@@ -160,9 +160,13 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
     [Theory(
         DisplayName = "Given an administrator reset paused after hashing, When actor authority or target role changes, Then no stale target mutation commits"
     )]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ConcurrentResetRechecksActorAndTarget(bool promoteTarget)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ConcurrentResetRechecksActorAndTarget(
+        bool promoteTarget,
+        bool superadminActor
+    )
     {
         // Given an authorized reset paused outside the final database transaction.
         using var barrier = new HashBarrier();
@@ -170,8 +174,9 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
             fixture,
             configureServices: services => services.AddSingleton<IPasswordHasher<Account>>(barrier)
         );
-        var actor = await context.ProvisionAsync(AccountRoles.Administrator);
-        var target = await context.ProvisionAsync(AccountRoles.User, actor.Id);
+        var owner = await context.ProvisionAsync(AccountRoles.Administrator);
+        var actor = superadminActor ? await context.ProvisionAsync() : owner;
+        var target = await context.ProvisionAsync(AccountRoles.User, owner.Id);
         await context.LoginAsync(actor);
         using var superadmin = context.Application.CreateClient();
         await context.LoginAsync(await context.ProvisionAsync(), superadmin);
@@ -214,7 +219,11 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         // Then current authority and target role/version prevent the prepared reset from committing.
         Assert.Equal(HttpStatusCode.NoContent, disable.StatusCode);
         Assert.Equal(
-            promoteTarget ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized,
+            promoteTarget
+                ? superadminActor
+                    ? HttpStatusCode.Conflict
+                    : HttpStatusCode.Forbidden
+                : HttpStatusCode.Unauthorized,
             stale.StatusCode
         );
         var currentVersion = await context.ScalarAsync<Guid>(

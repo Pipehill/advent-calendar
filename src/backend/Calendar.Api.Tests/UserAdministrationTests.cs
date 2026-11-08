@@ -319,15 +319,15 @@ public sealed class UserAdministrationTests(ApiFixture fixture)
             $"/users/{own.Id}/reset-password",
             new { password = own.Password }
         );
-        var temporary = Password();
+        var replacement = Password();
         var reset = await SendAsync(
             context.Client,
             HttpMethod.Post,
             $"/users/{own.Id}/reset-password",
-            new { password = temporary }
+            new { password = replacement }
         );
         var revoked = await recipient.GetAsync("/auth/session");
-        var fresh = await context.LoginAsync(own with { Password = temporary }, recipient);
+        var fresh = await context.LoginAsync(own with { Password = replacement }, recipient);
 
         // Then only own current ordinary users are listed/reset and reset invalidates all earlier sessions.
         Assert.Equal([own.Id], list.Users.Select(user => user.Id));

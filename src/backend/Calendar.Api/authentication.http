@@ -44,6 +44,22 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 {"username":"<new-username>","name":"<display-name>","password":"<private-temporary-password>","role":"calendarAdmin"}
 
+### A recently verified calendaradmin creates an assigned user with a lasting password.
+### A superadmin must also supply responsibleAdministratorId for a calendar user.
+POST {{baseUrl}}/users
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"username":"<new-calendar-username>","name":"<display-name>","password":"<private-permanent-password>","role":"calendarUser"}
+
+### Authorized reset revokes target sessions; current target role determines lifecycle.
+### Calendar users receive permanent passwords; calendaradmins get 30-minute setup passwords.
+POST {{baseUrl}}/users/<target-uuid>/reset-password
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"password":"{{newPassword}}"}
+
 ### Revoke the current session only.
 POST {{baseUrl}}/auth/logout
 X-CSRF-TOKEN: {{csrfToken}}
