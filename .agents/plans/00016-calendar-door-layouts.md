@@ -103,7 +103,7 @@ None.
 
 ### Work steps
 
-- [ ] **1. Add layout geometry.** Implement deterministic scattered placement,
+- [x] **1. Add layout geometry.** Implement deterministic scattered placement,
   central enlarged door 24, bounds/clearance checks and bounded fallback in the
   pure layout module. Define responsive sizing without changing stored data.
   Add focused tests of geometry and arrangement stability.
@@ -113,7 +113,8 @@ None.
   positioning. Update scoped surface/focus/selection CSS and preserve background
   rendering, selected-door behavior and administration/preview parity.
 - [ ] **3. Verify the complete experience and document it.** Extend the existing
-  isolated browser scenarios in `tools/frontend/browser/calendar-scenarios.mjs`.
+  isolated browser scenarios in `tools/frontend/browser/` (the former single
+  scenario file has been split by behavior).
   Update layout help in `src/frontend/messages/nb.json` and `en.json` if needed,
   and describe the scattered behavior in `src/frontend/README.md`.
   Record implementation evidence in `src/frontend/verification.md` and update
@@ -147,5 +148,11 @@ None.
   relevant frontend unit/browser coverage, type checking, production build and
   required final quality checks; record failures and missing evidence honestly.
 
-This document is a plan only. Application implementation and its verification
-have not been performed.
+## Implementation evidence
+
+- Iteration 1: pure deterministic packing and an irregular bounded fallback;
+  22 geometry tests pass at board widths 248, 303, 624 and 1008, including forced
+  fallback, clearance, centrality, area and repeatability. Targeted Biome passes.
+  Board integration and browser verification follow in iterations 2 and 3.
+- The previous advisory baseline is preserved as
+  `baseline-before-00016-20261108`; the new baseline was captured before edits.
