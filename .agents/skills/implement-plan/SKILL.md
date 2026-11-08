@@ -140,10 +140,12 @@ subsequent edits. Commit these final plan and index updates before publication.
 
 ## 6. Push the commits and open a draft pull request
 
-The default completion of this workflow includes committing each iteration,
-pushing all implementation commits to the implementation branch, and creating
-a draft PR targeting the agreed base. Honor explicit session limits on commits,
-pushing, or PR creation; do not ask again for actions already authorized.
+Invoking this skill authorizes committing each verified iteration, pushing all
+implementation commits to the implementation branch, and creating a draft PR
+targeting the agreed base after final verification. Complete these actions
+without waiting for separate user approval or asking for confirmation. Honor
+explicit session limits on commits, pushing, or PR creation. Leave merging to
+the user.
 
 Use `[TYPE]: Short English description` with the selected implementation type and
 the repository PR template. Describe the problem and resulting behavior, the
