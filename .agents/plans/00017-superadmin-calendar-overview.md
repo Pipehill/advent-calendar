@@ -7,6 +7,8 @@ Last updated: 2026-11-08
 Expand the [superadmin calendar-list TODO](TODO.md) into a system-wide calendar
 table showing each calendar's owner and recipient. Let superadmins preview
 calendars through a read-only flow while preserving owner-only editing.
+Use tabs on the superadmin personal page to switch between the user and calendar
+tables, displaying one table at a time.
 
 ## Requirements
 
@@ -32,6 +34,10 @@ calendars through a read-only flow while preserving owner-only editing.
 8. Localize interface text in Norwegian and English while leaving calendar titles,
    door content and account names unchanged. Provide accessible table headings,
    keyboard-operable preview controls and a usable table on narrow screens.
+9. On the superadmin's `/my-page`, provide Users and Calendars tabs. Only the
+   selected tab's table is visible and available to keyboard/screen-reader
+   navigation. Switching tabs must keep the existing user-management actions
+   available in Users and the calendar overview/preview actions in Calendars.
 
 ## Outstanding questions
 
@@ -44,6 +50,8 @@ None.
 - The owner requested a table of all calendars with both associated accounts,
   and superadmin preview without edit access. This adds a specific calendar read
   permission; existing superadmin user-management permissions are unchanged.
+- The owner requested tabs to switch between the user and calendar tables on the
+  superadmin personal page, so the two tables are not displayed simultaneously.
 - The existing backend service restricts calendar list/get/mutations to a current
   calendaradmin owner. `CalendarRepository.ListAsync` filters by owner ID; its
   summary includes recipient ID but no owner/recipient display names.
@@ -54,7 +62,8 @@ None.
   link leads to the owner editor. Those assumptions must change for superadmins.
 - `/my-page` already hosts role-specific sections: the owner calendar list for
   calendaradmins and the account table for superadmins. The proposed system-wide
-  calendar table belongs alongside the superadmin account section.
+  calendar table and the existing account section belong in separate tab panels
+  for superadmins; other roles retain their current personal-page structure.
 - Calendar ownership and recipient references already exist in PostgreSQL. No
   schema change or new dependency is expected for these read operations.
 - Recipient calendar viewing/opening, image upload and other calendar maintenance
@@ -68,6 +77,13 @@ None.
   for the backend-validated superadmin role. Use a semantic table with columns
   Calendar, Year, Calendaradmin, Calendar user and Preview. Show current names
   and usernames for both accounts so duplicate names remain distinguishable.
+- Wrap the superadmin account and calendar sections in a shared tab interface
+  using existing UI primitives without a new dependency. Provide localized Users
+  and Calendars labels, associated `tablist`/`tab`/`tabpanel` semantics, selected
+  state, visible focus and standard arrow-key navigation. Hide the inactive
+  panel and its controls from both visual and assistive-technology navigation.
+  Keep tab selection separate from role authorization and protected query keys.
+  Returning from superadmin preview should select the Calendars tab.
 - Reuse existing paging/refresh patterns, initially 12 rows per page. Include
   total calendars and current/total pages. Use stable newest-first ordering by
   `created_at DESC, id`, bounded offset/limit validation and an explicit empty
@@ -123,7 +139,9 @@ None.
   `lib/auth-navigation.ts`, `lib/calendar-navigation.ts` and the preview route.
   Preserve deadline/error behavior, no-store, cache scoping and owner edit guards.
 - [ ] **3. Add the superadmin table and preview presentation.** Implement the
-  table, pagination/refresh and preview links on `routes/my-page.tsx`. Adapt
+  Users/Calendars tabs with one visible panel, the calendar table,
+  pagination/refresh and preview links on `routes/my-page.tsx`. Keep existing
+  account management in Users. Adapt
   `components/calendar-workspace.tsx` for a read-only superadmin notice and return
   navigation. Reuse `CalendarBoard` and native door selection. Add maintained
   Norwegian/English messages and verify both languages and responsive behavior.
@@ -153,6 +171,11 @@ None.
   refresh, total/page counts, keyboard preview activation, all-door reading and
   return navigation. Assert absence of edit forms/layout actions/editor links,
   and denial of direct owner-editor navigation and crafted write requests.
+- Verify superadmin Users/Calendars tab switching with pointer and keyboard,
+  selected-tab/panel semantics and only one visible/navigable table. Existing
+  user-management actions must still work in Users, and returning from calendar
+  preview must show Calendars. Verify labels in both languages and that other
+  roles' personal pages retain their existing structure and access boundaries.
 - Test Norwegian and English, long/duplicate names, narrow screens and preview
   at desktop/mobile sizes. Calendar content and saved layout must survive language
   changes and refresh. Reuse the current board and, when available, plan 00016's
