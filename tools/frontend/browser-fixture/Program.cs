@@ -65,6 +65,7 @@ foreach (
         ("browser-admin-two", AccountRoles.Administrator, "Annen Ansvarlig", false),
         ("browser-user-two", AccountRoles.User, "Annen Bruker", false),
         ("browser-temporary", AccountRoles.Superadmin, "Midlertidig Bruker", true),
+        ("browser-system-temporary", AccountRoles.Superadmin, "Begrenset Superadmin", true),
         ("browser-expired", AccountRoles.Administrator, "Utløpt Bruker", true),
         ("browser-restricted-admin", AccountRoles.Administrator, "Begrenset Administrator", true),
     }

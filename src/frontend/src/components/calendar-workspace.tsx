@@ -6,6 +6,7 @@ import type { CalendarDto } from '../generated/backend';
 import * as m from '../generated/paraglide/messages.js';
 import { leaveSession } from '../lib/auth-navigation';
 import { type CalendarMode, calendarQueryOptions } from '../lib/calendar-navigation';
+import { useProtectedQuery } from '../lib/use-protected-query';
 import type { RouterContext } from '../router';
 import { authError } from './auth-feedback';
 import { CalendarBoard } from './calendar-board';
@@ -44,6 +45,7 @@ export function CalendarWorkspace({
   const preview = mode !== 'owner-edit';
   const options = calendarQueryOptions(context, id, mode);
   const query = useQuery({ ...options, staleTime: 0, gcTime: 0 });
+  useProtectedQuery(context, query.error);
   const [selected, setSelected] = useState(1);
   const [layoutPending, setLayoutPending] = useState(false);
   const [layoutFailure, setLayoutFailure] = useState('');
@@ -77,7 +79,17 @@ export function CalendarWorkspace({
         <h1 className="mr-auto min-w-0 basis-full break-anywhere font-serif text-3xl text-emerald-950 sm:basis-auto">
           {calendar.title} <span className="text-xl">{calendar.year}</span>
         </h1>
-        {preview ? (
+        {mode === 'system-preview' ? (
+          <Link
+            to="/my-page"
+            search={{ tab: 'calendars' }}
+            preload={false}
+            className={buttonStyles({ size: 'compact', variant: 'secondary' })}
+          >
+            <ArrowLeft aria-hidden="true" />
+            {m.calendar_back_overview()}
+          </Link>
+        ) : preview ? (
           <Link
             to="/calendars/$id"
             params={{ id }}
@@ -119,7 +131,9 @@ export function CalendarWorkspace({
       )}
       {preview ? (
         <p className="rounded-xl bg-emerald-50 p-3 text-emerald-950">
-          {m.calendar_preview_notice()}
+          {mode === 'system-preview'
+            ? m.calendar_system_preview_notice()
+            : m.calendar_preview_notice()}
         </p>
       ) : (
         <fieldset className="rounded-xl border border-stone-200 bg-white p-4">

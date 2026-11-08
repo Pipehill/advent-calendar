@@ -147,7 +147,7 @@ review, records evidence and publishes the draft PR.
   `src/frontend/src/server/calendars.ts`, `server/trpc.ts`,
   `lib/auth-navigation.ts`, `lib/calendar-navigation.ts` and the preview route.
   Preserve deadline/error behavior, no-store, cache scoping and owner edit guards.
-- [ ] **3. Add the superadmin table and preview presentation.** Implement the
+- [x] **3. Add the superadmin table and preview presentation.** Implement the
   Users/Calendars tabs with one visible panel, the calendar table,
   pagination/refresh and preview links on `routes/my-page.tsx`. Keep existing
   account management in Users. Adapt
@@ -224,3 +224,13 @@ available until implementation and verification are complete.
   from the freshly validated session. Step 3 completes the system-preview notice
   and return link. Biome and MCP refresh pass; application health is 89.9 with
   the same declarative test overlap, tooling unchanged at 53.2.
+- Step 3: localized Users/Calendars tabs, semantic horizontally scrollable table,
+  count/paging/refresh and read-only preview/return navigation are implemented.
+  Only the selected panel mounts its controls. Shared calendar list framing,
+  pagination and authorization-failure handling remove duplicated presentation.
+  All 162 unit/BFF tests, Biome, explicit TypeScript and production Nitro build pass.
+  Nine targeted production Edge scenarios pass against isolated PostgreSQL,
+  including both layouts, all 24 doors, mobile/desktop, both languages, all write
+  denials, role/SSR boundaries and revoked/logout/account-switch isolation.
+  Screenshots are under `quality-reports/plan00017/`; full regressions follow in
+  step 4. Browser tests found and fixed an encoding error in new Norwegian texts.

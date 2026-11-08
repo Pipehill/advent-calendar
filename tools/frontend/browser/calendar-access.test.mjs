@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { owner, create } from './calendar-fixture.mjs';
+import { owner, create, logout, sessionCookie } from './calendar-fixture.mjs';
 
 // Registered in the production-stack suite to share its isolated lifecycle.
 export function registerCalendarAccessScenarios(environment) {
@@ -30,7 +30,7 @@ export function registerCalendarAccessScenarios(environment) {
     await page.getByText('Vi fant ikke denne kalenderen.', { exact: true }).waitFor();
   });
 
-  for (const username of ['browser-user-two', 'browser-superadmin', 'browser-restricted-admin']) {
+  for (const username of ['browser-user-two', 'browser-restricted-admin']) {
     test(`Given ${username}, When calendar creation or preview is requested, Then route and BFF authority agree`, async () => {
       // Given a role or temporary session without calendar administration authority.
       const { page, accounts, signIn, frontendUrl, context } = environment();
@@ -57,11 +57,10 @@ export function registerCalendarAccessScenarios(environment) {
     await signIn(owner(accounts));
     const calendar = await create(state, 'Logout private marker');
     await page.goto(`${frontendUrl}/calendar-preview/${calendar.id}`, { waitUntil: 'networkidle' });
-    const cookie = (await context.cookies()).find(item => item.name === 'advent.auth');
+    const cookie = await sessionCookie(context);
 
     // When the owner logs out and the old backend cookie is replayed.
-    await page.getByRole('button', { name: 'Logg ut', exact: true }).click();
-    await page.waitForURL(frontendUrl + '/');
+    await logout(page, frontendUrl);
     const replay = await fetch(`${apiUrl}/calendars/${calendar.id}`, { headers: { Cookie: `advent.auth=${cookie.value}` } });
     await page.goto(`${frontendUrl}/calendar-preview/${calendar.id}`, { waitUntil: 'networkidle' });
 

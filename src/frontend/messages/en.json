@@ -131,5 +131,15 @@
   "calendar_previous": "Previous page",
   "calendar_next": "Next page",
   "calendar_invalid_field": "Check this field.",
-  "calendar_title_limit": "Enter a name with 1–100 characters."
+  "calendar_title_limit": "Enter a name with 1–100 characters.",
+  "personal_sections": "Overviews",
+  "personal_users_tab": "Users",
+  "personal_calendars_tab": "Calendars",
+  "calendar_system_list": "All calendars",
+  "calendar_system_empty": "There are no calendars on this page.",
+  "calendar_table_title": "Calendar",
+  "calendar_table_year": "Year",
+  "calendar_preview_named": "Preview {title}",
+  "calendar_back_overview": "Back to calendar overview",
+  "calendar_system_preview_notice": "Read-only preview: all doors are available. No changes are saved and no doors are opened for the recipient."
 }

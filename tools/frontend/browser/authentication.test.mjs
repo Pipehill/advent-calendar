@@ -13,6 +13,7 @@ import { registerCalendarCreationScenarios } from './calendar-creation.test.mjs'
 import { registerCalendarEditingScenarios } from './calendar-editing.test.mjs';
 import { registerCalendarAccessScenarios } from './calendar-access.test.mjs';
 import { registerCalendarLayoutScenarios } from './calendar-layout.test.mjs';
+import { registerSystemCalendarScenarios } from './system-calendars.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -936,7 +937,10 @@ describe('Authentication through production Nitro and isolated PostgreSQL', { ti
     assert.equal(await page.locator('nav span[aria-live=polite]').textContent(), 'Side 2 av 3');
   });
 
-  const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation });
+  const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
+    revoke: revokeSessions,
+  });
+  registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);
   registerCalendarEditingScenarios(calendarEnvironment);
@@ -968,6 +972,10 @@ async function signIn(account, destination = '/my-page', target = page) {
 async function mutation(name, input, request = context.request) {
   const csrf = (await (await request.get(`${frontendUrl}/api/trpc/auth.csrf`)).json()).result.data.requestToken;
   return request.post(`${frontendUrl}/api/trpc/${name}`, { headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf }, data: input });
+}
+
+function revokeSessions(username) {
+  return command(dotnet, [fixtureDll, 'revoke', username], environment);
 }
 
 async function createAccount(actor, input) {

@@ -131,5 +131,15 @@
   "calendar_previous": "Forrige side",
   "calendar_next": "Neste side",
   "calendar_invalid_field": "Kontroller dette feltet.",
-  "calendar_title_limit": "Skriv et navn med 1–100 tegn."
+  "calendar_title_limit": "Skriv et navn med 1–100 tegn.",
+  "personal_sections": "Oversikter",
+  "personal_users_tab": "Brukere",
+  "personal_calendars_tab": "Kalendere",
+  "calendar_system_list": "Alle kalendere",
+  "calendar_system_empty": "Det finnes ingen kalendere på denne siden.",
+  "calendar_table_title": "Kalender",
+  "calendar_table_year": "År",
+  "calendar_preview_named": "Forhåndsvis {title}",
+  "calendar_back_overview": "Tilbake til kalenderoversikten",
+  "calendar_system_preview_notice": "Skrivebeskyttet forhåndsvisning: alle luker er tilgjengelige. Ingen endringer lagres, og ingen luker åpnes for mottakeren."
 }
