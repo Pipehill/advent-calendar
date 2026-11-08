@@ -6,7 +6,8 @@
   [plan 00015](00015-create-calendars.md).
 - [x] Add frontend user administration; implemented in
   [plan 00013](00013-user-administration.md).
-- [ ] Let superadmins view a list of all calendars.
+- [ ] Let superadmins view all calendars with owner/recipient identities and
+  read-only preview; planned in [plan 00017](00017-superadmin-calendar-overview.md).
 - [ ] Let calendaradmins upload an image to a calendar door.
 - [x] Let calendaradmins view a list of their own calendars; implemented in
   [plan 00015](00015-create-calendars.md).
