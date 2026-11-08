@@ -176,6 +176,15 @@ public sealed class CalendarsController(ICalendarService service) : CalendarsCon
                     Number = door.Number,
                     Title = door.Title,
                     Text = door.Text,
+                    Image = door.Image is { } image
+                        ? new Image
+                        {
+                            Version = image.Version,
+                            MediaType = image.MediaType,
+                            Width = image.Width,
+                            Height = image.Height,
+                        }
+                        : null,
                 })
                 .ToList(),
         };

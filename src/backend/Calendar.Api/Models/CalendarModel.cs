@@ -16,7 +16,19 @@ public sealed record CalendarModel(
     string RecipientUsername
 );
 
-public sealed record DoorModel(int Number, string Title, string Text);
+public sealed record DoorModel(
+    int Number,
+    string Title,
+    string Text,
+    DoorImageMetadata? Image = null
+);
+
+public sealed record DoorImageMetadata(Guid Version, string MediaType, int Width, int Height);
+
+public sealed record DoorImage(byte[] Data, string MediaType, int Width, int Height, Guid Version)
+{
+    public DoorImageMetadata Metadata => new(Version, MediaType, Width, Height);
+}
 
 public sealed record CalendarPage(IReadOnlyList<CalendarSummary> Calendars, int TotalCount);
 

@@ -46,7 +46,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
                     c.owner_id AS OwnerId, c.recipient_id AS RecipientId, c.calendar_year AS Year,
                     c.background, c.layout, c.door_order AS DoorOrder,
                     recipient.name AS RecipientName, recipient.user_name AS RecipientUsername,
-                    d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text
+                    d.day_number AS Number, d.content_title AS DoorTitle, d.content_text AS Text,
+                    d.image_version AS ImageVersion, d.image_media_type AS ImageMediaType,
+                    d.image_width AS ImageWidth, d.image_height AS ImageHeight
                 FROM calendars c JOIN doors d ON d.calendar_id = c.id
                 JOIN accounts recipient ON recipient.id = c.recipient_id
                 WHERE c.id = @Id AND (@OwnerId::uuid IS NULL OR c.owner_id = @OwnerId)
@@ -63,7 +65,20 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
             first.Title,
             new DateTimeOffset(first.CreatedAt),
             new DateTimeOffset(first.LastModifiedAt),
-            rows.Select(row => new DoorModel(row.Number, row.DoorTitle, row.Text)).ToArray(),
+            rows.Select(row => new DoorModel(
+                    row.Number,
+                    row.DoorTitle,
+                    row.Text,
+                    row.ImageVersion is { } version
+                        ? new DoorImageMetadata(
+                            version,
+                            row.ImageMediaType!,
+                            row.ImageWidth!.Value,
+                            row.ImageHeight!.Value
+                        )
+                        : null
+                ))
+                .ToArray(),
             first.OwnerId,
             first.RecipientId,
             first.Year,
@@ -195,5 +210,9 @@ public sealed class CalendarRepository(SecurityTransaction transaction) : ICalen
         public int Number { get; init; }
         public string DoorTitle { get; init; } = string.Empty;
         public string Text { get; init; } = string.Empty;
+        public Guid? ImageVersion { get; init; }
+        public string? ImageMediaType { get; init; }
+        public int? ImageWidth { get; init; }
+        public int? ImageHeight { get; init; }
     }
 }

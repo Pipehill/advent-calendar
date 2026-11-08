@@ -87,7 +87,7 @@ None.
 These are technical defaults selected for this plan, not additional user-confirmed
 product decisions.
 
-**Storage and size policy**
+#### Storage and size policy
 
 - Interpret 1 MB as **1,000,000 bytes of encoded image data**, excluding transport
   encoding and metadata. Use the same constant and boundary tests throughout.
@@ -107,7 +107,7 @@ product decisions.
   bytes. Show the source-file limit separately from the final storage limit in
   localized help.
 
-**Image processing**
+#### Image processing
 
 - Use SkiaSharp as the implementation library, with the matching Linux
   native-assets package required by the existing backend runtime image. Pin
@@ -135,7 +135,7 @@ product decisions.
   committing transaction under lock 800008, then write title/text/image/time
   atomically. Do not hold the global security lock while decoding images.
 
-**Contracts, BFF and protected retrieval**
+#### Contracts, BFF and protected retrieval
 
 - Extend the existing door-save request with an explicit image action
   (`keep`, `replace`, `remove`) and bounded base64 data for replacement. Prefer a
@@ -167,7 +167,7 @@ product decisions.
   Preserve no-store through Nitro, API errors, SSR and hydration. No public image
   URL, static directory or anonymously accessible thumbnail route is introduced.
 
-**Editor and preview**
+#### Editor and preview
 
 - Extend `calendar-door-form.tsx`, `calendar-workspace.tsx`, `lib/calendar-input.ts`,
   `lib/auth-client.ts`, `server/calendars.ts`, `server/trpc.ts` and the message
@@ -190,9 +190,15 @@ product decisions.
 Each step is one implementation iteration and commit, following
 [implement-plan](../skills/implement-plan/SKILL.md) when implementation is requested.
 
-- [ ] **1. Define contracts and persistence.** Add the data-preserving migration,
+- [x] **1. Define contracts and persistence.** Add the data-preserving migration,
   constraints, image metadata and save/read contracts. Regenerate both consumers,
   adapt affected mappings and verify fresh/populated databases and generation.
+  Contract validation and both consumers generated successfully (four inherited
+  OpenAPI warnings). The actual migration preserved populated door content in
+  isolated PostgreSQL; 1,000,000 bytes passed, 1,000,001 bytes and incomplete
+  metadata failed the database constraint. Full DbUp/journal integration follows
+  step 2: this intermediate build intentionally reports the two new abstract
+  image-read methods awaiting backend implementation (CS0534).
 - [ ] **2. Implement image processing and backend operations.** Add/pin the image
   library and runtime assets, bounded validation/adaptation, protected reads and
   atomic saves. Verify actual HTTP binding, PostgreSQL storage/rollback,
