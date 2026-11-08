@@ -61,7 +61,7 @@ Detailed commands/raw findings are in `quality-reports/00010-*` and
 | Quality and hooks | Full lint, Linux invalid/corrected fixtures, 157 tooling tests (one additional Bash-only skip) and disposable-clone main/staging/link/configuration/receipt/image-lifecycle checks passed before this follow-up. |
 | Follow-up | 160 tooling tests passed / 1 platform skip; full lint, SDK/MCP schema/snippet/refresh, grouped local/PR/CI rendering, locked analyzer installation/reuse and read-only doctor passed. |
 | Setup/startup | Windows/Podman setup twice and doctor passed; both image builds, container/repeat-skip modes, actual Vite/custom port, occupied-port rejection, SIGINT cleanup and data preservation passed. Physical Ctrl+C was not exercised. |
-| Browser | Production: 8 passed. Vite: 5 passed / 3 language-switch failures, reproduced on original commit; [stabilization TODO](../../.agents/plans/TODO.md) remains. |
+| Browser | Production: 8 passed. Vite: 5 passed / 3 language-switch failures, reproduced on original commit; [stabilization TODO](https://github.com/Pipehill/advent-calendar/blob/5dde02421b70024fe03e8a143febd710fb19b8e9/.agents/plans/TODO.md) remains. |
 | Unavailable | Docker, native Ubuntu/Debian/macOS and interactive IDE MCP evidence. Existing platform follow-ups remain open. |
 | Cleanup | Disposable clones, verification containers/network, two owned Buildah containers and unused build stages removed; three older external build containers, current images and database/key volumes preserved. |
 

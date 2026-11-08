@@ -4,8 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-08
 
-Expand the [superadmin calendar-list TODO](TODO.md) into a system-wide calendar
-table showing each calendar's owner and recipient. Let superadmins preview
+Provide a system-wide calendar table showing each calendar's owner and recipient.
+Let superadmins preview
 calendars through a read-only flow while preserving owner-only editing.
 Use tabs on the superadmin personal page to switch between the user and calendar
 tables, displaying one table at a time.

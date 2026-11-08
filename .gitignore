@@ -1,4 +1,5 @@
 .vscode/
+/.agents/plans/TODO.md
 quality-reports/
 megalinter-reports/
 .quality-cache/
