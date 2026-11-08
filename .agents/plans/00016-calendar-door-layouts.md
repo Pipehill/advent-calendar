@@ -1,6 +1,6 @@
 # 00016: More engaging calendar door layouts
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
 
 Last updated: 2026-11-08
 
