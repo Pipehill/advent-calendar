@@ -41,6 +41,19 @@ export function accountFormModel(
       ? role === 'calendarAdmin'
       : action === 'role' || target?.role === 'calendarAdmin';
   }
+  function passwordGuidance(role: string) {
+    if (passwordForAdministrator(role))
+      return {
+        label: m.admin_temporary_password(),
+        policy: m.password_policy_admin(),
+        handover: m.admin_handover(),
+      };
+    return {
+      label: m.admin_user_password(),
+      policy: m.password_policy_user(),
+      handover: m.admin_user_handover(),
+    };
+  }
   function responsibilityNeeded(role: string) {
     return (
       actorRole === 'superadmin' &&
@@ -87,5 +100,5 @@ export function accountFormModel(
       fields.verificationPassword = m.admin_verify_required();
     return Object.keys(fields).length ? { fields } : undefined;
   }
-  return { hasPassword, passwordForAdministrator, responsibilityNeeded, payload, validate };
+  return { hasPassword, passwordGuidance, responsibilityNeeded, payload, validate };
 }

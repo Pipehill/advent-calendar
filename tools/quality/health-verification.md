@@ -377,6 +377,68 @@ the retained declaration/lifecycle tradeoffs. The committed-head comparison is
 regenerated after final commits before publication; development MCP statistics
 are separate from hook receipts and PR evidence.
 
+## 2026-11-08: Permanent calendar-user passwords
+
+The Windows jscpd 5.4.1 baseline is commit
+`43524dc22b97562745033a9a46a382de70c2a36b`. Baseline/current snapshots use identical
+scope, platform and configuration SHA-256
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Raw MCP schemas/snippet/refresh/statistics, CLI findings, manifests and the
+whole-repository reference remain under ignored `quality-reports/health/` and
+`quality-reports/plan00020/`.
+
+| Metric | Application before / after | Tooling before / after |
+| --- | --- | --- |
+| Health | 91.7 / 92.1 | 55.1 / 55.6 |
+| Duplication score | 96.9 / 97.1 | 94.7 / 94.8 |
+| Complexity score / share | 87.3 / 87.8; 8.4% / 8.1% | 58.2 / 58.6; 43.2% / 42.6% |
+| Dead-code score / share | 90.6 / 90.7; 0.4% / 0.4% | 29.8 / 30.3; 15.5% / 15.2% |
+| Duplication percentage | 0.4828555712% / 0.5917853167% | 0.1398438410% / 0.1375831231% |
+| Duplicated lines / clones | 79 / 101; 9 / 11 | 12 / 12; 2 / 2 |
+| Maximum file complexity | 75 / 75 | 232 / 232 |
+| Heuristic dead-code findings | 2 / 2 | 8 / 8 |
+| Dead-code analysis coverage | 40.0% / 39.0% | 96.7% / 96.7% |
+| Analyzed files / lines | 141 / 145; 16361 / 17067 | 55 / 56; 8581 / 8722 |
+
+Health improves by 0.4 / 0.5 points. Application duplication increases by
+0.1089297455 percentage points, 22 lines and two clones; tooling falls by
+0.0022607179 percentage points with unchanged absolute counts.
+The application duplication increase is two necessary import/namespace/collection
+declaration blocks in separate credential and migration suites; no new duplicated
+application logic remains. Browser setup and reset navigation were extracted
+after reviewing two avoidable test clones, restoring tooling absolute duplication
+to baseline. No scoring or exclusions changed. Required role-derived lifecycle,
+atomic demotion and data migration add branches; component complexity decreases
+through shared role-aware guidance. Larger test/source denominators improve
+shares and are not proof of fewer defects. Existing entry-point and test-helper
+dead-code findings were checked against callers and remain heuristic; C#
+dead-code coverage and inherited native platform/client limitations remain
+unavailable.
+
+Application source SHA-256 changes from
+`3df01ccde1ddbea02e9c1815b50431f119e98b6f4d9cfd174420ec10115ee868` to
+`72f3f6829caf5cb2a01394a180c708cfde4a58b1216027f9a0bbbcf2dfc9e476`;
+tooling changes from
+`50f9570b635590e44a9a72008368ae6c2da4e0700c2c905da7209b0a9859e4fc` to
+`d6cef67f820b061980489189680910ff5b20fea62a858a3213221bfc49528d95`.
+
+## Recipient integration with updated main (2026-11-08)
+
+Before publication, main advanced to `c90e43c` with plan 00020. The merged saved
+source measures application **92.8** and tooling **57.0** against the original
+task baseline **91.7 / 55.1** at `43524dc`; that development comparison includes
+both tasks and must not be attributed solely to recipient work. Application
+duplication is **145 lines / 15 clones / 0.75325%**, including the two credential
+suite declaration clones already present on the new main. Tooling remains
+**12 lines / 2 clones / 0.13010%**, with maximum file complexity **233**.
+Application maximum stays **75** and heuristic findings stay **2 / 8**.
+
+MCP confirms no clones in the new recipient credential-lifecycle suite. The
+pre-publication committed-head comparison uses the actual new target, with raw
+base/head/merge-tree identities, so its attribution is separate from the
+preserved original development baseline. No analyzer settings/exclusions change.
+Published plan records and both earlier measurement histories remain unchanged.
+
 ## Pending platform evidence
 
 The owner explicitly deferred native macOS/Linux installation, repeat setup,

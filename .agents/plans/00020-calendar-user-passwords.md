@@ -1,6 +1,8 @@
 # 00020: Permanent administrator-set passwords for calendar users
 
-Status: Not implemented
+Status: Implemented (2026-11-08)
+
+Implementation type: feature
 
 Last updated: 2026-11-08
 
@@ -97,6 +99,10 @@ None.
 These are routine technical choices for the confirmed scope. No new library,
 endpoint, authentication mechanism or deployment setting is needed.
 
+The owner confirmed migration 0007 for this implementation to avoid colliding
+with the parallel plan 00019 worktree, which can use 0006. This branch applies 0007 after
+0005 without requiring the recipient schema; DbUp journals by resource identity.
+
 #### Role-specific credential lifecycle
 
 - In `UserAdministrationService`, derive initial credential state from the
@@ -187,14 +193,58 @@ endpoint, authentication mechanism or deployment setting is needed.
 
 ### Work steps
 
-- [ ] 1. Add role-specific creation/reset behavior and demotion metadata handling;
+- [x] 1. Add role-specific creation/reset behavior and demotion metadata handling;
   preserve administrator promotion, concurrency and authorization protections.
-- [ ] 2. Add the existing-user conversion migration and database-backed transition,
+  Verify targeted user administration, lifecycle, concurrency and ordinary-password
+  integration tests before committing this iteration.
+  Completed: 56 targeted PostgreSQL integration cases, Release build, full quality
+  and MCP refresh pass. Application health 91.7 to 91.9; tooling stays 55.1.
+  Application duplication increases from 79 to 90 lines (9 to 10 clones), solely
+  the required import/namespace declarations of the separate password lifecycle
+  suite; no duplicated application logic was introduced. Tests retain temporary
+  administrator expiry/recovery and add a concurrent reset/promotion rejection.
+- [x] 2. Add the existing-user conversion migration and database-backed transition,
   restart, revoked-session, expired-credential and disabled/locked-account tests.
-- [ ] 3. Update role-aware frontend labels/help, contract descriptions, generated
+  Verify actual embedded scripts, atomic rollback, retained business data and
+  journal-based restart against isolated PostgreSQL.
+  Completed: all 12 migration cases and Release build pass. Actual startup tests
+  cover retained hashes/business bytes/failures, disabled/locked/expired accounts,
+  normal/restricted cookie replay, session lifetimes, rollback and journal retry.
+  Full quality found SQL literal casing, corrected and verified with SQLFluff;
+  all other full checks pass. Health is 92.0 / 55.1 with two new import-declaration
+  clones overall (101 duplicated application lines versus baseline 79).
+- [x] 3. Update role-aware frontend labels/help, contract descriptions, generated
   consumers, account/login tests and affected browser fixtures.
-- [ ] 4. Verify both role lifecycles, voluntary changes and the documented
+  Verify generation, frontend/BFF tests, explicit TypeScript/build checks and
+  production browser lifecycle/role-switching scenarios.
+  Completed: contract validation/generation, 206 frontend/BFF tests, explicit
+  TypeScript, production Vite/Nitro build, full lint and all 14 affected browser
+  scenarios pass. Both languages cover role switching, creation/reset, direct
+  ordinary login, voluntary change and retained administrator setup restrictions.
+  Browser fixture setup now sets language before navigation instead of racing
+  automatic/manual reloads; earlier interrupted runs were cleaned up. Production
+  dependency audit reports zero vulnerabilities. Application/tooling health is
+  92.0 / 55.6; tooling duplication stays at the baseline 12 lines / 2 clones after
+  extracting shared setup/reset-navigation helpers.
+- [x] 4. Verify both role lifecycles, voluntary changes and the documented
   transition; update owning rules/docs and complete required quality checks.
+  Run the complete backend/frontend/browser suites, full quality, advisory health
+  comparison and committed-head regression review before draft PR publication.
+  Final application evidence: 318 backend and 206 frontend/BFF tests, 90 production
+  browser scenarios plus eight smoke scenarios, clean builds/publish, explicit
+  TypeScript, formatting and zero production dependency vulnerabilities. The
+  expanded browser suite needs an eight-minute aggregate budget; its clean repeat
+  completed in 369.5 seconds. Actual plan 00019 migration 0006 was also tested
+  with 0007 in isolated PostgreSQL, retaining existing opening history. The
+  combined recipient-opening browser smoke remains supplementary while plan
+  00019 is unimplemented. Final full quality passes. Application/tooling health
+  is 92.1 / 55.6, with the documented import-declaration duplication tradeoff.
+  Committed-head regression review against origin/main confirms identical
+  configuration/platform, unchanged maximum complexity and heuristic findings,
+  and no avoidable new clones after shared browser helpers. All own disposable
+  containers are removed; concurrent plan 00019 artifacts are preserved. Inherited
+  contract/build warnings, C# dead-code coverage and native platform/client
+  verification limits remain documented in their existing owners.
 
 ## Verification
 
@@ -239,5 +289,5 @@ endpoint, authentication mechanism or deployment setting is needed.
 - During implementation run contract validation/generation, backend migration/
   authentication tests, frontend/BFF tests, affected production browser scenarios,
   explicit TypeScript checks, builds and required full quality/health checks.
-  This Markdown-only planning change skips automated application checks under
-  the repository exception and does not claim those checks have run.
+  Implementation evidence and inherited platform/tool limitations are recorded in
+  the backend/frontend and advisory-health verification owners.

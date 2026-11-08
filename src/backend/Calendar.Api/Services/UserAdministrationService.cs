@@ -79,8 +79,9 @@ public sealed class UserAdministrationService(
                         Role = role,
                         PasswordHash = hash,
                         SecurityVersion = Guid.NewGuid(),
-                        MustChangePassword = true,
-                        TemporaryPasswordExpiresAt = now.AddMinutes(30),
+                        MustChangePassword = role != AccountRoles.User,
+                        TemporaryPasswordExpiresAt =
+                            role == AccountRoles.User ? null : now.AddMinutes(30),
                         CreatedAt = now,
                         ResponsibleAdministratorId = owner,
                         CreatedById = actor.Account.Id,
@@ -172,7 +173,11 @@ public sealed class UserAdministrationService(
                 );
                 var target = await ResetTargetAsync(actor.Account, id);
                 RequireSameVersion(target, snapshot);
-                await credentials.ReplacePasswordAsync(id, hash, temporary: true);
+                await credentials.ReplacePasswordAsync(
+                    id,
+                    hash,
+                    temporary: target.Role != AccountRoles.User
+                );
                 SecurityLog.Event(logger, "reset-password", actor.Account.Id, id, "accepted");
                 return true;
             },

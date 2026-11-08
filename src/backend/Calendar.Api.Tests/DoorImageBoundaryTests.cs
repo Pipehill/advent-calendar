@@ -107,8 +107,10 @@ public sealed class DoorImageBoundaryTests(ApiFixture fixture)
         Assert.Equal(calendar.Background, after.Background);
         Assert.Equal(calendar.DoorOrder, after.DoorOrder);
         Assert.Equal(
-            6,
-            await context.Auth.ScalarAsync<int>("SELECT count(*)::int FROM schemaversions")
+            1,
+            await context.Auth.ScalarAsync<int>(
+                "SELECT count(*)::int FROM schemaversions WHERE scriptname = 'Calendar.Api.Migrations.0005_add_door_images.sql'"
+            )
         );
     }
 

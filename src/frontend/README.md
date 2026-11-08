@@ -114,7 +114,9 @@ zero stale/garbage-collection times. The local test option belongs to the
 
 `/login` accepts username and password through a TanStack Form/Zod form.
 Successful login opens `/my-page`, or `/change-password` for a restricted temporary
-session. Own-password change revokes all sessions and requires a fresh login.
+administrator session. Calendar-user creation/reset supplies a permanent password
+and login goes directly to `/my-page`; the user can keep it or change it later.
+Own-password change revokes all sessions and requires a fresh login.
 Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
 
@@ -142,12 +144,19 @@ The success notice and focus ID use request/router-local memory; secrets never
 enter route data, query keys, URLs or browser persistence.
 
 Maintenance forms identify the account and operation before confirmation. Password
-reset and promotion take a different temporary password, expire it after 30 minutes,
-require recipient password change and revoke target sessions. Credentials must be
+reset supplies a different permanent password for a calendar user. Administrator
+creation/reset and promotion use a different temporary password, expire it after
+30 minutes and require password change. All resets revoke target sessions while
+keeping the actor signed in. Labels and private handover help follow the effective
+target role in both languages; creation role changes clear the password draft.
+Credentials must be
 handed over privately to identity-verified recipients. Status and role changes also
 revoke target sessions. Enabling never restores revoked sessions, and disabling a
 calendaradmin leaves their users enabled. Responsibility stays fixed across role
 changes; first demotion requires assignment and attached ordinary users block demotion.
+Demotion retains the current password as permanent and revokes prior sessions.
+Existing temporary/expired calendar-user passwords are retained by migration
+0007, but affected users must log in again. Disabled/locked accounts stay denied.
 Profile editing and deletion are separate work.
 
 Sensitive operations require backend recent password verification. An explicit

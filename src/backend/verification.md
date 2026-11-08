@@ -1,5 +1,44 @@
 # Backend verification
 
+## 2026-11-08: Permanent calendar-user passwords
+
+All **318 integration tests** pass against isolated PostgreSQL on Windows/Podman.
+Release build, authored OpenAPI validation, both NSwag consumers, API publish and
+read-only .NET formatting/analyzers pass. Four inherited Redocly recommendations
+remain advisory. No dependency or hashing-policy changes were made.
+
+Creation/reset through calendaradmin and superadmin now supplies permanent
+ordinary-user credentials. Controlled-time tests verify immediate, 31-minute and
+multi-day login, unrestricted fixed 30-day sessions, unchanged responsibility,
+old-password/session rejection and the unaffected actor session. Voluntary
+changes retain current-password, weak/reused-password checks and account-wide
+revocation. Administrator expiry, ten-minute setup sessions, required change,
+promotion and recovery coverage remain in the existing lifecycle suites.
+
+Demotion cases cover permanent, temporary, expired and locked credentials without
+changing hashes or clearing failures. Real hashing barriers verify that a reset
+prepared before promotion cannot commit through either an ordinary administrator
+or superadmin; actor revocation is also rechecked. Existing authorization, recent
+verification, CSRF, no-store and calendar/session-denial tests remain green.
+
+Actual migration 0007 startup tests compare retained account/security/business
+data, including image bytes, with pending/expired/already-permanent/disabled/locked
+users and administrator controls. They verify normal/restricted cookie replay,
+new-login eligibility, fixed session lifetimes, rollback after the account update
+when session revocation fails, safe retry and journal-based restart without
+revoking new sessions. The image upgrade regression test now checks its own
+journal entry instead of assuming the whole application has five migrations.
+Migration 0007 was reserved by the owner for concurrent delivery with plan 00019.
+A separate network-isolated PostgreSQL probe applies its actual worktree migration
+0006 and then 0007, preserving an existing opening-history row,
+calendar content and the retained credential while revoking the old session.
+The tested 0006 SHA-256 is
+`b1186a40f47e1c4deff92a4b25108559a3f73f470d5e67010a048a994608976d`.
+The combined recipient-opening browser smoke remains supplementary integration
+work while plan 00019 is unimplemented; its schema is not required on this branch.
+
+Logs and raw evidence are under ignored `quality-reports/plan00020/`.
+
 ## 2026-11-08: Superadmin calendar overview and preview
 
 Release build, authored OpenAPI validation, both NSwag consumers, all **245
@@ -637,6 +676,20 @@ launcher database uses disposable tmpfs; the existing development stack is prese
 Raw evidence is under ignored `quality-reports/final-backend-tests.log`,
 `quality-reports/final-outage-tests.log`, `quality-reports/final-build.log`,
 `quality-reports/final-publish.log` and `quality-reports/plan00019/`.
+
+## Recipient and permanent-password integration (2026-11-08)
+
+During pre-publication review, `origin/main` advanced to `c90e43c` with plan 00020.
+The implementation branch integrates that base while preserving its published
+migration 0007 unchanged and retaining recipient migration 0006. All **376 backend
+tests** pass with all seven actual migrations, including both credential
+conversion and recipient access/history coverage. Resource-order/journal tests
+include both scripts; the image migration test checks its own journal entry.
+Release build, generation, SDK format/analyzers and native publish pass again.
+Implemented plan records are preserved; this verification records the later merge.
+Evidence is under ignored `quality-reports/integration-backend.log`,
+`quality-reports/integration-build.log`, `quality-reports/integration-publish.log`
+and the existing advisory comparison reports.
 
 ## Limitations and follow-up
 

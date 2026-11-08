@@ -13,6 +13,50 @@ async function independentOwner(state, t) {
 }
 
 export function registerRecipientRefreshScenarios(environment) {
+  test('Given a newly created recipient with a permanent password, When assigned content is opened before and after an administrator reset, Then direct login and personal history survive the credential transition', async t => {
+    // Given an owner-created permanent account and an assigned, populated past calendar.
+    const state = environment();
+    await state.signIn(owner(state.accounts));
+    const account = { name: 'Cross-plan recipient', username: `assigned-${randomUUID().slice(0, 8)}`, password: `Initial!${randomUUID()}`, role: 'calendarUser' };
+    const created = await state.mutation('accounts.create', account);
+    assert.equal(created.status(), 200, await created.text());
+    const user = (await created.json()).result.data;
+    const response = await state.mutation('calendar.create', { title: 'Permanent password calendar', recipientId: user.id, background: 'woodland' });
+    assert.equal(response.status(), 200, await response.text());
+    const calendar = (await response.json()).result.data;
+    assert.equal((await state.mutation('calendar.saveDoor', { id: calendar.id, number: 1, title: 'Assigned gift', text: 'Same recipient, new password' })).status(), 200);
+    state.fixture('calendar-year', calendar.id, '2025');
+    const context = await state.context.browser().newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const reader = { ...state, context, page };
+
+    // When direct recipient login opens content, then a permanent reset revokes that session.
+    await state.signIn(account, '/my-page', page);
+    await page.getByRole('link', { name: /Permanent password calendar/ }).click();
+    await door(page, 1).click();
+    await dialog(page).waitFor();
+    await page.getByRole('button', { name: 'Lukk', exact: true }).click();
+    const firstSession = await read(reader, 'auth.session');
+    const first = await read(reader, 'recipient.get', { id: calendar.id, scope: firstSession.cacheScope });
+    const password = `Replacement!${randomUUID()}`;
+    assert.equal((await state.mutation('accounts.resetPassword', { id: user.id, password })).status(), 200);
+    const revoked = await context.request.get(`${state.frontendUrl}/api/trpc/auth.session`);
+    await state.signIn({ ...account, password }, '/my-page', page);
+    await page.getByRole('link', { name: /Permanent password calendar/ }).click();
+    await door(page, 1).click();
+    await dialog(page).waitFor();
+    const nextSession = await read(reader, 'auth.session');
+    const next = await read(reader, 'recipient.get', { id: calendar.id, scope: nextSession.cacheScope });
+
+    // Then normal login needs no password-change detour and history stays bound to the same recipient.
+    assert.equal(revoked.status(), 401);
+    assert.equal(firstSession.mustChangePassword, false);
+    assert.equal(nextSession.mustChangePassword, false);
+    assert.equal(next.doors[0].openedAt, first.doors[0].openedAt);
+    assert.equal(await door(page, 1).getAttribute('data-opened'), 'true');
+  });
+
   test('Given a touch recipient device, When an available numbered door is tapped and closed, Then the modal opens and its green frame remains visible', async t => {
     // Given a browser context with actual touch/coarse-pointer emulation.
     const state = environment();

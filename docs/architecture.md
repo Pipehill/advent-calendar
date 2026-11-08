@@ -389,12 +389,25 @@ compliance. No OAuth2, external identity provider or MFA is added. Detailed
 requirements for hashing costs, input validation, secrets and safe logging belong
 to the [authentication rules](../.agents/rules/authentication-and-calendar-access.md#passwords-and-sensitive-operations).
 
-API-created accounts start with temporary credentials. Initial, reset and promotion
-passwords expire after 30 minutes and allow only a restricted password-change
-flow; normal access requires a different compliant password and a new login.
-Administrators privately deliver temporary credentials to identity-verified
-recipients. Promotion replaces the lower-trust credential atomically, preventing
+Calendar-user creation/reset supplies permanent credentials without a mandatory
+password change or credential deadline. Login goes directly to `/my-page` with
+the existing fixed 30-day session. Voluntary password change still requires the
+current password and a different compliant replacement, revokes every session
+and requires a new login. Demotion clears temporary metadata without replacing
+the hash or clearing lockout/failures, and revokes all old sessions.
+
+Calendaradmin creation/reset and promotion passwords expire after 30 minutes and
+allow only a restricted password-change flow; normal access requires a different
+compliant password and a new login. Administrators privately deliver credentials
+to identity-verified recipients. Promotion replaces the lower-trust credential atomically, preventing
 a former responsible administrator from retaining a known password at higher privilege.
+
+Journaled migration 0007 converts existing temporary calendar-user passwords,
+including expired ones, without changing hashes or business/account state. It
+rotates affected security versions and revokes their sessions; a new login uses
+the retained password. Already-permanent users and administrator rows/sessions
+are unchanged. Stop the old backend before migration; reverting code does not
+undo this data transition or restore expired deadlines.
 
 Sensitive administrative writes require password verification within five minutes,
 bound to the current unrestricted session and account security version. Persisted
@@ -704,7 +717,8 @@ security checks remain separate follow-up work and must pass before production:
 - Verify direct account APIs enforce the three-role matrix, fixed responsibility
   and scoped reset/list access, with no public registration, account seeding or API
   superadmin creation. Verify the offline hash tool cannot connect or write accounts.
-- Verify temporary initial/reset/promotion credentials, restricted sessions, recent
+- Verify permanent ordinary-user creation/reset and legacy conversion, temporary
+  administrator initial/reset/promotion credentials, restricted sessions, recent
   administrator verification, lockout/resource budgets, no-store responses and
   concurrent security-version checks against real PostgreSQL in backend tests.
 - Verify cookie relay, separate Set-Cookie headers, login/logout, CSRF rejection,

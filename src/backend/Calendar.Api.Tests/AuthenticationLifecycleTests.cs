@@ -83,9 +83,9 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
     )]
     public async Task TemporaryCredentialCapsLateLoginAndNeverRenews()
     {
-        // Given an API-created ordinary account and the persisted initial deadline.
+        // Given an API-created administrator and the persisted initial deadline.
         await using var context = await CreateAsync(fixture);
-        var owner = await context.ProvisionAsync(AccountRoles.Administrator);
+        var owner = await context.ProvisionAsync();
         await context.LoginAsync(owner);
         var temporary = Password();
         var createdResponse = await SendAsync(
@@ -97,7 +97,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
                 username = "late-recipient",
                 name = "Test account",
                 password = temporary,
-                role = AccountRoles.User,
+                role = AccountRoles.Administrator,
             }
         );
         var account = (await createdResponse.Content.ReadFromJsonAsync<UserDto>())!;
@@ -107,7 +107,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
 
         // When the temporary password is used just before expiry and then at the deadline.
         var session = await context.LoginAsync(
-            new(account.Id, account.Username, temporary, AccountRoles.User),
+            new(account.Id, account.Username, temporary, AccountRoles.Administrator),
             recipient
         );
         await recipient.GetAsync("/auth/csrf");
@@ -144,9 +144,9 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
     )]
     public async Task ResetRestoresOnlyRestrictedSetup()
     {
-        // Given an expired initial ordinary account retaining its ID and responsible administrator.
+        // Given an expired initial administrator credential retaining its account identity.
         await using var context = await CreateAsync(fixture);
-        var owner = await context.ProvisionAsync(AccountRoles.Administrator);
+        var owner = await context.ProvisionAsync();
         await context.LoginAsync(owner);
         var initial = Password();
         var createdResponse = await SendAsync(
@@ -158,7 +158,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
                 username = "expired-recipient",
                 name = "Test account",
                 password = initial,
-                role = AccountRoles.User,
+                role = AccountRoles.Administrator,
             }
         );
         var account = (await createdResponse.Content.ReadFromJsonAsync<UserDto>())!;
@@ -170,7 +170,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new { password = owner.Password }
         );
 
-        // When its responsible administrator issues a different temporary password.
+        // When a superadmin issues a different temporary password.
         var replacement = Password();
         var reset = await SendAsync(
             context.Client,
@@ -186,7 +186,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
             new { account.Username, password = initial }
         );
         var current = await context.LoginAsync(
-            new(account.Id, account.Username, replacement, AccountRoles.User),
+            new(account.Id, account.Username, replacement, AccountRoles.Administrator),
             recipient
         );
         context.Time.Advance(TimeSpan.FromMinutes(10));
@@ -196,7 +196,7 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, old.StatusCode);
         Assert.True(current.MustChangePassword);
-        Assert.Equal(owner.Id, current.User.ResponsibleAdministratorId);
+        Assert.Null(current.User.ResponsibleAdministratorId);
         Assert.Equal(HttpStatusCode.Unauthorized, expiredSession.StatusCode);
     }
 
@@ -205,10 +205,10 @@ public sealed class AuthenticationLifecycleTests(ApiFixture fixture)
     )]
     public async Task NewerResetSupersedesEveryPreviousCredential()
     {
-        // Given an ordinary account and a restricted session from the first reset.
+        // Given an administrator account and a restricted session from the first reset.
         await using var context = await CreateAsync(fixture);
-        var owner = await context.ProvisionAsync(AccountRoles.Administrator);
-        var account = await context.ProvisionAsync(AccountRoles.User, owner.Id);
+        var owner = await context.ProvisionAsync();
+        var account = await context.ProvisionAsync(AccountRoles.Administrator);
         await context.LoginAsync(owner);
         var first = Password();
         await SendAsync(

@@ -15,8 +15,10 @@ Accounts use a username and password, with no public registration. Through the
 website or backend API, superadmins create calendar administrators and ordinary users;
 calendar administrators create ordinary users. Superadmins are provisioned
 manually in the database, and the application never seeds user accounts.
-Administrator-issued initial, reset and promotion passwords are temporary and require
-the recipient to choose a different password before normal access.
+Calendar users can sign in directly with the password their administrator supplies
+at creation or reset, keep it, and change it voluntarily later. Administrator
+creation, reset and promotion passwords remain temporary and require a different
+password before normal access.
 Administrators can reset permitted accounts' passwords. Superadmins can also
 enable/disable nonsuperadmin accounts and change their assignable roles, preserving
 fixed responsibility. These actions require recent administrator password verification.

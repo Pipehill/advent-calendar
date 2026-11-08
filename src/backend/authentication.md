@@ -98,7 +98,7 @@ there is no profile editing endpoint. Generated consumers include `name` in
 creation and public user/session/list data. A hand-written JSON metadata modifier
 keeps generated role enum output in the contract's camelCase wire format.
 
-## Responsibility, temporary credentials and sessions
+## Responsibility, credentials and sessions
 
 Superadmins create calendaradmins or ordinary users. Calendaradmins create only
 ordinary users. No API creates/promotes superadmins. Every ordinary user has one
@@ -108,8 +108,16 @@ is separate audit metadata. Responsibility cannot be reassigned through role
 toggles. Demotion with ordinary dependants is blocked; disable does not disable
 the dependants. Calendaradmins reset only their own currently ordinary users.
 
-API-created, reset and promotion passwords are temporary for **30 minutes**.
-Administrators supply them in protected requests; they are never returned and
+Calendar-user creation/reset supplies a **permanent password**, without a
+mandatory change or credential deadline. It permits ordinary login immediately
+and after 30 minutes or several days, with the fixed 30-day session lifetime.
+Users may change it voluntarily with current-password verification; every
+successful change revokes all sessions and requires a new login. A reset must
+use a different compliant password and revokes target sessions, while preserving
+the resetting administrator's session and the user's fixed responsibility.
+
+Calendaradmin creation/reset and promotion passwords are temporary for **30 minutes**.
+Administrators supply credentials in protected requests; they are never returned and
 creation never signs the actor into the new account. Verify the recipient's
 identity and hand over privately outside the application. Promotion always
 requires a different administrator-compliant temporary password delivered directly
@@ -128,6 +136,29 @@ Unrestricted ordinary sessions last 30 days and administrator sessions eight hou
 Lifetimes are fixed and persistent. Logout revokes only the current session.
 Password replacement, disabling and role changes advance the security version and
 invalidate every account session. Enabling never revives revoked sessions.
+
+Demotion to calendar user preserves the current hash while clearing temporary
+metadata and rotating the security version/revoking sessions atomically. It does
+not enable disabled accounts or clear lockout/failure history. Promotion always
+replaces that credential with a different administrator-compliant temporary one.
+
+### Existing-user conversion
+
+`0007_permanent_calendar_user_passwords.sql` converts only calendar users with
+pending mandatory-change/deadline metadata, including expired credentials. It
+clears both fields, rotates security versions and revokes every affected session
+in one journaled transaction under security lock 800008. The hash, enabled state,
+lockout/failures, identities, responsibility/creator and calendar data/images
+remain unchanged. Already-permanent users and administrator rows/sessions remain
+unchanged. Affected recipients log in again with their retained passwords;
+restricted sessions are never upgraded or extended. Repeated startup does not
+repeat the conversion or revoke new sessions.
+
+Stop the old backend before applying this migration and start the new backend
+only after successful startup. Older code could otherwise create new temporary
+calendar users after conversion. Reverting application code does not reverse the
+data transition or restore expired credential deadlines. Migration 0007 works
+without plan 00019's recipient schema; 0006 is reserved for that independent work.
 
 ## Manual superadmin provisioning
 

@@ -90,7 +90,7 @@ public sealed class MigrationTests(ApiFixture fixture)
             )
         );
         Assert.Equal(
-            6,
+            7,
             await connection.ExecuteScalarAsync<int>("SELECT count(*)::int FROM schemaversions")
         );
         NpgsqlConnection.ClearPool(connection);
@@ -119,6 +119,7 @@ public sealed class MigrationTests(ApiFixture fixture)
                 "Calendar.Api.Migrations.0004_protect_calendars.sql",
                 "Calendar.Api.Migrations.0005_add_door_images.sql",
                 "Calendar.Api.Migrations.0006_add_door_openings.sql",
+                "Calendar.Api.Migrations.0007_permanent_calendar_user_passwords.sql",
             ],
             scripts.Order()
         );

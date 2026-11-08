@@ -44,44 +44,51 @@ test('Given browser cookies and identity headers, When authentication reaches th
   expect(request.mock.calls[0][1]?.cache).toBe('no-store');
 });
 
-test('Given backend cookies on login, When CSRF refresh follows in the same exchange, Then separate cookie headers and the new principal survive', async () => {
-  // Given login issuing an auth cookie and an unrelated cookie.
-  const ctx = context({ cookie: 'advent.csrf=old', 'X-CSRF-TOKEN': 'anonymous-token' });
-  const headers = new Headers();
-  headers.append(
-    'Set-Cookie',
-    'advent.auth=issued; Path=/; HttpOnly; Secure; SameSite=Lax; Expires=Sun, 01 Nov 2026 12:00:00 GMT',
-  );
-  headers.append('Set-Cookie', 'unrelated=secret; Path=/');
-  const request = vi
-    .spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(Response.json(session(), { headers }))
-    .mockResolvedValueOnce(
-      Response.json(
-        { requestToken: 'new-principal-token', headerName: 'X-CSRF-TOKEN' },
-        { headers: { 'Set-Cookie': 'advent.csrf=refreshed; Path=/; HttpOnly; SameSite=Lax' } },
-      ),
+test.each([
+  ['calendarUser', false],
+  ['calendarAdmin', true],
+  ['superadmin', false],
+] as const)(
+  'Given %s login with restricted=%s, When CSRF refresh follows, Then the validated lifecycle and new principal survive',
+  async (role, restricted) => {
+    // Given login issuing an auth cookie and an unrelated cookie.
+    const ctx = context({ cookie: 'advent.csrf=old', 'X-CSRF-TOKEN': 'anonymous-token' });
+    const headers = new Headers();
+    headers.append(
+      'Set-Cookie',
+      'advent.auth=issued; Path=/; HttpOnly; Secure; SameSite=Lax; Expires=Sun, 01 Nov 2026 12:00:00 GMT',
     );
+    headers.append('Set-Cookie', 'unrelated=secret; Path=/');
+    const request = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json(session(role, restricted), { headers }))
+      .mockResolvedValueOnce(
+        Response.json(
+          { requestToken: 'new-principal-token', headerName: 'X-CSRF-TOKEN' },
+          { headers: { 'Set-Cookie': 'advent.csrf=refreshed; Path=/; HttpOnly; SameSite=Lax' } },
+        ),
+      );
 
-  // When login refreshes CSRF after the backend changed identity.
-  const result = await appRouter
-    .createCaller(ctx)
-    .auth.login({ username: 'julebruker', password: 'A-valid-password!' });
+    // When login refreshes CSRF after the backend changed identity.
+    const result = await appRouter
+      .createCaller(ctx)
+      .auth.login({ username: 'julebruker', password: 'A-valid-password!' });
 
-  // Then the fresh cookie is used without decrypting it, headers remain separate and tokens stay out of page data.
-  expect(new Headers(request.mock.calls[1][1]?.headers).get('cookie')).toBe(
-    'advent.csrf=old; advent.auth=issued',
-  );
-  expect(ctx.responseHeaders.getSetCookie()).toHaveLength(2);
-  expect(ctx.responseHeaders.getSetCookie()[0]).toBe(headers.getSetCookie()[0]);
-  expect(result).toEqual({
-    user: { name: 'Ærlig Ørn 🎄', username: 'julebruker', role: 'superadmin' },
-    expiresAt: session().expiresAt,
-    mustChangePassword: false,
-    cacheScope: expect.stringMatching(/^[a-f0-9]{64}$/),
-  });
-  expect(JSON.stringify(result)).not.toContain('token');
-});
+    // Then the fresh cookie is used without decrypting it, headers remain separate and tokens stay out of page data.
+    expect(new Headers(request.mock.calls[1][1]?.headers).get('cookie')).toBe(
+      'advent.csrf=old; advent.auth=issued',
+    );
+    expect(ctx.responseHeaders.getSetCookie()).toHaveLength(2);
+    expect(ctx.responseHeaders.getSetCookie()[0]).toBe(headers.getSetCookie()[0]);
+    expect(result).toEqual({
+      user: { name: 'Ærlig Ørn 🎄', username: 'julebruker', role },
+      expiresAt: session().expiresAt,
+      mustChangePassword: restricted,
+      cacheScope: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(JSON.stringify(result)).not.toContain('token');
+  },
+);
 
 test.each([400, 401, 403, 429, 503, 'network'])(
   'Given write failure %s, When login is submitted, Then it is never automatically retried',
