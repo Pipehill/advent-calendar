@@ -16,6 +16,21 @@ body {
   font-family: var(--font-sans);
 }
 
+.app-version {
+  width: fit-content;
+  margin: 2rem auto 0;
+  border-radius: 0.5rem;
+  background: #faf8f3;
+  padding: 0.5rem 1rem;
+  color: #44403c;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.landing-shell {
+  padding-bottom: 1rem;
+}
+
 .login-link {
   display: inline-flex;
   min-height: 2.75rem;

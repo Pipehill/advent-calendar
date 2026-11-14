@@ -1,5 +1,6 @@
 {
   "app_name": "Advent calendar",
+  "app_version": "Version {version}",
   "landing_heading": "Welcome to Advent",
   "landing_description": "Here you can create an advent calendar for someone you love or open a calendar someone has made for you",
   "login_label": "Log in",

@@ -4,6 +4,36 @@ Status: Not implemented
 
 Last updated: 2026-11-14
 
+Implementation type: feature
+
+## Implementation progress
+
+The implementation branch is `feature/sliplane-deployment`, based on synchronized
+`main`. Owner-operated infrastructure and live verification remain separate gates;
+do not mark this plan implemented before its required live evidence exists.
+
+- [x] Iteration 1: canonical version, checked mirrors, build metadata and localized
+  footer. Verify version drift/update tests, generation and frontend checks.
+- [ ] Iteration 2: Production backend/BFF configuration, proxy trust and certificate
+  lifecycle. Verify focused rejection/transport tests and backend integration suite.
+- [ ] Iteration 3: release preparation/finalization, deploy candidate validation,
+  migration integrity and disposable Production image smoke. Verify automation
+  scenarios, actual image builds and Production browser coverage.
+- [ ] Iteration 4: SQL/environment templates and deployment runbook; align current
+  rules/docs. Verify restricted-role migration/restore/rotation and final quality,
+  health and committed-head regression review, then publish a draft PR.
+- [ ] Owner gates: Sliplane/GitHub configuration, two real releases, HTTPS/session
+  replacement, backup recovery and representative Starter capacity evidence.
+
+Baseline archived as `quality-reports/health/baseline-before-00021-20261114`;
+the new baseline was captured before implementation edits. Iteration 1: eight
+version-tool tests and 248 frontend/BFF tests pass; contract generation, TypeScript,
+Vite and Nitro packaging pass with existing dependency warnings. Initial sandboxed
+Nitro packaging lacked filesystem access; the authorized rerun completed. A targeted
+Biome rerun verifies the final formatting correction. MCP version-tool feedback
+reports only its self-match. Production browser/footer verification follows in
+iteration 3. Next: finish iteration 2 and its backend integration tests.
+
 ## Overview
 
 Prepare the existing frontend/BFF, backend and PostgreSQL containers for a small

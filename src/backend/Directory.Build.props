@@ -6,5 +6,6 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <AnalysisLevel>latest-recommended</AnalysisLevel>
+        <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../VERSION').Trim())</Version>
     </PropertyGroup>
 </Project>
