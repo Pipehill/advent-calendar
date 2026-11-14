@@ -129,8 +129,9 @@ developer-tooling maintenance rules.
   services. Use service DNS inside containers and configured localhost/published
   ports from the host. Keep Testcontainers databases separate.
 - Retain one deployed instance per container and accepted deployment downtime.
-  Resolve production hosting and deployment-stage integration in the deployment
-  task; Sliplane is a candidate only.
+  The owner selected Sliplane Starter on 2026-11-14. Follow
+  [plan 00021](../plans/00021-sliplane-deployment.md) for production readiness,
+  same-server service boundaries and tested `main`-to-`deploy` release PRs.
 
 ## Versions and diagnostics
 

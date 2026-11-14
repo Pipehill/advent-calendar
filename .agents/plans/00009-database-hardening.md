@@ -1,10 +1,28 @@
 # 00009: Database hardening before production
 
-Status: Not implemented
+Status: Rejected (2026-11-14); superseded by 00021
 
-Last updated: 2026-10-18
+Last updated: 2026-11-14
 
 ## Overview
+
+**Superseded by [00021: Deploy the application on Sliplane Starter](00021-sliplane-deployment.md).**
+On 2026-11-14 the owner approved a simpler design for this small, known-audience,
+low-sensitivity application: PostgreSQL on the same Starter server, private
+same-server transport without separate database TLS, one non-superuser identity
+for runtime and startup migrations, and a separate operator identity. Keep
+external secrets, persistent protected authentication keys, backups and manual
+superadmin provisioning. Local database ports are already bound to localhost.
+
+Plan 00021 owns implementation and verification. Do not implement this original
+plan separately or treat its stricter requirements as an additional production
+gate. The original proposal below is retained for decision context; its
+requirements, outstanding questions, work steps and verification are superseded.
+`Rejected` records the owner's decision not to pursue this original design;
+it does not indicate remaining work beyond plan 00021. No deployed hardening
+is claimed.
+
+### Original proposal
 
 Harden PostgreSQL connectivity, privileges and credential handling before the
 application is put into production. The owner explicitly deferred this work from
