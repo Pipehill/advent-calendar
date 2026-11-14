@@ -16,7 +16,7 @@ do not mark this plan implemented before its required live evidence exists.
   footer. Verify version drift/update tests, generation and frontend checks.
 - [x] Iteration 2: Production backend/BFF configuration, proxy trust and certificate
   lifecycle. Verify focused rejection/transport tests and backend integration suite.
-- [ ] Iteration 3: release preparation/finalization, deploy candidate validation,
+- [x] Iteration 3: release preparation/finalization, deploy candidate validation,
   migration integrity and disposable Production image smoke. Verify automation
   scenarios, actual image builds and Production browser coverage.
 - [ ] Iteration 4: SQL/environment templates and deployment runbook; align current
@@ -38,7 +38,15 @@ scheme forwarding without host/client-IP trust, pre-start validation, key-ring
 replacement and old-certificate decryption. Initial fixture connection-pool
 exhaustion was corrected and the complete suite rerun successfully. Full Production
 image smoke already verifies HTTPS login, administration, protected SSR and retained
-sessions; remaining assertions are being completed in iteration 3. Next: iteration 3.
+sessions; remaining assertions are being completed in iteration 3. Iteration 3: 41 deployment/version/transfer tests pass, both actual images build,
+Production smoke passes against PostgreSQL 18.7 with the authored role/schema
+templates. It covers TLS termination, CSRF, private SSR, admin/recipient/image
+operations, container/session continuity, restricted-role denials, transactional
+operator restore with ownership/ACL checks and actual backend password rotation.
+A disposable 1.0.1 frontend rebuild verifies build-derived version output while
+canonical source stays 1.0.0. Missing Production configuration fails in both
+images. A repaired PR metadata rerun regression was found and fixed. Next:
+iteration 4 final review/publication and the separately pending owner gates.
 
 ## Overview
 
@@ -173,30 +181,30 @@ PR's live `main` source and its distinct `deploy` merge commit.
 
 ### Release versioning and tag lifecycle
 
-- [ ] Add a root `VERSION` containing `1.0.0` as the canonical application version.
+- [x] Add a root `VERSION` containing `1.0.0` as the canonical application version.
   Use stable `MAJOR.MINOR.PATCH` versions and `vMAJOR.MINOR.PATCH` Git tags in this
   first iteration. Patch increments are for compatible fixes, minor increments
   for compatible features, and major increments for incompatible supported
   application/contract changes. Do not infer bumps from commit messages or add
   a release/versioning dependency.
-- [ ] Make the backend read VERSION through its existing MSBuild configuration.
+- [x] Make the backend read VERSION through its existing MSBuild configuration.
   Set application Version and generated assembly metadata consistently, retaining
   commit identity in informational/build metadata. Add the same version to
   frontend `package.json` and its emitted build metadata. Mirror it in the
   authored API document's `info.version`; retain `openapi: 3.0.3` as the format.
   The initial API metadata change from `1.2.0` to `1.0.0` is the owner's explicit
   first-production numbering decision, not an API behavior rollback.
-- [ ] Provide a small explicit version-update command using existing Node tooling
+- [x] Provide a small explicit version-update command using existing Node tooling
   to update VERSION and its checked-in frontend/spec mirrors together. Future
   release bumps are ordinary reviewed source changes merged to `main` before
   Prepare release. Checks validate equality and reject drift; they must not
   silently rewrite the authored spec or package files while building/testing.
   Keep tool/dependency versions and private contract-tooling package separate.
-- [ ] Copy VERSION into both Docker build contexts/stages and include needed
+- [x] Copy VERSION into both Docker build contexts/stages and include needed
   version metadata in runtime output. Ensure clean local, CI and Sliplane builds
   use the same committed values without Git history, manually changing Sliplane
   variables, reading a future tag, or requiring a GitHub credential during builds.
-- [ ] Render the frontend build's version in a shared footer in
+- [x] Render the frontend build's version in a shared footer in
   `src/frontend/src/routes/__root.tsx`, using a small component if useful. Include
   landing/login and authenticated routes. Add the version label to the Norwegian
   and English message catalogs and preserve the numeric SemVer unchanged. Keep
@@ -207,7 +215,7 @@ PR's live `main` source and its distinct `deploy` merge commit.
   Do not import backend configuration into browser code or fetch GitHub/latest
   tags to populate the footer: it identifies the actual frontend build being
   served, including while a release is deploying or a newer release is available.
-- [ ] In Prepare release, read the intended version from the captured `main` SHA,
+- [x] In Prepare release, read the intended version from the captured `main` SHA,
   validate version mirrors, and require it to exceed existing stable release tags
   using numeric SemVer comparison when preparing an actual changed release;
   unchanged trees still return the no-op result first. With no release tags,
@@ -216,7 +224,7 @@ PR's live `main` source and its distinct `deploy` merge commit.
   and checklist and show them
   in the run summary. Refuse a different release reusing an existing version.
   Do not create a final tag while the PR is open or for a no-change result.
-- [ ] Keep the release PR's source as live `main`. New source commits rerun its
+- [x] Keep the release PR's source as live `main`. New source commits rerun its
   checks. Validate that the PR's recorded version matches its actual source;
   if VERSION changes, rerun preparation to refresh only workflow-owned version
   metadata, preserving the owner's prose/checklist. New commits with an unchanged
@@ -225,18 +233,18 @@ PR's live `main` source and its distinct `deploy` merge commit.
   the owner to rerun failed PR validation from Actions after repairing stale
   metadata, and approve pending runs when requested. Do not substitute a passing
   Prepare release run for the required PR result.
-- [ ] Add `.github/workflows/tag-release.yml` for `pull_request` closed events
+- [x] Add `.github/workflows/tag-release.yml` for `pull_request` closed events
   targeting `deploy`, gated on a merged same-repository `main` source. Read VERSION
   and metadata at the event's exact `merge_commit_sha`, never moving `main` or
   the latest `deploy` tip. Create an annotated `vX.Y.Z` tag on that merge commit.
   Use a narrowly scoped `GITHUB_TOKEN` job with `contents: write` and only other
   read permissions needed for verification; no PAT or Sliplane secret is needed.
   Use API operations without executing source code under that write token.
-- [ ] Serialize finalization and make retries idempotent: an existing tag pointing
+- [x] Serialize finalization and make retries idempotent: an existing tag pointing
   to the same commit succeeds, one pointing elsewhere fails, and tags are never
   moved/deleted. A closed but unmerged PR creates no tag. Retrying an older failed
   run must still tag that run's exact merge commit, not a later release.
-- [ ] Distinguish release identity from hosting status: merging starts Sliplane
+- [x] Distinguish release identity from hosting status: merging starts Sliplane
   deployment and tag finalization independently. A tag identifies selected release
   source; it does not prove both services are healthy in production. A tagging
   failure must be visible and retryable without another deploy or a new version.
@@ -244,69 +252,69 @@ PR's live `main` source and its distinct `deploy` merge commit.
 
 ### 1. Prepare release validation and branch workflow: agent work
 
-- [ ] Add `.github/workflows/prepare-release.yml`, named **Prepare release**, with
+- [x] Add `.github/workflows/prepare-release.yml`, named **Prepare release**, with
   only a `workflow_dispatch` trigger. It must be available on the default branch
   and require selection of `main`; reject another selected ref before creating a
   PR. Do not trigger it automatically on merges to `main`.
-- [ ] Use the hosted runner's GitHub CLI/API with `GITHUB_TOKEN`,
+- [x] Use the hosted runner's GitHub CLI/API with `GITHUB_TOKEN`,
   `contents: read` and `pull-requests: write`, with no production secrets, PAT or
   additional GitHub App. Keep release validation jobs read-only. Serialize release
   preparation runs so double-clicks cannot create duplicate PRs.
   The separate post-merge tagging job has the additional Contents write permission
   described above; Prepare release itself remains unable to change Git refs.
-- [ ] Verify `main` and `deploy` exist and compare their current trees. If there
+- [x] Verify `main` and `deploy` exist and compare their current trees. If there
   is already an open same-repository `main`-to-`deploy` PR, return its link and
   refresh only workflow-owned version metadata when necessary, preserving the
   owner-edited description. If none exists and the trees differ, create that exact
   PR with a type-prefixed English title, intended version and a release checklist.
   Identical trees are a successful no-op. A missing `deploy` branch is a clear
   bootstrap error, not permission to create or push it automatically.
-- [ ] Write the PR URL or no-change result in the workflow summary. Include the
+- [x] Write the PR URL or no-change result in the workflow summary. Include the
   owner steps: approve pending PR workflow runs when GitHub requests it, wait for
   `Deploy readiness`, confirm the backup/release checklist and merge manually.
   With the selected `GITHUB_TOKEN`, GitHub documents approval-required runs for
   automatically created PRs. Do not assume this action alone starts unattended
   tests or replace the required PR check with a manual-dispatch success.
-- [ ] Add `.github/workflows/deploy-validation.yml`, triggered for every
+- [x] Add `.github/workflows/deploy-validation.yml`, triggered for every
   `pull_request` targeting `deploy` and by manual dispatch. Keep existing
   `main` PR validation. Use the normal `pull_request` event, read-only repository
   permissions, pinned Actions and isolated test databases; never execute PR code
   through `pull_request_target` or with production secrets.
-- [ ] Require same-repository source branch `main` for a release PR. Check out
+- [x] Require same-repository source branch `main` for a release PR. Check out
   GitHub's candidate merge commit, not just the source commit. Verify its tree
   matches the source `main` tree so deployment-only changes cannot silently enter
   production. Fail on merge conflicts or source/base provenance mismatches.
-- [ ] Validate VERSION, frontend/spec mirrors, recorded release-PR version and
+- [x] Validate VERSION, frontend/spec mirrors, recorded release-PR version and
   tag availability in the required deploy check. Version drift, a reused version
   or stale preparation metadata must prevent merge as an ordinary check failure.
-- [ ] Run the existing contract generation, backend restore/build/test/publish and
+- [x] Run the existing contract generation, backend restore/build/test/publish and
   frontend `check` commands. Build both actual Dockerfiles with repository-root
   context, then run them with PostgreSQL and disposable Production configuration.
   Reuse existing command owners rather than introducing a second build system.
-- [ ] Add focused production smoke coverage for readiness, landing page, real
+- [x] Add focused production smoke coverage for readiness, landing page, real
   login/CSRF, protected SSR, administrator operations, recipient access and one
   image save/read. Reuse existing browser coverage and isolated fixtures. Create
   the test superadmin intentionally from the test harness, never API startup.
-- [ ] Give the required aggregate job the stable name `Deploy readiness`. It must
+- [x] Give the required aggregate job the stable name `Deploy readiness`. It must
   report failure when a dependency fails or is cancelled; skipped dependencies
   must not manufacture success. Release PRs run tests even for Markdown-only
   changes. Keep the existing Markdown-only exception for ordinary `main` PRs and
   document this intentional deploy-check exception in the quality rules/docs.
-- [ ] Add a published-migration integrity check against the exact PR base SHA on
+- [x] Add a published-migration integrity check against the exact PR base SHA on
   `deploy`: reject changes, deletions and renames of previously released SQL
   resources. Allow new uniquely numbered migrations. Existing journal/restart
   tests do not detect historical SQL edits by themselves. Protect the migrations
   in the initial `deploy` baseline too; do not assume a release tag exists.
-- [ ] Document one release PR at a time. Use **Create a merge commit** for
+- [x] Document one release PR at a time. Use **Create a merge commit** for
   `main` to `deploy`; do not squash/rebase this long-lived source or delete `main`.
   Keep `main` as the default development branch and protect `deploy` against
   direct pushes, force pushes and deletion.
-- [ ] Use required checks without GitHub's strict up-to-date-source requirement
+- [x] Use required checks without GitHub's strict up-to-date-source requirement
   on `deploy`: its release merge commits would otherwise force deployment history
   back into `main`. Before merging, verify the tested base is still current and
   rerun against a changed base. Do not use Update branch on the release PR to
   merge `deploy` into `main`. Document this serialized release procedure.
-- [ ] Document initial bootstrap: create `deploy` at the clean `main` baseline
+- [x] Document initial bootstrap: create `deploy` at the clean `main` baseline
   before merging implementation into `main`, then open the first release PR after
   implementation lands. Set up protection after the named check has run, and
   connect Sliplane only after that first PR passes and merges. Do not deploy the
@@ -319,18 +327,18 @@ Affected code: `src/backend/Calendar.Api/Program.cs`,
 `appsettings.json`, frontend `src/server.ts`, `src/server/backend.ts`,
 `src/server/context.ts`, `server/entry.mjs`, Dockerfiles and deployment documentation.
 
-- [ ] Move checked-in local database defaults to Development-only settings.
+- [x] Move checked-in local database defaults to Development-only settings.
   In Production require an explicit connection string with nonlocal credentials,
   explicit key configuration and proxy trust settings. Do not log secret-bearing
   configuration or put secret build arguments in Dockerfiles.
-- [ ] Validate frontend Production configuration at startup, including
+- [x] Validate frontend Production configuration at startup, including
   `BACKEND_API_URL`. Currently both backend calls and frontend readiness silently
   fall back to localhost. Use one validated configuration for both paths.
-- [ ] Fix the TLS-termination boundary. Currently `AuthHosting` rejects protected
+- [x] Fix the TLS-termination boundary. Currently `AuthHosting` rejects protected
   requests when `Request.IsHttps` is false, but the BFF calls a private HTTP backend
   without conveying the external scheme. Production login therefore needs code
   changes; setting `ASPNETCORE_ENVIRONMENT=Development` is not a solution.
-- [ ] Make the BFF overwrite the forwarded scheme from validated deployment
+- [x] Make the BFF overwrite the forwarded scheme from validated deployment
   configuration for the canonical HTTPS frontend origin, never from arbitrary
   browser headers. Configure ASP.NET Core forwarded-header processing before the
   HTTPS/authentication guards, trusting only the actual BFF address or narrow
@@ -338,54 +346,54 @@ Affected code: `src/backend/Calendar.Api/Program.cs`,
   gateway-to-frontend hop; it is not automatically the BFF-to-backend peer range.
   Verify the actual addresses after container replacement. Reject trust-all
   configuration. Keep public HTTP redirected to HTTPS at the Sliplane edge.
-- [ ] Keep host-only Secure cookies, principal-bound CSRF, separate Set-Cookie
+- [x] Keep host-only Secure cookies, principal-bound CSRF, separate Set-Cookie
   headers and no-store through Sliplane/Nitro/SSR. Avoid forwarding client-provided
   identity, host or IP chains. Initially retain backend resource limits on the
   actual BFF peer: users share that budget. Check simultaneous known-user login
   and normal navigation for excessive 429s before changing limits.
-- [ ] Add environment-based PFX loading, for example the new
+- [x] Add environment-based PFX loading, for example the new
   `Authentication__KeyCertificateBase64`, alongside the existing file option.
   Load it in memory with the existing .NET APIs; keep certificate password delivery
   external. Require one unambiguous source, private key and unexpired certificate.
   Base64 is transport encoding, not encryption. This avoids requiring SCP support
   in the minimal backend image or a manually maintained certificate file.
-- [ ] Keep the key ring in `/var/lib/advent-keys`; verify the attached volume is
+- [x] Keep the key ring in `/var/lib/advent-keys`; verify the attached volume is
   writable by the existing nonroot backend user. The PFX must stay stable across
   releases. Record expiry and a tested renewal procedure retaining old certificate
   decryption through .NET's built-in certificate support until old keys are retired.
-- [ ] Preserve backend startup DbUp, bounded connection retries, per-script
+- [x] Preserve backend startup DbUp, bounded connection retries, per-script
   transactions and readiness after migration completion. The single application
   identity is used for both pools/operations; no separate migration secret is needed.
 
 ### 3. Prepare database and operations documentation: agent work
 
-- [ ] Add `docs/deployment.md` as the runbook owner, linked from the project README.
+- [x] Add `docs/deployment.md` as the runbook owner, linked from the project README.
   Include service settings, secret names, initial setup, release/recovery checklist,
   manual superadmin steps and responsibilities. Add a placeholder-only environment
   table/template under the deployment tooling/docs; never a populated `.env`.
-- [ ] Provide a reviewed, manually executed SQL template to create `advent_app`
+- [x] Provide a reviewed, manually executed SQL template to create `advent_app`
   with LOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE and NOREPLICATION, owning only
   the application database/schema. Restrict PUBLIC access where appropriate and
   verify it cannot assume the operator role. Preserve required function/trigger
   migrations and PostgreSQL advisory lock behavior under that identity.
-- [ ] Keep the PostgreSQL initialization/operator account out of backend settings.
+- [x] Keep the PostgreSQL initialization/operator account out of backend settings.
   The official image's `POSTGRES_USER` creates a database superuser; it is not
   the restricted application role. Require authenticated network access, not
   `POSTGRES_HOST_AUTH_METHOD=trust`. Local operator socket access inside the
   SSH-authorized container is within the trusted operator boundary.
-- [ ] Use the repository's pinned PostgreSQL 18 image after verifying its supported
+- [x] Use the repository's pinned PostgreSQL 18 image after verifying its supported
   patch/digest at implementation time. Mount the data volume at
   `/var/lib/postgresql`, consistent with PostgreSQL 18 and current Compose;
   do not copy older Sliplane/example mount paths blindly.
-- [ ] Document rotation on existing data: change the actual PostgreSQL role password,
+- [x] Document rotation on existing data: change the actual PostgreSQL role password,
   update the backend secret, redeploy and verify the superseded credential fails.
   Changing `POSTGRES_PASSWORD` alone does not change an initialized role password.
   Keep a recovery route with the separate operator account.
-- [ ] Prepare consistent `pg_dump -Fc` and restore commands using the PostgreSQL
+- [x] Prepare consistent `pg_dump -Fc` and restore commands using the PostgreSQL
   image's tools over direct SSH, with secure local output and no password arguments.
   Include roles/ownership recreation and separately saved PFX/key-ring material.
   Do not assume direct SSH supports SCP, rsync or port forwarding.
-- [ ] Align the current architecture/authentication docs and rules with this plan,
+- [x] Align the current architecture/authentication docs and rules with this plan,
   and retain all implemented plans unchanged. 00009 is superseded, not another
   independent production gate. Keep unrelated Vite-dev language switching separate.
 
@@ -486,7 +494,7 @@ No separate tunnel service or public PostgreSQL listener is needed for this path
   protecting `v*` tags against modification/deletion where supported. Check actual
   ruleset enforcement and token permissions; do not grant a branch-protection
   bypass merely to write tags.
-- [ ] Agent: provide the owner a release checklist: backup, inspect migration
+- [x] Agent: provide the owner a release checklist: backup, inspect migration
   effects, start Prepare release on `main` (or open the same PR manually), approve
   pending PR runs if requested, inspect checks, verify tested SHAs, merge,
   monitor both service deployments,

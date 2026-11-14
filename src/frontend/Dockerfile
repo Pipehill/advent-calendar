@@ -9,7 +9,7 @@ COPY global.json biome.json VERSION ./
 COPY .config/ .config/
 COPY src/ src/
 COPY tools/frontend/ tools/frontend/
-COPY tools/deployment/version.mjs tools/deployment/version.mjs
+COPY tools/deployment/version.mjs tools/deployment/version.d.mts tools/deployment/
 COPY tools/development/commands.mjs tools/development/dotnet.mjs tools/development/
 COPY tools/quality/local-settings.mjs tools/quality/local-settings.mjs
 ARG SLIPLANE_COMMIT_HASH

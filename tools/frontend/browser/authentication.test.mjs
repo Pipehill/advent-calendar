@@ -20,6 +20,7 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { capturePageErrors } from './page-errors.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -40,7 +41,7 @@ const frontend = {
 if (!frontend) throw new Error('Invalid browser frontend mode');
 const reports = path.join(root, frontend.reports);
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
-const postgresImage = 'docker.io/library/postgres@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929';
+const postgresImage = 'docker.io/library/postgres@sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452';
 const children = [];
 let databaseName;
 let environment;
@@ -91,10 +92,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     page = await context.newPage();
     page.setDefaultTimeout(10000);
-    page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => {
-      if (message.type() === 'error' && /hydration|did not match|Minified React error/i.test(message.text())) errors.push(message.text());
-    });
+    capturePageErrors(page, errors);
   });
 
   afterEach(async () => {

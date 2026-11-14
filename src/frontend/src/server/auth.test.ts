@@ -1,7 +1,8 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { afterEach, expect, test, vi } from 'vitest';
 import { backendConfiguration, callBackend } from './backend';
-import { createContext } from './context';
+import type { BackendConfiguration } from './configuration';
+import { createContext, type RequestContext } from './context';
 import { appRouter } from './trpc';
 
 const configuration = { baseUrl: 'http://api.test', deadlineMs: 1000 };
@@ -21,6 +22,13 @@ const context = (headers?: HeadersInit) =>
   createContext(new Request('http://front.test', { headers }));
 afterEach(() => vi.restoreAllMocks());
 
+async function captureLogout(context: RequestContext, configuration: BackendConfiguration) {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+  await callBackend(context, (client, signal) => client.logout(signal), configuration, request);
+  const options = request.mock.calls[0][1];
+  return { headers: new Headers(options?.headers), cache: options?.cache };
+}
+
 test('Given browser cookies and identity headers, When authentication reaches the API, Then only the agreed credentials and CSRF header are forwarded', async () => {
   // Given untrusted browser metadata mixed with designated cookie credentials.
   const ctx = context({
@@ -30,18 +38,16 @@ test('Given browser cookies and identity headers, When authentication reaches th
     'X-User-Role': 'superadmin',
     Authorization: 'Bearer injected',
   });
-  const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
 
   // When a generated-client write uses the request-local transport.
-  await callBackend(ctx, (client, signal) => client.logout(signal), configuration, request);
+  const { headers, cache } = await captureLogout(ctx, configuration);
 
   // Then no arbitrary cookies or browser identity grants cross the boundary.
-  const headers = new Headers(request.mock.calls[0][1]?.headers);
   expect(headers.get('cookie')).toBe('advent.auth=ticket; advent.csrf=antiforgery');
   expect(headers.get('X-CSRF-TOKEN')).toBe('principal-token');
   expect(headers.has('Authorization')).toBe(false);
   expect(headers.has('X-User-Role')).toBe(false);
-  expect(request.mock.calls[0][1]?.cache).toBe('no-store');
+  expect(cache).toBe('no-store');
 });
 
 test('Given malicious browser proxy headers, When Production authentication calls the private API, Then only the configured HTTPS scheme crosses the hop', async () => {
@@ -60,13 +66,11 @@ test('Given malicious browser proxy headers, When Production authentication call
     BACKEND_API_URL: 'http://backend.private:8080',
     PUBLIC_ORIGIN: 'https://advent.example',
   });
-  const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
 
   // When a write uses deployment configuration independent of browser headers.
-  await callBackend(ctx, (client, signal) => client.logout(signal), production, request);
+  const { headers } = await captureLogout(ctx, production);
 
   // Then backend HTTPS guards receive the trusted scheme and preserve the security boundary.
-  const headers = new Headers(request.mock.calls[0][1]?.headers);
   expect(headers.get('X-Forwarded-Proto')).toBe('https');
   for (const name of ['Forwarded', 'X-Forwarded-Host', 'X-Forwarded-For', 'X-User-Role', 'Host'])
     expect(headers.has(name)).toBe(false);
