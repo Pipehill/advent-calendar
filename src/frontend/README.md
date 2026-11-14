@@ -176,8 +176,9 @@ query caches and perform a document navigation to clear router data and inputs.
 Account lists use zero stale/garbage-collection times and reauthorize each read.
 Credentials and tokens never enter URLs, localStorage or SSR hydration.
 
-Calendar authorization/assignment and production database hardening remain
-separate production gates. No startup fixture accounts are provisioned.
+Calendar authorization/assignment is enforced independently by the backend.
+Production setup and live checks follow the [deployment runbook](../../docs/deployment.md).
+No startup fixture accounts are provisioned.
 
 ## Run locally
 
@@ -250,6 +251,15 @@ set `BACKEND_API_URL` for another API address and `BACKEND_DEADLINE_MS` for the
 total read deadline (default 10000 ms). Compose uses `http://backend:8080`.
 Vite uses port 3000 with strict port selection. Restart after changing server
 environment settings.
+
+Production startup requires explicit `BACKEND_API_URL` and `PUBLIC_ORIGIN` (the
+canonical public HTTPS origin), instead of the local fallback. Configuration is
+shared by backend calls and readiness. The BFF supplies the forwarded HTTPS scheme
+from this configuration, never browser host/IP/scheme headers; only explicitly
+trusted BFF peers may supply that hop to the backend. Keep database/certificate
+secrets out of the frontend. See the [deployment runbook](../../docs/deployment.md)
+for service settings and live HTTPS verification. Local Compose explicitly uses
+`NODE_ENV=development`.
 
 ## Contracts, builds and tests
 

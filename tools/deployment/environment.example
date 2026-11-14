@@ -1,0 +1,37 @@
+# Placeholder inventory only. Enter values per service in Sliplane, outside Git.
+# Never copy database or certificate secrets into the frontend service.
+
+# PostgreSQL service (private, PostgreSQL 18 image; mount /var/lib/postgresql)
+POSTGRES_USER=advent_operator
+POSTGRES_DB=postgres
+POSTGRES_PASSWORD=<unique-operator-secret>
+POSTGRES_INITDB_ARGS=--encoding=UTF8 --auth-host=scram-sha-256
+
+# Backend service (private)
+ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_URLS=http://+:8080
+PORT=8080
+ConnectionStrings__Calendar=Host=<actual-private-database-host>;Database=advent;Username=advent_app;Password=<unique-application-secret>;SSL Mode=Disable;Maximum Pool Size=10;Timeout=3;Command Timeout=10
+Authentication__KeyDirectory=/var/lib/advent-keys
+Authentication__KeyCertificateBase64=<base64-of-password-protected-pfx-with-private-key>
+Authentication__KeyCertificatePassword=<pfx-password>
+# Alternative to Base64: Authentication__KeyCertificatePath=<absolute-mounted-pfx-path>
+# Configure exactly one active certificate source, never both.
+# During renewal retain each previous PFX under these indexed settings:
+# Authentication__DecryptionCertificates__0__Base64=<old-pfx-base64>
+# Authentication__DecryptionCertificates__0__Password=<old-pfx-password>
+CalendarOpening__DisableTimeCheck=false
+Hosting__KnownProxies__0=<actual-bff-container-ip>
+# Alternative: Hosting__KnownNetworks__0=<verified-narrow-server-container-cidr>
+# Inspect the pinned backend image's user/group before setting volume ownership:
+SLIPLANE_USER_ID=<backend-uid>
+SLIPLANE_GROUP_ID=<backend-gid>
+SLIPLANE_GRACE_PERIOD=<measured-startup-seconds>
+
+# Frontend/BFF service (public HTTPS at the Sliplane edge)
+NODE_ENV=production
+HOST=0.0.0.0
+PORT=3000
+BACKEND_API_URL=http://<actual-private-backend-host>:8080
+PUBLIC_ORIGIN=https://<actual-frontend-domain>
+BACKEND_DEADLINE_MS=10000

@@ -7,13 +7,15 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 WORKDIR /source
-COPY global.json ./
+COPY global.json VERSION ./
 COPY .config/ .config/
 COPY src/ src/
+COPY tools/deployment/version.mjs tools/deployment/version.mjs
+ARG SLIPLANE_COMMIT_HASH
 RUN npm ci --prefix src/contract \
     && dotnet tool restore \
     && dotnet restore src/backend/Calendar.slnx --locked-mode \
-    && dotnet publish src/backend/Calendar.Api --no-restore -c Release -o /app
+    && dotnet publish src/backend/Calendar.Api --no-restore -c Release -o /app -p:SourceRevisionId="$SLIPLANE_COMMIT_HASH"
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.12@sha256:0fa044f682cb7d93a5a90401a00c626c66f7b00b86922be9441f869eae039f80
 WORKDIR /app

@@ -111,7 +111,8 @@ Calendar administrators use `/my-page` to list their own calendars and open
 `/calendar-preview/<id>` previews all 24 doors. Editing requires the current owner's
 unrestricted session; preview also permits an unrestricted superadmin through a
 separate read-only flow. Recipients use `/my-calendars/<id>` for their currently
-assigned calendars. Production database hardening remains a production gate.
+assigned calendars. See the [production deployment runbook](docs/deployment.md)
+for Sliplane service setup, tested releases, secrets, backups and owner verification.
 See [backend authentication](src/backend/authentication.md) for the direct API
 exchange and intentional manual superadmin provisioning.
 The protected API accepts `POST /calendars` with title, recipient UUID and a

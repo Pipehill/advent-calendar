@@ -5,12 +5,15 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 WORKDIR /source
-COPY global.json biome.json ./
+COPY global.json biome.json VERSION ./
 COPY .config/ .config/
 COPY src/ src/
 COPY tools/frontend/ tools/frontend/
+COPY tools/deployment/version.mjs tools/deployment/version.d.mts tools/deployment/
 COPY tools/development/commands.mjs tools/development/dotnet.mjs tools/development/
 COPY tools/quality/local-settings.mjs tools/quality/local-settings.mjs
+ARG SLIPLANE_COMMIT_HASH
+ENV APP_COMMIT=$SLIPLANE_COMMIT_HASH
 RUN npm ci --prefix tools/frontend \
     && npm ci --prefix src/contract \
     && dotnet tool restore \
@@ -21,6 +24,6 @@ FROM node AS runtime
 WORKDIR /app
 COPY --from=build --chown=node:node /source/src/frontend/.output/ ./
 USER node
-ENV HOST=0.0.0.0 PORT=3000
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 EXPOSE 3000
 CMD ["node", "server/index.mjs"]

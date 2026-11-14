@@ -45,3 +45,6 @@ jobs:
       - name: Verify launcher behavior
         if: steps.scope.outputs.markdown_only != 'true'
         run: node --test tools/development/run-local.test.mjs tools/development/dotnet.test.mjs
+      - name: Verify release automation and version consistency
+        if: steps.scope.outputs.markdown_only != 'true'
+        run: node --test tools/deployment/release*.test.mjs tools/deployment/version.test.mjs

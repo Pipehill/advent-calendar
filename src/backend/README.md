@@ -13,7 +13,8 @@ require an unrestricted current calendaradmin session. Dedicated system-wide
 calendar list/preview endpoints require an unrestricted current superadmin and
 grant no writes. See the agreed
 [authentication design](../../docs/architecture.md#authentication-and-calendar-access).
-Production database hardening remains a production gate.
+Production still requires the owner-operated live checks in
+[deployment verification](../../docs/deployment-verification.md).
 See [backend authentication](authentication.md) for the protected API, manual
 superadmin provisioning, role-specific password handover, session lifecycle and key
 configuration. The frontend/BFF implements login, password changes, logout and
@@ -75,9 +76,11 @@ make the selected SDK directory available on PATH so MSBuild invokes that SDK.
 
 ## Configuration and migrations
 
-`appsettings.json` has a local host database connection. Nonlocal deployments must
-supply their connection string. The Compose file is exclusively for local
-development and selects `Development`.
+`appsettings.Development.json` contains the local database defaults. Production
+requires explicit application credentials, bounded pooling/timeouts, durable
+encrypted keys and narrow BFF proxy trust before migrations. See the
+[deployment runbook](../../docs/deployment.md) for the exact settings. Compose is
+exclusively for local development and selects `Development`.
 
 Startup applies migrations without creating calendars or sample data. Create
 calendars through the protected `POST /calendars` and use the returned ID for
@@ -103,7 +106,10 @@ timeout in shipped configuration. DbUp executes numbered embedded SQL resources
 in deterministic order with its PostgreSQL `schemaversions` journal and one
 transaction per script. Failure prevents HTTP startup and exits nonzero. Published
 migrations must remain unchanged; future corrections use new numbered scripts.
-Prior-release integrity checks and deployment integration await release tooling.
+Deploy validation compares migration names and Git blob identities with the exact
+`deploy` baseline, including before the first release tag. Existing published
+scripts cannot be edited, removed or renamed; new uniquely numbered scripts are
+allowed. Actual hosting/protection enforcement remains an owner verification gate.
 
 `GET /health/live` checks the process; `GET /health/ready` requires migrations and
 a current database query within two seconds. During a database outage, liveness

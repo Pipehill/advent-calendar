@@ -1,7 +1,10 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { TRPCError } from '@trpc/server';
 import { CalendarClient } from '../generated/backend';
+import { getRuntimeConfiguration } from './configuration';
 import { type RequestContext, relayCookies } from './context';
+
+export { backendConfiguration } from './configuration';
 
 const retryStatuses = new Set([502, 503, 504]);
 const statusCodes = {
@@ -37,24 +40,10 @@ export function translateError(error: unknown) {
   return new TRPCError({ code, message: code });
 }
 
-export function backendConfiguration(env: NodeJS.ProcessEnv = process.env) {
-  const baseUrl = env.BACKEND_API_URL || 'http://localhost:8080';
-  const deadlineMs = Number(env.BACKEND_DEADLINE_MS || 10_000);
-  const parsed = new URL(baseUrl);
-  if (
-    !['http:', 'https:'].includes(parsed.protocol) ||
-    !Number.isInteger(deadlineMs) ||
-    deadlineMs < 1
-  ) {
-    throw new Error('Invalid backend URL or deadline configuration');
-  }
-  return { baseUrl, deadlineMs };
-}
-
 export async function retrieveCalendar(
   id: string,
   context: RequestContext,
-  configuration = backendConfiguration(),
+  configuration = getRuntimeConfiguration(),
   request: typeof fetch = fetch,
 ) {
   return callBackend(context, (client, signal) => client.get(id, signal), configuration, request);
@@ -64,7 +53,7 @@ export async function retrieveCalendar(
 export async function callBackend<T>(
   context: RequestContext,
   operation: (client: CalendarClient, signal: AbortSignal) => Promise<T>,
-  configuration = backendConfiguration(),
+  configuration = getRuntimeConfiguration(),
   request: typeof fetch = fetch,
 ): Promise<T> {
   const deadline = AbortSignal.timeout(configuration.deadlineMs);
@@ -77,6 +66,16 @@ export async function callBackend<T>(
         signal.throwIfAborted();
         try {
           const headers = new Headers(init?.headers);
+          // Never relay an upstream host, client IP chain or browser-selected scheme.
+          for (const name of [
+            'forwarded',
+            'x-forwarded-for',
+            'x-forwarded-host',
+            'x-forwarded-proto',
+          ])
+            headers.delete(name);
+          if (configuration.forwardedScheme)
+            headers.set('X-Forwarded-Proto', configuration.forwardedScheme);
           headers.set('traceparent', context.traceparent);
           if (context.cookies.size)
             headers.set(

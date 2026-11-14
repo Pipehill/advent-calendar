@@ -65,6 +65,9 @@ function Document({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className={isLandingPage ? 'landing-main' : undefined}>{children}</main>
+          <footer className="app-version" data-commit={__APP_COMMIT__}>
+            {m.app_version({ version: __APP_VERSION__ })}
+          </footer>
         </div>
         <Scripts />
       </body>

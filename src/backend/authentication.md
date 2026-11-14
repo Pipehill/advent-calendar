@@ -22,7 +22,8 @@ image reads enforce current backend time and nonempty content. First-open histor
 is personal and never grants authority after reassignment, revocation or time
 changes. The backend-only `CalendarOpening:DisableTimeCheck` option is accepted
 only in Development, before migration/readiness, and bypasses only time.
-Database hardening remains required before production.
+Use the [deployment runbook](../../docs/deployment.md) for production configuration,
+the restricted database identity and the remaining owner verification gates.
 
 ## Code boundaries
 
@@ -275,12 +276,21 @@ these files; Docker build contexts exclude them. Local Compose persists keys in
 `development-authentication-keys` at `/var/lib/advent-keys`, writable by the image's
 nonroot application user. Preserve that volume during ordinary cleanup.
 
-Other environments require an existing absolute `Authentication__KeyDirectory`
-and an external PFX certificate at absolute `Authentication__KeyCertificatePath`,
-with externally supplied `Authentication__KeyCertificatePassword` when needed.
-The current certificate must contain its private key; Data Protection encrypts
-persisted keys to it. No ephemeral/development fallback is allowed. Preserve keys
-and the certificate through replacement/rotation. Secret delivery, volume
-protection, rotation and trusted TLS/proxy configuration remain deployment work.
-Account routes require HTTPS outside Development/Testing. Arbitrary forwarded
-headers are not trusted. Local Compose remains Development-only.
+Other environments require an existing writable absolute
+`Authentication__KeyDirectory` and exactly one external PFX source:
+`Authentication__KeyCertificateBase64` or absolute `Authentication__KeyCertificatePath`,
+with `Authentication__KeyCertificatePassword`. The active certificate must have
+its private key and be current. Data Protection encrypts persisted keys to it;
+there is no ephemeral/development fallback. Preserve the mounted keys and PFX
+through replacement. During renewal, retain old PFX material using indexed
+`Authentication__DecryptionCertificates__0__Base64` (or `Path`) and `Password`;
+.NET uses these certificates to decrypt existing keys, including certificates
+that have expired since encryption. See the [renewal procedure](../../docs/deployment.md#certificate-renewal-and-session-continuity).
+
+Account routes require HTTPS outside Development/Testing. Production requires
+explicit trusted BFF peers through indexed `Hosting__KnownProxies` or narrow
+`Hosting__KnownNetworks`. Forwarded-header processing trusts only one
+`X-Forwarded-Proto` hop before HTTPS guards, retaining the actual peer for budgets;
+host/IP chains and automatic trust-all forwarding remain disabled. The BFF derives
+the scheme from its configured canonical HTTPS origin. Local Compose remains
+Development-only. Follow the runbook for secrets, volumes and live edge verification.

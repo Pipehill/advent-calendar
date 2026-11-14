@@ -171,9 +171,16 @@ behavior to plan 00008.
   Refresh CSRF before browser mutations outside query caches and use newly issued
   cookies within the login exchange. Never issue an unsafe backend operation with
   a BFF-manufactured token in place of the caller's principal-bound token.
-- Keep Data Protection keys owned by the backend, durable and protected across
-  replacement. Resolve concrete storage alongside hosting/secrets in deployment;
-  the BFF does not need these keys.
+- Keep Data Protection keys owned by the backend in the durable mounted key
+  directory, encrypted using the externally supplied active PFX. Require one
+  source per certificate, private keys and a current active certificate. Retain
+  old decryption certificates across renewal until their keys/backups are retired.
+  Follow the [deployment runbook](../../docs/deployment.md); the BFF receives no keys.
+- In Production, require explicit frontend/backend configuration before readiness
+  or migrations. Derive the BFF's forwarded HTTPS scheme from its canonical HTTPS
+  origin configuration, never browser forwarding headers. Backend trusts only one
+  scheme hop from explicit BFF peers/narrow server CIDRs; do not process client IP
+  or host forwarding chains. Resource limits continue using the actual BFF peer.
 - Use persistent fixed-expiration sessions from successful login: at most 30 days
   for ordinary users, eight hours for administrators based on authenticated privileges.
   Disable sliding expiration; activity, validation, or cookie reissuance must not

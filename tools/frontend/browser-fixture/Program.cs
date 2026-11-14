@@ -4,6 +4,16 @@ using Calendar.Security;
 using Dapper;
 using Npgsql;
 
+if (args.FirstOrDefault() == "certificate")
+{
+    TestCertificate.Write(
+        args[1],
+        Environment.GetEnvironmentVariable("TEST_CERTIFICATE_PASSWORD")
+            ?? throw new InvalidOperationException("A disposable certificate password is required.")
+    );
+    return;
+}
+
 // This fixture deliberately cannot target the persistent development database.
 var connectionString =
     Environment.GetEnvironmentVariable("BROWSER_TEST_CONNECTION")

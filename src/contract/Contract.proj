@@ -7,6 +7,10 @@
          The API is the sole solution consumer; MSBuild owns its dependency order. -->
     <Target Name="GenerateContract">
         <Exec
+            WorkingDirectory="$(RepositoryRoot)"
+            Command="node tools/deployment/version.mjs check"
+        />
+        <Exec
             WorkingDirectory="$(MSBuildThisFileDirectory)"
             Command="node node_modules/@redocly/cli/bin/cli.js lint openapi.json"
         />

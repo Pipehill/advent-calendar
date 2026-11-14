@@ -1,0 +1,67 @@
+name: Deploy validation
+on:
+  pull_request:
+    branches: [deploy]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: deploy-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    name: Release candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out candidate merge commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up pinned SDK
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2  # v5.3.0
+        with:
+          global-json-file: global.json
+      - name: Set up Node LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: 24.14.0
+      - name: Verify provenance, version and published migrations
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/deployment/release-validation.mjs
+      - name: Verify release tooling
+        run: node --test tools/deployment/release*.test.mjs tools/deployment/version.test.mjs
+      - name: Install pinned tooling
+        run: |
+          npm ci --prefix tools/frontend
+          npm ci --prefix src/contract
+          dotnet tool restore
+          node tools/frontend/pnpm.mjs install --frozen-lockfile
+      - name: Generate, build, integration test and publish backend
+        run: |
+          dotnet restore src/backend/Calendar.slnx --locked-mode
+          dotnet build src/backend/Calendar.slnx --no-restore -c Release
+          dotnet test src/backend/Calendar.slnx --no-build -c Release
+          dotnet publish src/backend/Calendar.Api --no-build --no-restore -c Release -o src/backend/publish
+          dotnet format src/backend/Calendar.slnx --verify-no-changes --no-restore
+      - name: Generate, test, type check, build and lint frontend
+        run: node tools/frontend/pnpm.mjs run check
+      - name: Build actual production images and smoke test isolated Production stack
+        run: |
+          node tools/frontend/pnpm.mjs exec playwright install --with-deps chromium
+          node tools/deployment/production-smoke.mjs
+  readiness:
+    name: Deploy readiness
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every release dependency to succeed
+        env:
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+        run: test "$VALIDATION_RESULT" = success

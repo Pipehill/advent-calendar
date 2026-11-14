@@ -13,3 +13,8 @@ src/backend/publish
 **/.nitro
 **/.tanstack
 **/routeTree.gen.ts
+**/.env
+**/.env.*
+**/*.pfx
+**/*.pem
+**/*.key

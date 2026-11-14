@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Advent calendar API",
-    "version": "1.2.0",
+    "version": "1.0.0",
     "description": "Backend accounts, owner administration, superadmin preview and assigned-recipient calendars with server-authorized timed opening.",
     "license": {
       "name": "Private"

@@ -95,8 +95,10 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.AddAccountAuthentication();
 builder.Services.AddSingleton(provider =>
     NpgsqlDataSource.Create(
-        provider.GetRequiredService<IConfiguration>().GetConnectionString("Calendar")
-            ?? throw new InvalidOperationException("Calendar connection string is required.")
+        ProductionHosting.ReadConnectionString(
+            provider.GetRequiredService<IConfiguration>(),
+            builder.Environment
+        )
     )
 );
 builder.Services.AddScoped<ICalendarService, CalendarService>();
@@ -109,18 +111,19 @@ builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 var app = builder.Build();
 var openingOptions = app.Services.GetRequiredService<CalendarOpeningOptions>();
+var connectionString = ProductionHosting.ReadConnectionString(app.Configuration, app.Environment);
+var proxyOptions = ProductionHosting.ReadProxyOptions(app.Configuration, app.Environment);
 if (openingOptions.DisableTimeCheck)
     ApiLog.LocalOpeningBypass(app.Logger);
 _ = app.Services.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>();
-var connectionString =
-    app.Configuration.GetConnectionString("Calendar")
-    ?? throw new InvalidOperationException("Calendar connection string is required.");
 await DatabaseStartup.MigrateAsync(
     connectionString,
     app.Configuration.GetValue("Database:StartupAttempts", 10),
     app.Lifetime.ApplicationStopping
 );
 app.Services.GetRequiredService<MigrationState>().Complete = true;
+
+app.UseForwardedHeaders(proxyOptions);
 
 app.Use(
     async (context, next) =>
