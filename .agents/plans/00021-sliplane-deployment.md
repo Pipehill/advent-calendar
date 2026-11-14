@@ -22,9 +22,14 @@ do not mark this plan implemented before its required live evidence exists.
 - [x] Corrective iteration: bound Nitro's unread request queue and deliver complete
   413 responses before closing rejected uploads. Verify real HTTP backpressure,
   repeated/chunked/batched uploads and normal Production smoke.
-- [ ] Iteration 4: SQL/environment templates and deployment runbook; align current
+- [x] Release retry correction: read repaired current PR metadata for tag retries,
+  retaining the immutable event's exact source/merge identity. Verify stale-event
+  recovery and reject changed merge/source provenance without any tag writes.
+- [x] Forwarded transport correction: verify bounded rejection cleanup through
+  the actual Linux image's published port as well as native Node HTTP.
+- [x] Iteration 4: SQL/environment templates and deployment runbook; align current
   rules/docs. Verify restricted-role migration/restore/rotation and final quality,
-  health and committed-head regression review, then publish a draft PR.
+  health and owner handoff. Publication follows the final committed-head review.
 - [ ] Owner gates: Sliplane/GitHub configuration, two real releases, HTTPS/session
   replacement, backup recovery and representative Starter capacity evidence.
 
@@ -56,10 +61,32 @@ The broad browser run reached 94 passing cases, one reproduced 413/reset race,
 then its 600-second parent deadline cancelled remaining scenarios. All 15
 recipient/smoke scenarios pass separately. The upload race was reproduced in
 seven of 60 requests and corrected with a 64 KiB backpressured Node adapter and
-bounded half-close handling. Rebuilt Nitro passes 60/60 stress requests, repeated,
+bounded response handling. Rebuilt Nitro passes 60/60 stress requests, repeated,
 batched and genuine chunked upload checks; eight focused unit tests, TypeScript,
 Biome and packaging pass. The normal final Production image smoke is repeated
-after this corrective commit. No timed-out run is described as passing.
+after the corrective work and passes against both final images. An initial
+half-close approach failed through the container TCP forwarder; finite discard
+through the existing reader (32 MiB/one second, retained queue 64 KiB) followed by
+normal HTTP completion passes 60/60 actual Linux-image requests through its
+published port. Queue, endless-input and stalled-input bounds are tested.
+No timed-out run is described as passing.
+
+Release/operations verification passes all 404 backend and 44
+deployment/version/transfer tests; all 251 frontend/BFF tests pass. Both production images build; normal
+Production smoke, restore/rotation, subsequent-version rebuilding, dependency
+audits and full lint pass. PostgreSQL 18.7 is pinned to its verified official OCI
+index; its amd64 member is the exact tested image. The runbook and
+verification record in `docs/deployment-verification.md` own the remaining
+operator steps and detailed evidence. No owner/live gate is reported complete.
+
+Advisory application/tooling health declines from 92.8/57.0 to 92.1/49.6,
+respectively, from verified entry-point/import heuristic findings. Duplication
+line/clone counts remain unchanged (application 145/15, tooling 12/2); both
+duplication percentages and complexity scores improve. Every new finding was
+traced to a workflow, command or Nitro caller; no scoring/exclusion changes hide
+the decline. Full explanations and raw identities are retained in verification
+and ignored health artifacts. Final publication uses committed-head comparison,
+the normal Local QA generator and a draft PR; merging remains with the owner.
 
 ## Overview
 

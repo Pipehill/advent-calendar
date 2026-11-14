@@ -57,16 +57,23 @@ jobs:
             if (!result || result.encoding !== 'base64') throw new Error(`Missing release input ${path}`);
             return Buffer.from(result.content, 'base64').toString('utf8');
           };
-          const [versionText, frontendText, contractText, merge, source] = await Promise.all([
+          const [versionText, frontendText, contractText, merge, source, current] = await Promise.all([
             read('VERSION'), read('src/frontend/package.json'), read('src/contract/openapi.json'),
-            api(`git/commits/${sha}`), api(`git/commits/${pr.head.sha}`),
+            api(`git/commits/${sha}`), api(`git/commits/${pr.head.sha}`), api(`pulls/${pr.number}`),
           ]);
           const version = versionText.trim();
           if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version) ||
               JSON.parse(frontendText).version !== version || JSON.parse(contractText).info.version !== version) {
             throw new Error('Invalid or inconsistent release version at exact merge commit');
           }
-          const block = pr.body?.match(/<!-- advent-release:start -->[\s\S]*?<!-- advent-release:end -->/)?.[0];
+          if (!current?.merged || current.number !== pr.number || current.merge_commit_sha !== sha ||
+              current.head?.sha !== pr.head.sha || current.head.ref !== 'main' || current.base?.ref !== 'deploy' ||
+              current.head.repo?.full_name !== repository || current.base.repo?.full_name !== repository) {
+            throw new Error('Current PR no longer matches the event release provenance');
+          }
+          // Reruns retain the original event body. Permit repaired PR metadata,
+          // while all release source inputs remain pinned to that event's merge.
+          const block = current.body?.match(/<!-- advent-release:start -->[\s\S]*?<!-- advent-release:end -->/)?.[0];
           if (block?.match(/^Release version: (.+)$/m)?.[1] !== version ||
               !block?.match(/^Prepared source: [a-f0-9]{40}$/m)) throw new Error('Stale Prepare release metadata');
           if (merge?.parents.length !== 2 || merge.parents[1].sha !== pr.head.sha ||

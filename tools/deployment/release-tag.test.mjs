@@ -19,6 +19,7 @@ function tagFixture({ existing, merged = true, mergeSha = 'b'.repeat(40), bodyVe
     base: { ref: 'deploy', repo: { full_name: 'owner/repo' } },
   } };
   const values = {
+    'pulls/7': structuredClone(event.pull_request),
     [`git/commits/${mergeSha}`]: { parents: [{ sha: 'd'.repeat(40) }, { sha: 'a'.repeat(40) }], tree: { sha: 'release-tree' } },
     [`git/commits/${'a'.repeat(40)}`]: { tree: { sha: 'release-tree' } },
     'git/ref/tags/v1.0.0': existing ?? null,
@@ -121,3 +122,46 @@ test('Given stale prepared version metadata, When finalizing, Then it rejects th
   await assert.rejects(action, /Stale Prepare release metadata/);
   assert.equal(fixture.calls.filter(call => call.method !== 'GET').length, 0);
 });
+
+test('Given a failed tag run with stale event metadata, When current PR metadata is repaired and the run is retried, Then it tags the original merge without redeployment', async () => {
+  // Given a failure whose stored event body cannot change between run attempts.
+  const fixture = tagFixture({ bodyVersion: '1.0.1' });
+
+  // When the first finalization reads the stale candidate metadata.
+  const firstAttempt = fixture.run();
+
+  // Then it refuses to create a tag.
+  await assert.rejects(firstAttempt, /Stale Prepare release metadata/);
+
+  // Given the owner repairs the PR record without modifying the stored event.
+  fixture.values['pulls/7'].body = metadata('1.0.0', 'a'.repeat(40));
+
+  // When the owner retries after correcting only the PR's release metadata.
+  await fixture.run();
+
+  // Then the stale payload stays untouched and the tag still identifies the event merge.
+  assert.equal(fixture.event.pull_request.body, metadata('1.0.1', 'a'.repeat(40)));
+  const tag = fixture.calls.find(call => call.method === 'POST' && call.path === 'git/tags');
+  assert.equal(tag.body.object, 'b'.repeat(40));
+  assert.equal(tag.body.tag, 'v1.0.0');
+});
+
+for (const [scenario, change] of [
+  ['merge-commit', current => { current.merge_commit_sha = 'e'.repeat(40); }],
+  ['source-commit', current => { current.head.sha = 'e'.repeat(40); }],
+]) {
+  test(`Given repaired metadata with changed ${scenario} provenance, When retrying finalization, Then it refuses all tag writes`, async () => {
+    // Given repaired metadata whose current provenance differs from the immutable event.
+    const fixture = tagFixture({ bodyVersion: '1.0.1' });
+    const current = fixture.values['pulls/7'];
+    current.body = metadata('1.0.0', 'a'.repeat(40));
+    change(current);
+
+    // When the original event is retried against that changed PR record.
+    const action = () => fixture.run();
+
+    // Then metadata repair cannot redirect release identity to another commit.
+    await assert.rejects(action, /no longer matches the event release provenance/);
+    assert.equal(fixture.calls.filter(call => call.method !== 'GET').length, 0);
+  });
+}
