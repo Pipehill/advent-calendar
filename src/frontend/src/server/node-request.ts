@@ -24,22 +24,42 @@ export async function sendUploadRejection(
   incoming: IncomingMessage,
   outgoing: ServerResponse,
   response: Response,
+  rejectedBody: ReadableStream<Uint8Array> | null,
 ) {
-  incoming.pause();
   const body = Buffer.from(await response.arrayBuffer());
   for (const [name, value] of response.headers) outgoing.setHeader(name, value);
   outgoing.setHeader('Content-Length', body.byteLength);
   outgoing.writeHead(response.status);
   outgoing.write(body);
-  const socket = outgoing.socket;
-  if (!socket) {
+  try {
+    // Let already-sent bytes finish without retaining them. Immediate destruction
+    // races the 413 with a reset; half-closing can stall TCP port forwarders.
+    if (rejectedBody) await discardRejectedBytes(rejectedBody);
+  } finally {
+    incoming.pause();
     outgoing.end();
-    return;
   }
-  // res.end() immediately destroys an unread HTTP upload's socket, racing the
-  // 413 with ECONNRESET. Half-close output after the complete framed response;
-  // retain paused input for at most one second, without draining rejected bytes.
-  const timeout = setTimeout(() => socket.destroy(), 1000);
-  socket.once('close', () => clearTimeout(timeout));
-  socket.end();
+}
+
+async function discardRejectedBytes(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const expired = new Promise<undefined>((resolve) => {
+    timeout = setTimeout(() => resolve(undefined), 1000);
+  });
+  try {
+    let discarded = 0;
+    // Cover ordinary oversized uploads/batches while bounding hostile input.
+    // Reading the existing stream keeps its 64 KiB queue under backpressure.
+    while (discarded < 32 * 1024 * 1024) {
+      const chunk = await Promise.race([reader.read(), expired]);
+      if (!chunk || chunk.done) break;
+      discarded += chunk.value.byteLength;
+    }
+  } catch {
+    // A disconnected upload needs only the same bounded connection cleanup.
+  } finally {
+    clearTimeout(timeout);
+    reader.releaseLock();
+  }
 }

@@ -8,9 +8,10 @@ export default defineEventHandler(async event => {
   event.node.res.once('close', () => {
     if (!event.node.res.writableEnded) controller.abort();
   });
-  const response = await start.fetch(createNodeRequest(event, controller.signal));
+  const request = createNodeRequest(event, controller.signal);
+  const response = await start.fetch(request);
   if (response.status === 413 && response.headers.get('connection') === 'close') {
-    await sendUploadRejection(event.node.req, event.node.res, response);
+    await sendUploadRejection(event.node.req, event.node.res, response, request.body);
     return;
   }
   return response;
