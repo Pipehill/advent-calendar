@@ -38,7 +38,14 @@ export function registerDoorImageSecurityScenarios(environment) {
     // When actual HTTP bypasses browser checks and aggregate batches exceed the body boundary.
     const body = JSON.stringify({ title: 'Changed', text: '', imageAction: 'replace', imageData: 'A'.repeat(14_000_001) });
     const direct = await context.request.put(apiPath, { headers: { ...headers, 'Content-Type': 'application/json' }, data: body });
-    const bff = await context.request.post(`${frontendUrl}/api/trpc/calendar.saveDoor`, { headers: { 'Content-Type': 'application/json' }, data: body });
+    // Repeat header-based rejection while uploads are still in flight: immediately
+    // destroying an unread socket can intermittently replace the 413 with a reset.
+    const bff = [];
+    for (let attempt = 0; attempt < 20; attempt++) {
+      bff.push(await context.request.post(`${frontendUrl}/api/trpc/calendar.saveDoor`, {
+        headers: { 'Content-Type': 'application/json' }, data: body,
+      }));
+    }
     const batch = await context.request.post(`${frontendUrl}/api/trpc/calendar.saveDoor,calendar.saveDoor?batch=1`, {
       headers: { 'Content-Type': 'application/json' }, data: `{"0":${body},"1":${body}}`,
     });
@@ -47,7 +54,7 @@ export function registerDoorImageSecurityScenarios(environment) {
     const after = await (await context.request.get(`${apiUrl}/calendars/${calendar.id}`)).json();
 
     // Then independent body/CSRF boundaries reject writes without changing bytes or modification time.
-    for (const response of [direct, bff, batch]) {
+    for (const response of [direct, ...bff, batch]) {
       assert.equal(response.status(), 413, await response.text());
       assert.match(response.headers()['cache-control'], /no-store/);
     }

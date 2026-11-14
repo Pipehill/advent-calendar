@@ -19,6 +19,9 @@ do not mark this plan implemented before its required live evidence exists.
 - [x] Iteration 3: release preparation/finalization, deploy candidate validation,
   migration integrity and disposable Production image smoke. Verify automation
   scenarios, actual image builds and Production browser coverage.
+- [x] Corrective iteration: bound Nitro's unread request queue and deliver complete
+  413 responses before closing rejected uploads. Verify real HTTP backpressure,
+  repeated/chunked/batched uploads and normal Production smoke.
 - [ ] Iteration 4: SQL/environment templates and deployment runbook; align current
   rules/docs. Verify restricted-role migration/restore/rotation and final quality,
   health and committed-head regression review, then publish a draft PR.
@@ -38,7 +41,8 @@ scheme forwarding without host/client-IP trust, pre-start validation, key-ring
 replacement and old-certificate decryption. Initial fixture connection-pool
 exhaustion was corrected and the complete suite rerun successfully. Full Production
 image smoke already verifies HTTPS login, administration, protected SSR and retained
-sessions; remaining assertions are being completed in iteration 3. Iteration 3: 41 deployment/version/transfer tests pass, both actual images build,
+sessions; remaining assertions were completed in iteration 3.
+Iteration 3: 41 deployment/version/transfer tests pass, both actual images build,
 Production smoke passes against PostgreSQL 18.7 with the authored role/schema
 templates. It covers TLS termination, CSRF, private SSR, admin/recipient/image
 operations, container/session continuity, restricted-role denials, transactional
@@ -47,6 +51,15 @@ A disposable 1.0.1 frontend rebuild verifies build-derived version output while
 canonical source stays 1.0.0. Missing Production configuration fails in both
 images. A repaired PR metadata rerun regression was found and fixed. Next:
 iteration 4 final review/publication and the separately pending owner gates.
+
+The broad browser run reached 94 passing cases, one reproduced 413/reset race,
+then its 600-second parent deadline cancelled remaining scenarios. All 15
+recipient/smoke scenarios pass separately. The upload race was reproduced in
+seven of 60 requests and corrected with a 64 KiB backpressured Node adapter and
+bounded half-close handling. Rebuilt Nitro passes 60/60 stress requests, repeated,
+batched and genuine chunked upload checks; eight focused unit tests, TypeScript,
+Biome and packaging pass. The normal final Production image smoke is repeated
+after this corrective commit. No timed-out run is described as passing.
 
 ## Overview
 
