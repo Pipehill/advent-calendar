@@ -354,8 +354,8 @@ doors with 0-50/0-5000-code-point titles/messages and a chronological order.
 Random layout selection stores a permutation; reads never reshuffle it. Protected
 SSR/hydration/errors use no-store, query caches separate administration/preview
 and session changes discard protected data. Migration 0004 journaled removal of
-legacy test calendars/doors preserves accounts and sessions. Production database
-hardening remains a production gate.
+legacy test calendars/doors preserves accounts and sessions. Production setup and
+live evidence follow the [deployment runbook](deployment.md).
 
 Superadmins use Users/Calendars tabs on `/my-page`, with only the selected panel
 mounted. The calendar table pages through all calendars and joins current names
@@ -443,8 +443,11 @@ return structured errors instead of HTML login redirects.
 
 The backend owns Data Protection keys; the Node.js BFF does not need them.
 Keys must be durable and protected across backend container replacement.
-The concrete key storage configuration belongs to deployment work alongside
-hosting and secrets. Cookie validation must also consult persisted session and
+The production key directory is a durable backend-only volume, encrypted with an
+externally supplied PFX. The active certificate is current and includes its private
+key; renewal retains previous decryption certificates for existing keys/backups.
+The [deployment runbook](deployment.md) owns secret delivery and recovery.
+Cookie validation must also consult persisted session and
 account validity through PostgreSQL stores; cookie integrity alone is insufficient.
 Validity checks fail closed if persistence is unavailable. All authentication and
 user-management responses, including errors, CSRF tokens and cookie responses,
@@ -686,15 +689,17 @@ same generation and validation workflows. From a clean checkout, check the
 authored contract with Redocly CLI, generate both languages, compile .NET,
 explicitly type-check TypeScript, run applicable tests, and build Vite output
 and container artifacts. Do not compare generated output with committed files:
-generated files are not versioned. Production deployment integration and optional
-post-deployment testing stages depend on the later hosting decision.
+generated files are not versioned. Production release validation additionally
+tests the proposed `main`-to-`deploy` merge, builds the actual Dockerfiles and runs
+isolated Production smoke without production credentials or accounts. The stable
+`Deploy readiness` check remains required for Markdown-only releases too.
 
 | Check | Tool and environment | Required evidence when implementing |
 | --- | --- | --- |
 | OpenAPI and generated code | Redocly CLI, NSwag, .NET compilation, TypeScript type check | Clean build from authored spec, representative schema generation, no running backend required |
 | Frontend/BFF units | Vitest through pnpm, locally and GitHub Actions | Zod invalid inputs, field-error translation, frontend behavior, transport errors, deadlines/cancellation and attempt counts; isolate external dependencies and select runtime per test |
 | Backend API integration | xUnit and isolated PostgreSQL Testcontainers, locally and GitHub Actions | Real request/response behavior, data access, OpenAPI agreement, actual DbUp scripts, transactions and journal restart |
-| Optional end-to-end | Playwright against environment after deployment | Browser/BFF/API flows; deployment-stage details deferred |
+| Production smoke | Playwright against disposable Production containers and later the real edge | Login/CSRF, protected SSR, administration, recipient access, images and visible release version |
 
 Backend integration tests require a compatible container runtime in local and CI
 environments. Apply the application's actual migrations to isolated test databases
@@ -774,6 +779,25 @@ frontend/BFF into service with the ready API. Every backend restart checks pendi
 migrations through the journal. Reverting an application image does not undo
 database migrations; recovery needs a separate plan.
 
+The selected host is one Sliplane Starter server: public HTTPS frontend/BFF and
+private HTTP backend/PostgreSQL on the same server. Private traffic is unencrypted
+inside that trusted boundary. The database has a separate operator and one
+non-superuser owning application identity for runtime and startup migrations;
+the frontend has no database credential. Backend accepts only one forwarded
+scheme hop from explicit BFF peers/narrow server networks. Frontend derives that
+HTTPS scheme from its canonical configured origin, preserving actual peer budgets
+and rejecting caller-selected host/IP/identity chains.
+
+`main` stays independent of production. A manual **Prepare release** action
+opens/reuses a tested `main`-to-`deploy` PR; the owner merges with a merge commit.
+Sliplane tracks only `deploy`, and builds both services independently. A root
+`VERSION`, mirrored in frontend/API metadata, identifies each release and appears
+in the shared frontend footer. Post-merge finalization creates an immutable
+annotated `vX.Y.Z` tag on the exact deploy merge commit. Tags identify selected
+source; they do not establish hosting health. Owner protection, backup/restore,
+SSH provisioning, session replacement and capacity evidence remain live gates in
+the [deployment runbook](deployment.md) and [verification record](deployment-verification.md).
+
 BFF and API emit structured JSON console logs with timestamp, severity, service,
 and request context. Use [.NET built-in JSON console formatting](https://learn.microsoft.com/en-us/dotnet/core/extensions/logging/console-log-formatter)
 and equivalent
@@ -790,12 +814,12 @@ This selects correlated logs; full distributed tracing infrastructure is deferre
 | Runnable application/setup | Remaining API resources and content models/screens, UUID version/generation location, exact package/tool pins, representative serialization/mapping checks and build/setup maintenance |
 | Backend user management | Identity stores, Argon2id provider/costs and local weak-password source, account/session schema, offline hash-tool packaging and implementation/verification of the agreed security controls |
 | Calendar authorization and frontend/BFF integration | Owner/recipient assignment and any invitation behavior, calendar endpoint enforcement and protected calendar browser/SSR/cache verification; account screens and allowlisted cookie/CSRF relay are implemented; no public registration |
-| Build/release automation | Concrete GitHub Actions workflows, reliable prior-release migration baseline and integrity enforcement, artifact packaging |
-| Deployment | Production hosting, HTTPS/TLS termination, secrets, persistent database storage, backups, recovery and restoration checks, durable protected Data Protection key configuration, controlled manual superadmin operator access, database hardening, deployment integration and optional Playwright stage |
+| Build/release automation | Owner enforcement of the prepared deploy release checks/tag protection and evidence from two real releases |
+| Deployment | Owner Sliplane/GitHub setup and live HTTPS/proxy, persistent session, backup/restore and Starter capacity evidence; procedures are prepared in the deployment runbook |
 | Observability/operations | Full distributed tracing, collection/storage and visualization of service timings |
 
-No production hosting platform has been selected. Sliplane is only a candidate,
-with no assumed capabilities. The deployment task must preserve the selected
-three-container, single-instance architecture and accepted downtime. These
-deferrals do not weaken backend access rules, startup migration safety, or the
-durable Data Protection key requirement.
+The owner selected Sliplane Starter and the trusted same-server database boundary
+on 2026-11-14. This supersedes the earlier three-database-identity/separate-TLS
+production proposal. The three-container, single-instance architecture and
+accepted downtime remain. Pending live evidence does not weaken backend access
+rules, startup migration safety or durable encrypted Data Protection requirements.

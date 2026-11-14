@@ -41,7 +41,7 @@ const frontend = {
 if (!frontend) throw new Error('Invalid browser frontend mode');
 const reports = path.join(root, frontend.reports);
 const fixtureDll = path.join(root, 'tools/frontend/browser-fixture/bin/Release/net10.0/BrowserFixture.dll');
-const postgresImage = 'docker.io/library/postgres@sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452';
+const postgresImage = 'docker.io/library/postgres@sha256:9f4fd4aa918f52ae3d6f3b687f1de90d8f867cd4d520021545a9a50c120eae3b';
 const children = [];
 let databaseName;
 let environment;

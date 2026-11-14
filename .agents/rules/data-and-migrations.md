@@ -54,5 +54,8 @@ backend startup, and migration release checks. See the
   not revert database migrations; preserve recovery decisions for deployment work.
 
 Local Compose persistence and readiness workflows belong to
-[architecture rules](architecture.md). Production storage, backups, restoration,
-and hosting remain decisions for the later deployment task.
+[architecture rules](architecture.md). The [deployment runbook](../../docs/deployment.md)
+owns Sliplane storage, the combined non-superuser application/migration identity,
+separate operator, logical backups and restoration. Production uses the trusted
+same-server private network without separate database TLS; do not introduce a
+second migration credential or change published scripts during deployment.

@@ -17,7 +17,7 @@ public sealed class ApiFixture : IAsyncLifetime
     public const string CertificatePassword = "isolated-certificate-password";
     public PostgreSqlContainer Database { get; } =
         new PostgreSqlBuilder(
-            "docker.io/library/postgres:18.7@sha256:c7fedce47eff6a78cb35dad6b627f0d684107f75ab15c0870e40c093766ba452"
+            "docker.io/library/postgres:18.7@sha256:9f4fd4aa918f52ae3d6f3b687f1de90d8f867cd4d520021545a9a50c120eae3b"
         )
             .WithDatabase("calendar_tests")
             .WithUsername("tests")

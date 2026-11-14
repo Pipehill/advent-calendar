@@ -75,8 +75,9 @@ Release/operations verification passes all 404 backend and 44
 deployment/version/transfer tests; all 251 frontend/BFF tests pass. Both production images build; normal
 Production smoke, restore/rotation, subsequent-version rebuilding, dependency
 audits and full lint pass. PostgreSQL 18.7 is pinned to its verified official OCI
-index; its amd64 member is the exact tested image. The runbook and
-verification record in `docs/deployment-verification.md` own the remaining
+index; its amd64 member is the exact tested image. The
+[runbook](../../docs/deployment.md) and
+[verification record](../../docs/deployment-verification.md) own the remaining
 operator steps and detailed evidence. No owner/live gate is reported complete.
 
 Advisory application/tooling health declines from 92.8/57.0 to 92.1/49.6,

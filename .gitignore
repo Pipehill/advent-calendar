@@ -17,3 +17,8 @@ src/frontend/project.inlang/cache/
 src/frontend/project.inlang/.gitignore
 src/frontend/.tanstack/
 .auth-keys/
+.env
+.env.*
+*.pfx
+*.pem
+*.key
