@@ -1,6 +1,6 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { afterEach, expect, test, vi } from 'vitest';
-import { callBackend } from './backend';
+import { backendConfiguration, callBackend } from './backend';
 import { createContext } from './context';
 import { appRouter } from './trpc';
 
@@ -42,6 +42,36 @@ test('Given browser cookies and identity headers, When authentication reaches th
   expect(headers.has('Authorization')).toBe(false);
   expect(headers.has('X-User-Role')).toBe(false);
   expect(request.mock.calls[0][1]?.cache).toBe('no-store');
+});
+
+test('Given malicious browser proxy headers, When Production authentication calls the private API, Then only the configured HTTPS scheme crosses the hop', async () => {
+  // Given caller-selected scheme, host, address and identity mixed with valid CSRF credentials.
+  const ctx = context({
+    'X-Forwarded-Proto': 'http, https',
+    'X-Forwarded-Host': 'attacker.example',
+    'X-Forwarded-For': '203.0.113.7',
+    Forwarded: 'for=203.0.113.7;proto=http;host=attacker.example',
+    'X-User-Role': 'superadmin',
+    'X-CSRF-TOKEN': 'principal-token',
+    cookie: 'advent.auth=ticket; advent.csrf=antiforgery',
+  });
+  const production = backendConfiguration({
+    NODE_ENV: 'production',
+    BACKEND_API_URL: 'http://backend.private:8080',
+    PUBLIC_ORIGIN: 'https://advent.example',
+  });
+  const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+
+  // When a write uses deployment configuration independent of browser headers.
+  await callBackend(ctx, (client, signal) => client.logout(signal), production, request);
+
+  // Then backend HTTPS guards receive the trusted scheme and preserve the security boundary.
+  const headers = new Headers(request.mock.calls[0][1]?.headers);
+  expect(headers.get('X-Forwarded-Proto')).toBe('https');
+  for (const name of ['Forwarded', 'X-Forwarded-Host', 'X-Forwarded-For', 'X-User-Role', 'Host'])
+    expect(headers.has(name)).toBe(false);
+  expect(headers.get('X-CSRF-TOKEN')).toBe('principal-token');
+  expect(headers.get('cookie')).toBe('advent.auth=ticket; advent.csrf=antiforgery');
 });
 
 test.each([

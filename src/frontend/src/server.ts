@@ -1,9 +1,13 @@
 import handler from '@tanstack/react-start/server-entry';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { paraglideMiddleware } from './generated/paraglide/server.js';
+import { getRuntimeConfiguration } from './server/configuration';
 import { createContext, requestContexts } from './server/context';
 import { protectTrpcBody } from './server/request-body';
 import { appRouter } from './server/trpc';
+
+// Nitro imports this handler before listening, including for static asset requests.
+const configuration = getRuntimeConfiguration();
 
 export default {
   async fetch(request: Request) {
@@ -27,9 +31,10 @@ export default {
     }
     if (path === '/health/ready') {
       try {
-        const baseUrl = process.env.BACKEND_API_URL || 'http://localhost:8080';
-        const response = await fetch(`${baseUrl}/health/ready`, {
+        const response = await fetch(`${configuration.baseUrl}/health/ready`, {
           signal: AbortSignal.timeout(2000),
+          redirect: 'error',
+          cache: 'no-store',
         });
         return new Response(response.ok ? 'Healthy' : 'Unhealthy', {
           status: response.ok ? 200 : 503,

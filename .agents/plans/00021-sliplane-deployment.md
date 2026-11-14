@@ -14,7 +14,7 @@ do not mark this plan implemented before its required live evidence exists.
 
 - [x] Iteration 1: canonical version, checked mirrors, build metadata and localized
   footer. Verify version drift/update tests, generation and frontend checks.
-- [ ] Iteration 2: Production backend/BFF configuration, proxy trust and certificate
+- [x] Iteration 2: Production backend/BFF configuration, proxy trust and certificate
   lifecycle. Verify focused rejection/transport tests and backend integration suite.
 - [ ] Iteration 3: release preparation/finalization, deploy candidate validation,
   migration integrity and disposable Production image smoke. Verify automation
@@ -32,7 +32,13 @@ Vite and Nitro packaging pass with existing dependency warnings. Initial sandbox
 Nitro packaging lacked filesystem access; the authorized rerun completed. A targeted
 Biome rerun verifies the final formatting correction. MCP version-tool feedback
 reports only its self-match. Production browser/footer verification follows in
-iteration 3. Next: finish iteration 2 and its backend integration tests.
+iteration 3. Iteration 2: all 404 backend tests pass, including 28 new hosting/key
+tests; 53 focused BFF tests, TypeScript and formatting pass. Tests include trusted
+scheme forwarding without host/client-IP trust, pre-start validation, key-ring
+replacement and old-certificate decryption. Initial fixture connection-pool
+exhaustion was corrected and the complete suite rerun successfully. Full Production
+image smoke already verifies HTTPS login, administration, protected SSR and retained
+sessions; remaining assertions are being completed in iteration 3. Next: iteration 3.
 
 ## Overview
 

@@ -14,6 +14,7 @@ public sealed class ApiFixture : IAsyncLifetime
     public string KeyDirectory { get; } =
         Path.Combine(Path.GetTempPath(), "advent-auth-test-keys", Guid.NewGuid().ToString("N"));
     public string CertificatePath => Path.Combine(KeyDirectory, "test-protection.pfx");
+    public const string CertificatePassword = "isolated-certificate-password";
     public PostgreSqlContainer Database { get; } =
         new PostgreSqlBuilder(
             "docker.io/library/postgres:18.4@sha256:4cc13dede823cab4e05290c7fb3350fb4e599ecabd9b07e6706b5d5e8f5bc929"
@@ -38,7 +39,10 @@ public sealed class ApiFixture : IAsyncLifetime
             DateTimeOffset.UtcNow.AddDays(-1),
             DateTimeOffset.UtcNow.AddDays(2)
         );
-        await File.WriteAllBytesAsync(CertificatePath, certificate.Export(X509ContentType.Pfx));
+        await File.WriteAllBytesAsync(
+            CertificatePath,
+            certificate.Export(X509ContentType.Pfx, CertificatePassword)
+        );
         await Database.StartAsync();
     }
 
@@ -63,7 +67,12 @@ public sealed class ApiFixture : IAsyncLifetime
                         new Dictionary<string, string?>
                         {
                             ["ConnectionStrings:Calendar"] =
-                                connectionString ?? Database.GetConnectionString(),
+                                (connectionString ?? Database.GetConnectionString())
+                                + (
+                                    environment == "Production"
+                                        ? ";Maximum Pool Size=10;Timeout=3;Command Timeout=5"
+                                        : ""
+                                ),
                             ["Database:StartupAttempts"] = "1",
                             ["CalendarOpening:DisableTimeCheck"] = noTimeCheck.ToString(),
                             ["Authentication:KeyDirectory"] =
@@ -71,6 +80,8 @@ public sealed class ApiFixture : IAsyncLifetime
                                     ? Path.Combine(KeyDirectory, "production")
                                     : KeyDirectory,
                             ["Authentication:KeyCertificatePath"] = CertificatePath,
+                            ["Authentication:KeyCertificatePassword"] = CertificatePassword,
+                            ["Hosting:KnownProxies:0"] = "127.0.0.1",
                         }
                     )
             );

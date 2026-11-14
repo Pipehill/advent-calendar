@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Calendar.Api.Infrastructure;
 using Calendar.Api.Repositories;
@@ -41,9 +40,10 @@ public static class AuthHosting
         services.AddDataProtection();
         // Resolve final host configuration, including test/deployment overrides,
         // rather than capturing incomplete configuration before builder.Build().
-        services.AddSingleton<IDataProtectionProvider>(provider =>
-            CreateKeyProvider(provider.GetRequiredService<IConfiguration>(), builder.Environment)
-        );
+        services.AddSingleton<IDataProtectionProvider>(provider => new AuthenticationKeyRing(
+            provider.GetRequiredService<IConfiguration>(),
+            builder.Environment
+        ));
         services.AddScoped<SecurityTransaction>();
         services.AddScoped<ISecurityTransaction>(provider =>
             provider.GetRequiredService<SecurityTransaction>()
@@ -104,48 +104,6 @@ public static class AuthHosting
                 SessionAuthentication.Scheme
             )
             .Configure<TimeProvider>((options, time) => options.TimeProvider = time);
-    }
-
-    private static IDataProtectionProvider CreateKeyProvider(
-        IConfiguration configuration,
-        IHostEnvironment environment
-    )
-    {
-        var local = environment.IsDevelopment() || environment.IsEnvironment("Testing");
-        var directory = configuration["Authentication:KeyDirectory"];
-        if (local)
-            return DataProtectionProvider.Create(
-                new DirectoryInfo(
-                    directory ?? Path.Combine(environment.ContentRootPath, ".auth-keys")
-                ),
-                protection => protection.SetApplicationName("AdventCalendar.Backend")
-            );
-        var certificatePath = configuration["Authentication:KeyCertificatePath"];
-        if (
-            directory is null
-            || !Path.IsPathFullyQualified(directory)
-            || !Directory.Exists(directory)
-            || certificatePath is null
-            || !Path.IsPathFullyQualified(certificatePath)
-        )
-            throw new InvalidOperationException(
-                "Production authentication requires a durable absolute key directory and external key-encryption certificate."
-            );
-        var certificate = X509CertificateLoader.LoadPkcs12FromFile(
-            certificatePath,
-            configuration["Authentication:KeyCertificatePassword"]
-        );
-        if (!certificate.HasPrivateKey || certificate.NotAfter.ToUniversalTime() <= DateTime.UtcNow)
-            throw new InvalidOperationException(
-                "The authentication key certificate must be current and include its private key."
-            );
-        return DataProtectionProvider.Create(
-            new DirectoryInfo(directory),
-            protection =>
-                protection
-                    .SetApplicationName("AdventCalendar.Backend")
-                    .ProtectKeysWithCertificate(certificate)
-        );
     }
 
     public static bool IsAccountPath(PathString path) =>

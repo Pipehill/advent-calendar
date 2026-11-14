@@ -45,6 +45,7 @@ services:
       context: .
       dockerfile: src/frontend/Dockerfile
     environment:
+      NODE_ENV: development
       BACKEND_API_URL: http://backend:8080
       HOST: 0.0.0.0
       PORT: 3000
