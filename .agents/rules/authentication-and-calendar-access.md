@@ -23,8 +23,9 @@ protected personal pages with a read-only superadmin account list.
 Plan 00013 extends those pages with dedicated account creation, scoped administrator
 lists, password reset, status/role maintenance and recoverable recent verification.
 Plan 00019 adds assigned-recipient viewing, scheduled opening and personal server
-history. [Database hardening in plan 00009](../plans/00009-database-hardening.md)
-remains required before production. Content moves remain a separate feature;
+history. [Sliplane deployment readiness in plan 00021](../plans/00021-sliplane-deployment.md)
+remains required before production. The owner-approved simpler database design
+there supersedes plan 00009. Content moves remain a separate feature;
 their rules below apply when that feature is implemented. Plan 00015
 delivers owner creation, preparation and preview; do not attribute calendar
 behavior to plan 00008.
