@@ -364,12 +364,7 @@ public sealed class AuthenticationConcurrencyTests(ApiFixture fixture)
         var responses = await Task.WhenAll(firstChange, secondChange);
 
         // Then the old credential cannot overwrite the winning change or preserve sessions.
-        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.NoContent);
-        Assert.Single(
-            responses,
-            response =>
-                response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Conflict
-        );
+        AssertSinglePasswordReplacementWinner(responses);
         Assert.Equal(
             0,
             await context.ScalarAsync<int>(
@@ -508,7 +503,8 @@ internal sealed class HashBarrier : IPasswordHasher<Account>, IDisposable
     public void Dispose() => Release.Dispose();
 }
 
-internal sealed class VerificationBarrier(int expected = 1) : IPasswordVerification
+internal sealed class VerificationBarrier(int expected = 1, bool pauseFailed = false)
+    : IPasswordVerification
 {
     private Guid pausedAccount;
     private int count;
@@ -527,7 +523,10 @@ internal sealed class VerificationBarrier(int expected = 1) : IPasswordVerificat
             account.PasswordHash,
             password
         );
-        if (account.Id == pausedAccount && result != PasswordVerificationResult.Failed)
+        if (
+            account.Id == pausedAccount
+            && (pauseFailed || result != PasswordVerificationResult.Failed)
+        )
         {
             var ordinal = Interlocked.Increment(ref count);
             if (ordinal == expected)

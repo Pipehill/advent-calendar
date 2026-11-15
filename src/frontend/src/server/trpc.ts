@@ -8,7 +8,7 @@ import {
   statusAccountInput,
   verificationInput,
 } from '../lib/account-input';
-import { changePasswordInput, loginInput } from '../lib/auth-input';
+import { changePasswordInput, completePasswordSetupInput, loginInput } from '../lib/auth-input';
 import {
   calendarIdInput,
   calendarPageInput,
@@ -119,6 +119,12 @@ export const appRouter = t.router({
       await callBackend(ctx, (client, signal) => client.changePassword(input, signal));
       return { ok: true };
     }),
+    completePasswordSetup: procedure
+      .input(completePasswordSetupInput)
+      .mutation(async ({ ctx, input }) => {
+        await callBackend(ctx, (client, signal) => client.completePasswordSetup(input, signal));
+        return { ok: true };
+      }),
     logout: procedure.mutation(async ({ ctx }) => {
       await callBackend(ctx, (client, signal) => client.logout(signal));
       return { ok: true };

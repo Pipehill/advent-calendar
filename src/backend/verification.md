@@ -691,6 +691,30 @@ Evidence is under ignored `quality-reports/integration-backend.log`,
 `quality-reports/integration-build.log`, `quality-reports/integration-publish.log`
 and the existing advisory comparison reports.
 
+## Required password setup through a restricted session (2026-11-15)
+
+All **444 backend tests** pass on both final Debug and Release builds with
+isolated PostgreSQL;
+the focused setup/concurrency selection passes **42 cases**, including **28 new
+setup cases**. The authored new-password-only operation generates both consumers
+successfully. Solution SDK formatting/analyzer verification passes. No dependency
+or migration changed. Final Release build and native publish pass with zero
+warnings/errors.
+
+Coverage includes both administrator roles, malformed/unknown fields, same and
+noncompliant passwords, CSRF, anonymous/unrestricted/expired/revoked/disabled/
+paused/stale sessions, and mandatory state. Real comparison and hashing barriers
+prove deadline rechecks; races with reset, disablement and demotion preserve the
+winning credential. Two completions have exactly one winner. Different-password
+comparisons preserve existing failed-attempt counts until successful atomic
+replacement clears failures, rotates security version and revokes every session.
+Existing voluntary-change and calendar-user lifecycle regressions remain green.
+
+An attempted concurrent Release build encountered Windows DLL locks from the
+isolated browser API. This is a verification orchestration limitation, not a source
+failure; final Release build/publish pass after browser cleanup. Raw evidence lives
+under ignored `quality-reports/plan00023-*.log`.
+
 ## Limitations and follow-up
 
 - Ubuntu/Docker backend execution is confirmed by GitHub Actions. Native local

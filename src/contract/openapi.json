@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Advent calendar API",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Backend accounts, owner administration, superadmin preview and assigned-recipient calendars with server-authorized timed opening.",
     "license": {
       "name": "Private"
@@ -1891,6 +1891,69 @@
           }
         }
       }
+    },
+    "/auth/complete-password-setup": {
+      "post": {
+        "operationId": "CompletePasswordSetup",
+        "summary": "Complete mandatory password setup using a valid restricted session and revoke every session",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "AuthCookie": [],
+            "Antiforgery": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed; no secret material returned.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletePasswordSetupRequest"
+              }
+            }
+          }
+        },
+        "description": "Requires the persisted restricted session and a live mandatory-change account with unexpired credential and session deadlines. The replacement must differ and satisfy the current role policy. No current password is accepted. Successful completion clears temporary metadata, revokes all sessions and requires a fresh login."
+      }
     }
   },
   "components": {
@@ -2965,6 +3028,22 @@
           "lastModifiedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CompletePasswordSetupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "newPassword"
+        ],
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "description": "Write-only secret; never trimmed/truncated. 8-128 Unicode code points (15 minimum for either administrator role), uppercase, lowercase and punctuation/symbol; local common-password rejection.",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
           }
         }
       }

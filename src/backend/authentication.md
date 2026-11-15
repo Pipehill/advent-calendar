@@ -57,8 +57,11 @@ The API maps service failure categories to HTTP status codes and ProblemDetails.
    that principal. Both cookies are host-only, HttpOnly, SameSite=Lax, path `/`,
    and Secure outside Development/Testing.
 4. Inspect `/auth/session`. A temporary-password session permits only inspection,
-   CSRF refresh, own-password change and logout. Send `currentPassword` and a
-   different `newPassword` to `/auth/change-password`, then log in again.
+   CSRF refresh, required password setup and logout. Send only a different
+   `newPassword` to `/auth/complete-password-setup`, then log in again. The
+   persisted restricted session proves the prior login; never replay its password.
+   Voluntary changes use `/auth/change-password` with `currentPassword` and
+   `newPassword`.
 5. Send a fresh principal-bound token with every unsafe authentication/user
    operation, including login, logout, re-verification and administration.
 
@@ -129,9 +132,13 @@ Restricted sessions last at most **ten minutes**, capped by the original credent
 deadline. Login, CSRF refresh and activity never extend the deadline. Expiry
 preserves the account, username reservation and responsible administrator; issue
 a fresh, different temporary credential through the authorized reset endpoint.
-A newer reset supersedes earlier credentials and sessions. Own-password change
-requires the current password and a different compliant replacement, atomically
-clears temporary state, revokes all sessions and requires a new login.
+A newer reset supersedes earlier credentials and sessions. Required setup uses
+the live restricted session and a different compliant replacement, rechecking
+mandatory state, deadlines, lockout and account version/hash/role at commit.
+Comparing the proposed new password with the old hash does not count as a failed
+authentication attempt. Voluntary change still verifies the current password.
+Both operations atomically clear temporary state, revoke all sessions and require
+a new login; concurrent stale work cannot overwrite newer credentials.
 
 Unrestricted ordinary sessions last 30 days and administrator sessions eight hours.
 Lifetimes are fixed and persistent. Logout revokes only the current session.

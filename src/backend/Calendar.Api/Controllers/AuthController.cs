@@ -89,6 +89,20 @@ public sealed class AuthController(
         return NoContent();
     }
 
+    [Authorize]
+    public override async Task<IActionResult> CompletePasswordSetup(
+        CompletePasswordSetupRequest body
+    )
+    {
+        await authentication.CompletePasswordSetupAsync(
+            SessionAuthentication.ReadIdentity(User),
+            body.NewPassword,
+            HttpContext.RequestAborted
+        );
+        await HttpContext.SignOutAsync(SessionAuthentication.Scheme);
+        return NoContent();
+    }
+
     internal static UserDto ToUserDto(Account user) =>
         new()
         {

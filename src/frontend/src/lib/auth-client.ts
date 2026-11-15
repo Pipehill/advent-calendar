@@ -24,6 +24,8 @@ export function browserAuthClient() {
     login: (input: { username: string; password: string }) => client.auth.login.mutate(input),
     changePassword: (input: { currentPassword: string; newPassword: string }) =>
       client.auth.changePassword.mutate(input),
+    completePasswordSetup: (input: Inputs['auth']['completePasswordSetup']) =>
+      client.auth.completePasswordSetup.mutate(input),
     logout: () => client.auth.logout.mutate(),
     reauthenticate: (input: Inputs['auth']['reauthenticate']) =>
       client.auth.reauthenticate.mutate(input),

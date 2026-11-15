@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
+import { registerLocalizationScenarios } from './localization.test.mjs';
+import { selectLanguage } from './localization-fixture.mjs';
+import { registerAuthenticationLocalizationScenarios } from './localization-auth.test.mjs';
+import { registerCalendarLocalizationScenarios } from './localization-calendar.test.mjs';
+import { registerLocalizationHotUpdateScenario } from './localization-hot-update.test.mjs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../../src/frontend/node_modules/playwright/index.mjs';
 import { readLocalSettings } from '../../quality/local-settings.mjs';
@@ -20,7 +25,10 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { registerRequiredPasswordSetupScenarios } from './required-password-setup.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
+import { registerLoginProgressScenarios } from './login-progress.test.mjs';
+import { registerLoginRoutingScenarios } from './login-routing.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -198,7 +206,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 0);
     assert.equal((await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
     const replacement = `Fresh!Ærlig${randomUUID()}`;
-    await page.getByLabel('Nåværende passord').fill(account.password);
+    assert.equal(await page.locator('#currentPassword').count(), 0);
     await page.getByLabel('Nytt passord').fill('Password123456!');
     await page.getByRole('button', { name: 'Bytt passord', exact: true }).click();
     await page.locator('#newPassword[aria-invalid=true]').waitFor();
@@ -217,14 +225,14 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
   test('Given an invalid password, When the language changes, Then generic localized errors and accessible field validation appear', async () => {
     // Given the sign-in form in Norwegian.
-    await page.goto(`${frontendUrl}/login`);
+    await page.goto(`${frontendUrl}/login`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Logg inn' }).click();
+    await page.locator('input[aria-invalid=true]').nth(1).waitFor();
     assert.equal(await page.locator('input[aria-invalid=true]').count(), 2);
 
     // When an unknown account submits an incorrect credential in each language.
     for (const locale of ['nb', 'en']) {
-      await page.getByRole('combobox').selectOption(locale);
-      await page.waitForLoadState('networkidle');
+      if (await page.getByRole('combobox').inputValue() !== locale) await selectLanguage(page, locale);
       await page.locator('input[name=username]').fill('unknown-account');
       await page.locator('input[name=password]').fill('Wrong!ButMasked');
       await page.getByRole('button', { name: locale === 'nb' ? 'Logg inn' : 'Log in', exact: true }).click();
@@ -317,7 +325,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     command(dotnet, [fixtureDll, 'expire', account.username], environment);
 
     // When the former credential is submitted through the normal sign-in form.
-    await page.goto(`${frontendUrl}/login`);
+    await page.goto(`${frontendUrl}/login`, { waitUntil: 'networkidle' });
     await page.getByLabel('Brukernavn').fill(account.username);
     await page.getByLabel('Passord', { exact: true }).fill(account.password);
     await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
@@ -604,6 +612,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
     // When the localized form loads and is canceled.
     await page.getByLabel('Display name').waitFor();
+    await page.waitForLoadState('networkidle');
     assert.equal(await page.locator('#account-role').count(), 0);
     assert.equal(await page.getByLabel("Recipient's password", { exact: true }).getAttribute('type'), 'password');
     await page.getByText(/keep this password, or change it later/).waitFor();
@@ -961,10 +970,12 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
     revoke: revokeSessions,
     restartApi,
+    stopApi: () => stopChild(apiProcess),
     fixture: (...args) => command(dotnet, [fixtureDll, ...args], environment),
   });
   registerCredentialTransportScenarios(calendarEnvironment);
   registerPasswordLifecycleScenarios(calendarEnvironment);
+  registerRequiredPasswordSetupScenarios(calendarEnvironment);
   registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);
@@ -975,6 +986,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerDoorImageSecurityScenarios(calendarEnvironment);
   registerRecipientOpeningScenarios(calendarEnvironment);
   registerRecipientRefreshScenarios(calendarEnvironment);
+  registerLoginProgressScenarios(calendarEnvironment);
+  registerLoginRoutingScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
@@ -987,6 +1000,10 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     assert.match(output, /pass 8/);
     fs.writeFileSync(path.join(reports, 'smoke.log'), output);
   });
+  registerLocalizationScenarios(calendarEnvironment);
+  registerAuthenticationLocalizationScenarios(calendarEnvironment);
+  registerCalendarLocalizationScenarios(calendarEnvironment);
+  registerLocalizationHotUpdateScenario(calendarEnvironment);
 });
 
 async function signIn(account, destination = '/my-page', target = page) {

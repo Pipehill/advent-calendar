@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { create, owner, recipient, logout, sessionCookie } from './calendar-fixture.mjs';
+import { create, owner, recipient, logout, sessionCookie, expectedLoginDestination } from './calendar-fixture.mjs';
 import { measureDoors, assertDoorGeometry } from './calendar-layout-assertions.mjs';
 
 const superadmin = accounts => accounts.find(account => account.username === 'browser-superadmin');
@@ -75,7 +75,8 @@ export function registerSystemCalendarScenarios(environment) {
     const otherOwner = accounts.find(account => account.username === 'browser-admin-two');
     const otherRecipient = accounts.find(account => account.username === 'browser-user-two');
     await signIn(otherOwner);
-    await data(await mutation('calendar.create', { title: 'Annen kalender', recipientId: otherRecipient.id, background: 'sleigh' }));
+    const otherCalendar = await data(await mutation('calendar.create', { title: 'Annen kalender', recipientId: otherRecipient.id, background: 'sleigh' }));
+    otherRecipient.assignedCalendarId = otherCalendar.id;
 
     // When refreshing protected SSR, paging both ways and scrolling the table by keyboard.
     await overview(state);
@@ -244,7 +245,7 @@ export function registerSystemCalendarScenarios(environment) {
       const target = await isolated.newPage();
       try {
         const account = accounts.find(item => item.username === username);
-        if (account) await signIn(account, account.restricted ? '/change-password' : '/my-page', target);
+        if (account) await signIn(account, expectedLoginDestination(account), target);
         const expected = account ? 403 : 401;
         const input = encodeURIComponent(JSON.stringify({ id: calendar.id }));
         const responses = await Promise.all([
@@ -281,7 +282,8 @@ export function registerSystemCalendarScenarios(environment) {
     const cookie = await sessionCookie(context);
     await logout(page, frontendUrl);
     const replay = await fetch(`${apiUrl}/administration/calendars/${calendar.id}/preview`, { headers: { Cookie: `advent.auth=${cookie.value}` } });
-    await signIn(accounts.find(account => account.username === 'browser-user-two'));
+    const otherRecipient = accounts.find(account => account.username === 'browser-user-two');
+    await signIn(otherRecipient, expectedLoginDestination(otherRecipient));
     await page.goto(`${frontendUrl}/calendar-preview/${calendar.id}`, { waitUntil: 'networkidle' });
 
     // Then replay and changed authority cannot retain any calendar data or privileged tab.

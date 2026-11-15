@@ -28,7 +28,12 @@ function PasswordPage() {
       <p className="mb-6 text-sm text-stone-600">
         {administrator ? m.password_policy_admin() : m.password_policy_user()}
       </p>
-      <CredentialForm context={context} changePassword administrator={administrator} />
+      <CredentialForm
+        context={context}
+        changePassword
+        requiredSetup={session.mustChangePassword}
+        administrator={administrator}
+      />
       <SessionControls context={context} expiresAt={session.expiresAt} className="mt-8" />
     </section>
   );
