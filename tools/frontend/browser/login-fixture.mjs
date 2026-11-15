@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { owner, provisionRecipient } from './calendar-fixture.mjs';
-import { capturePageErrors } from './page-errors.mjs';
+import { createBrowserReader } from './page-errors.mjs';
 
 export async function prepareAssignments(state, t, count) {
   await state.signIn(owner(state.accounts));
@@ -18,16 +18,8 @@ export async function prepareAssignments(state, t, count) {
     state.fixture('calendar-year', calendar.id, index % 2 === 0 ? '2025' : '2090');
     calendars.push(calendar);
   }
-  const context = await state.context.browser().newContext();
-  const page = await context.newPage();
-  page.setDefaultTimeout(10000);
-  const errors = [];
-  capturePageErrors(page, errors);
-  t.after(async () => {
-    try { assert.deepEqual(errors, [], 'No page or hydration errors'); }
-    finally { await context.close(); }
-  });
-  return { ...state, account, calendars, context, page };
+  const reader = await createBrowserReader(state, t);
+  return { ...reader, account, calendars };
 }
 
 export async function fillLogin(reader, locale) {

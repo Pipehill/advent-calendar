@@ -2,6 +2,22 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-15: Login routing and Vite localization integration
+
+PR 61 incorporates `main` at `bac78b4`, preserving both features and their
+verification records. All **273 frontend/BFF tests**, contract generation,
+TypeScript, production Vite/Nitro packaging and Biome pass. The final combined
+Vite run passes **22 focused browser scenarios**, including all login/routing
+and localization cases plus the existing English account-creation scenario.
+
+Combining the suites exposed nine duplicated browser-setup lines. Both fixtures
+now use `createBrowserReader`, retaining isolated contexts, options, error
+assertions and unconditional cleanup. Application duplication remains **136
+lines / 14 clones** and tooling **12 lines / two clones**. The legacy English
+creation test initially clicked Cancel before hydration; it now waits for loaded
+client modules, as the shared sign-in helper already does. The final Vite run
+passes without retries. Raw evidence is under ignored `quality-reports/pr61-*`.
+
 ## 2026-11-15: Login progress and direct recipient destinations
 
 All **273 frontend/BFF tests**, explicit TypeScript checking, authored contract
@@ -1204,3 +1220,58 @@ Evidence is under ignored `quality-reports/integration-frontend.log`,
 `quality-reports/integration-browser.log` and
 `quality-reports/integration-vite-browser.log`. The earlier verification above
 records the original base; these counts record the integrated result.
+
+## 2026-11-15: Vite language selection before hydration
+
+Unchanged-source reproduction passes **8/8 production smoke checks** and **7/8
+Vite smoke checks**: the landing English selection retains `html.lang=nb`.
+Current protected calendar/error scenarios replace historical anonymous calendar
+cases; their access rules are preserved. A fully hydrated login selection already
+has matching locale cookie, request header, raw SSR and hydrated text in both
+languages, so neither compiler-option drift nor locale storage was shown faulty.
+
+Holding actual client scripts exposes the cause: SSR offers an enabled native
+selector before React can handle changes. Choosing English does not update the
+cookie, and hydration leaves the document/cookie Norwegian. Initial hydration
+history changes can also satisfy an ambiguous navigation wait without a language
+HTTP response. The minimal fix uses the existing router's `useHydrated()` to keep
+the native selector disabled through SSR/initial hydration, enabling it when its
+cookie/reload handler is attached. Cookie-first/Norwegian-default policy and
+generated locale behavior remain unchanged; no dependency, compiler configuration,
+middleware override, API or schema changed.
+
+From a verified clean generated-translation directory, normal CLI generation,
+all **251 frontend/BFF tests**, explicit TypeScript checking, Nitro packaging and
+Biome pass. The unchanged Vite smoke suite now passes **8/8**. Ten focused Vite
+cases verify cold and script-held selection, query preservation, default/invalid
+cookies, concurrent opposite locales, password forms, My page/localized 404 errors,
+CSRF/cookie/no-store behavior and unchanged authored Unicode calendar content.
+The complete production run passes **118 scenarios plus eight smoke checks**,
+including all ten locale cases, without page/hydration errors. Raw HTML is
+captured before another navigation
+can evict it, and selection waits for an actual main-frame HTTP response rather
+than counting a same-document history event as success. The held-script test
+fails if its cleanup deadline releases scripts before its prehydration snapshot.
+
+A dedicated Vite HMR case also passes: it requires a real hot-update/full-reload
+event after touching the selector timestamp, verifies opposite browser/SSR
+locales, restores timestamps and confirms the source content hash is unchanged.
+The probe runs separately with `LOCALIZATION_HOT_UPDATE=1` and never changes
+message contents or authored calendar data. Existing concurrent middleware tests
+remain green.
+
+Windows advisory application health is unchanged at **92.1**, with **145
+duplicated lines / 15 clones** and the same three heuristic findings. Tooling
+health improves **49.6 to 50.0**, with **12 duplicated lines / two clones** and
+unchanged maximum file complexity. Heuristic findings increase **19 to 20**:
+the new finding explicitly says `localization-fixture.mjs` is only imported by
+tests. Its public/protected/calendar/HMR suite imports are verified; preserving
+shared test setup avoids duplication. Analyzer settings/exclusions are unchanged;
+all scope, version, input identity and supported-dimension limits remain in the
+raw reports.
+
+Evidence is under ignored `quality-reports/plan00026-*.log`, the saved baseline
+smoke XML and mode-specific raw SSR/cookie records under
+`quality-reports/plan00026/{development,production}/`. Browser checks use headless
+Windows Edge. Native macOS/Linux hosts, physical devices and assistive technology
+remain unverified. Historical implemented plans remain unchanged.

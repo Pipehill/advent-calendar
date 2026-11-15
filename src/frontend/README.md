@@ -310,6 +310,11 @@ SSR and browser hydration agree. The cookie allows the server to remember the
 selection; the current URL stays unchanged. Request-local language state avoids
 mixing concurrent readers' languages.
 
+The selector stays disabled in SSR and initial hydration until its cookie/reload
+handler is attached. This prevents an early native selection from being silently
+lost while Vite loads the client modules. It then uses the same generated locale
+setter in development and production, preserving the current path and query.
+
 Translate interface text, labels/prompts and user-facing errors. Calendar titles
 and door contents remain exactly as authored; translations do not add language
 variants to persistence. Project documentation and code comments remain English.
