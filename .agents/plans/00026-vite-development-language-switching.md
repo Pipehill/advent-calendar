@@ -92,16 +92,16 @@ baseline is evidence for iteration 1, not a claim that the fix is complete.
    evidence and locate the intervening fix before changing code. Establish
    regression coverage for the actual language flow; do not manufacture a fix or
    report old failures as current observations.
-4. [ ] Correct the demonstrated cause at its owning compiler configuration,
+4. [x] Correct the demonstrated cause at its owning compiler configuration,
    runtime integration or supported Vite SSR boundary. Keep existing pinned
    dependencies unless evidence shows an update is necessary. Do not patch
    ignored generated files, bypass request-local storage or maintain separate
    message catalogs for development and production.
-5. [ ] If compiler-option drift is confirmed, use one maintained source for the
+5. [x] If compiler-option drift is confirmed, use one maintained source for the
    relevant generation options across CLI, Vite and verification. If module
    identity is the cause, repair the integration at that boundary instead. Follow
    the evidence rather than implementing both speculative remedies.
-6. [ ] Add regression coverage at the smallest seam that reproduces the real
+6. [x] Add regression coverage at the smallest seam that reproduces the real
    failure, plus actual browser verification in both modes. Keep the existing
    concurrent middleware tests and add server-rendered/browser assertions so a
    hydrated DOM alone cannot mask a language mismatch.
@@ -139,8 +139,26 @@ baseline is evidence for iteration 1, not a claim that the fix is complete.
   passes. Node syntax/diff checks pass. Raw evidence is in
   `quality-reports/plan00026-baseline-*.log`, the saved failing smoke XML and
   `quality-reports/plan00026-cold-baseline.log`.
-- Next unfinished step: iteration 2 disable the selector until hydration using
-  the existing router hook; verify cold/script-held and complete language cases.
+- Iteration 2 fix: use the already-pinned router's `useHydrated()` and native
+  `disabled` attribute. Its server and first hydration snapshots are false, then
+  it enables the control after handlers attach. No locale resolver, compiler
+  configuration, dependency or generated file is patched.
+- Clean-output verification: removed only the verified ignored translation output
+  directory and ran normal CLI generation, 251 frontend/BFF tests, explicit
+  TypeScript, production Nitro packaging and Biome successfully. The unchanged
+  Vite smoke now passes all 8 checks. Nine focused locale cases pass in both Vite
+  and Nitro; actual My page/localized-404 and actual Vite HMR cases also pass.
+  The HMR probe waits for a real Vite event, restores source timestamps and
+  verifies the selector content hash remains unchanged.
+- Corrected browser evidence capture to read each raw response before subsequent
+  navigation can evict it, and wait for an actual main-frame HTTP response rather
+  than treating same-document history changes as language reloads. Assertions
+  remain cookie/request/raw SSR/hydrated DOM checks without fixed readiness waits.
+- Normal coverage now includes ten locale cases plus a dedicated opt-in HMR case.
+  New tests avoid assumptions about PR #60's required-form field count and PR
+  #61's recipient post-login destination, preserving independent plan integration.
+- Next unfinished step: iteration 3 full final production and Vite checks,
+  documentation, TODO closure and committed-head review before publication.
 
 ### Dependencies and verification scope
 

@@ -38,14 +38,24 @@ export function registerCalendarLocalizationScenarios(environment) {
     }
 
     const reader = await localizedBrowser(state, t);
-    await state.signIn(account, '/my-page', reader.page);
+    const login = await state.mutation('auth.login', {
+      username: account.username, password: account.password,
+    }, reader.context.request);
+    assert.equal(login.status(), 200);
+    let recipientOpenings = 0;
+    reader.page.on('request', request => {
+      if (request.url().includes('/api/trpc/calendar.save')) writes.push(request.url());
+      if (request.url().includes('/api/trpc/recipient.open') && request.method() === 'POST') recipientOpenings++;
+    });
     await reader.page.goto(`${state.frontendUrl}/my-calendars/${calendar.id}`, { waitUntil: 'networkidle' });
-    reader.page.on('request', request => { if (request.url().includes('/api/trpc/calendar.save')) writes.push(request.url()); });
+    assert.equal(recipientOpenings, 0);
     for (const locale of ['en', 'nb']) {
       // When the assigned recipient selects a language and explicitly opens the same door.
+      const openingsBeforeSelection = recipientOpenings;
       const document = await selectLanguage(reader.page, locale);
       assert.deepEqual(ssrState(await document.text()), { locale, heading: `${title} 2025` });
       await reader.page.getByRole('link', { name: messages[locale].calendar_my_page, exact: true }).waitFor();
+      assert.equal(recipientOpenings, openingsBeforeSelection, 'Language selection does not open recipient content');
       await reader.page.locator('[data-door-number="1"]').click();
       const dialog = reader.page.locator('dialog[open]');
       await dialog.waitFor();
@@ -53,6 +63,7 @@ export function registerCalendarLocalizationScenarios(environment) {
       // Then opening authority and authored Unicode remain independent of interface language.
       assert.equal(await dialog.locator('h2').textContent(), door.title);
       assert.equal(await dialog.locator('p').textContent(), door.text);
+      assert.equal(recipientOpenings, openingsBeforeSelection + 1);
       assert.match(document.headers()['cache-control'], /no-store/);
       assert.equal((await reader.context.request.get(`${state.frontendUrl}/api/trpc/calendar.preview?input=${encodeURIComponent(JSON.stringify({ id: calendar.id }))}`)).status(), 403);
       await reader.page.getByRole('button', { name: messages[locale].recipient_close, exact: true }).click();

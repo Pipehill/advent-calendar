@@ -6,19 +6,12 @@ export function registerLocalizationScenarios(environment) {
   test('Given a cold landing document, When English is selected immediately after load and refreshed, Then cookie request SSR and hydration keep the selection', async t => {
     // Given the historical smoke boundary, without an extra hydration wait.
     const state = environment();
-    const initial = await state.page.goto(state.frontendUrl);
+    await state.page.goto(state.frontendUrl);
 
     // When English is selected immediately after the browser load event.
-    const [selected] = await Promise.all([
-      state.page.waitForNavigation({ waitUntil: 'networkidle' }),
-      state.page.getByRole('combobox').selectOption('en'),
-    ]);
-    const selectedHtml = await (selected ?? initial).text();
-    const afterSelection = {
-      navigationResponse: selected !== null,
-      rawHtmlSource: selected ? 'selection response' : 'initial document',
-      ...await publicEvidence(state, selected ?? initial, selectedHtml),
-    };
+    const selected = await selectLanguage(state.page, 'en');
+    const selectedHtml = await selected.text();
+    const afterSelection = await publicEvidence(state, selected, selectedHtml);
     const refreshed = await state.page.reload({ waitUntil: 'networkidle' });
     const html = await refreshed.text();
     const afterRefresh = await publicEvidence(state, refreshed, html);
@@ -109,11 +102,12 @@ export function registerLocalizationScenarios(environment) {
 
       // When the untouched visitor opens and reloads the public route.
       const initial = await reader.page.goto(state.frontendUrl, { waitUntil: 'networkidle' });
+      const initialHtml = await initial.text();
       const refreshed = await reader.page.reload({ waitUntil: 'networkidle' });
 
       // Then raw SSR and hydrated content agree on Norwegian despite English preferences.
       assert.match(await initial.request().headerValue('accept-language'), /^en/u);
-      assert.deepEqual(ssrState(await initial.text()), { locale: 'nb', heading: messages.nb.landing_heading });
+      assert.deepEqual(ssrState(initialHtml), { locale: 'nb', heading: messages.nb.landing_heading });
       await assertLocalizedDocument(reader.page, refreshed, 'nb', messages.nb.landing_heading);
     });
   }

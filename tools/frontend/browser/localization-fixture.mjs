@@ -24,11 +24,16 @@ export async function localizedBrowser(state, t, { languageCookie, ...options } 
 }
 
 export async function selectLanguage(page, locale) {
+  const address = new URL(page.url());
+  address.hash = '';
   const [response] = await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle' }),
+    page.waitForResponse(candidate => candidate.request().isNavigationRequest()
+      && candidate.request().frame() === page.mainFrame()
+      && candidate.url() === address.href),
     page.getByRole('combobox').selectOption(locale),
   ]);
-  assert(response, 'Language selection navigates to a server-rendered document');
+  await response.finished();
+  await page.waitForLoadState('networkidle');
   return response;
 }
 
@@ -49,7 +54,7 @@ export async function assertLocalizedDocument(page, response, locale, heading) {
 }
 
 export function saveLocaleEvidence(reports, name, evidence, html) {
-  const directory = path.resolve(reports, '../../plan00026');
+  const directory = path.resolve(reports, '../../plan00026', process.env.BROWSER_FRONTEND_MODE || 'production');
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, `${name}.json`), JSON.stringify(evidence, null, 2) + '\n');
   fs.writeFileSync(path.join(directory, `${name}.html`), html);
