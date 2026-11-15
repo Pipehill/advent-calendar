@@ -5,6 +5,10 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
+import { registerLocalizationScenarios } from './localization.test.mjs';
+import { registerAuthenticationLocalizationScenarios } from './localization-auth.test.mjs';
+import { registerCalendarLocalizationScenarios } from './localization-calendar.test.mjs';
+import { registerLocalizationHotUpdateScenario } from './localization-hot-update.test.mjs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '../../../src/frontend/node_modules/playwright/index.mjs';
 import { readLocalSettings } from '../../quality/local-settings.mjs';
@@ -987,6 +991,10 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     assert.match(output, /pass 8/);
     fs.writeFileSync(path.join(reports, 'smoke.log'), output);
   });
+  registerLocalizationScenarios(calendarEnvironment);
+  registerAuthenticationLocalizationScenarios(calendarEnvironment);
+  registerCalendarLocalizationScenarios(calendarEnvironment);
+  registerLocalizationHotUpdateScenario(calendarEnvironment);
 });
 
 async function signIn(account, destination = '/my-page', target = page) {

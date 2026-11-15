@@ -1,8 +1,10 @@
 # 00026: Fix interface language switching in Vite development
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
+
+Implementation type: bugfix
 
 Resolve the inherited TODO where selecting English leaves Norwegian interface
 text in three development browser smoke cases, while the equivalent production
@@ -70,37 +72,110 @@ before dependent implementation; no such change is pre-approved by this plan.
 
 ### Agent-selected work order
 
-1. [ ] Start an isolated development stack through the existing launcher, without
+Implementation commit boundaries: iteration 1 records reproduction/investigation
+and baseline regression coverage (steps 1–3); iteration 2 corrects the demonstrated
+cause and verifies focused unit/browser behavior (steps 4–6); iteration 3 completes
+the full mode/quality review, documentation and publication (step 7). A failing
+baseline is evidence for iteration 1, not a claim that the fix is complete.
+
+1. [x] Start an isolated development stack through the existing launcher, without
    changing the owner's running data. Run the current smoke scenarios and capture
    failing names, exact expected/actual text, URL, cookie, response HTML, DOM locale,
    hydration errors and tool versions. Run equivalent cases against production
    Nitro built from the same source and message inputs.
-2. [ ] Trace selection, cookie persistence, incoming SSR cookie, middleware locale,
+2. [x] Trace selection, cookie persistence, incoming SSR cookie, middleware locale,
    server-rendered labels and browser hydration as separate observations. Inspect
    request-local locale storage/module identity in Vite and generated runtime
    strategy/output after CLI generation, Vite startup and hot reload. Check whether
    browser and SSR code are loading distinct or stale generated module copies.
-3. [ ] If the historical failures no longer reproduce, document the precise current
+3. [x] If the historical failures no longer reproduce, document the precise current
    evidence and locate the intervening fix before changing code. Establish
    regression coverage for the actual language flow; do not manufacture a fix or
    report old failures as current observations.
-4. [ ] Correct the demonstrated cause at its owning compiler configuration,
+4. [x] Correct the demonstrated cause at its owning compiler configuration,
    runtime integration or supported Vite SSR boundary. Keep existing pinned
    dependencies unless evidence shows an update is necessary. Do not patch
    ignored generated files, bypass request-local storage or maintain separate
    message catalogs for development and production.
-5. [ ] If compiler-option drift is confirmed, use one maintained source for the
+5. [x] If compiler-option drift is confirmed, use one maintained source for the
    relevant generation options across CLI, Vite and verification. If module
    identity is the cause, repair the integration at that boundary instead. Follow
    the evidence rather than implementing both speculative remedies.
-6. [ ] Add regression coverage at the smallest seam that reproduces the real
+6. [x] Add regression coverage at the smallest seam that reproduces the real
    failure, plus actual browser verification in both modes. Keep the existing
    concurrent middleware tests and add server-rendered/browser assertions so a
    hydrated DOM alone cannot mask a language mismatch.
-7. [ ] Update the current frontend documentation and verification record with
+7. [x] Update the current frontend documentation and verification record with
    baseline, cause, affected paths, correction, mode-specific results and remaining
    platform limitations. Close the local TODO item only after the fix/evidence
    meets the requirements. Preserve all implemented plans as historical records.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices without questions and explicit PR
+  documentation. Plans 00023/#60 and 00024/#61 are green and ready for review;
+  this final plan starts independently from clean synchronized `main` at `58fc70b`.
+- Baseline captured before edits; previous baseline archived under
+  `quality-reports/health/baseline-before-00026-20261115`.
+- Preserve pinned dependencies and the cookie-first Norwegian-default policy.
+  Diagnose the selection/cookie/SSR/hydration boundary before choosing a fix;
+  compiler-option drift remains a hypothesis until demonstrated.
+- Iteration 1 baseline: unchanged Vite passes 7/8 smoke checks; the landing switch
+  expects `en` but retains `nb`. Identical-source Nitro passes 8/8. The historical
+  anonymous calendar cases are now protected, so the current equivalent matrix
+  includes authenticated calendar/error paths rather than reviving anonymous reads.
+- A fully hydrated login selection proves the existing cookie setter, incoming
+  request, raw SSR and hydrated DOM agree in both languages. The compiler options
+  differ between standalone CLI and Vite, but both prioritize the cookie; that
+  drift is not the demonstrated cause and is intentionally left unchanged.
+- Controlled script loading proves the defect: SSR offers an enabled native
+  selector before React attaches its handler. Selecting English does not set a
+  cookie; after hydration the cookie/document stay Norwegian while the native
+  select can still display English. Cold selection also observes same-document
+  hydration navigation (`waitForNavigation` returns null), explaining why the old
+  smoke proceeded without a successful language document reload.
+- Added nine normal browser regression cases and an opt-in actual Vite HMR probe.
+  Baseline cold/script-held cases fail as expected; the hydrated transport probe
+  passes. Node syntax/diff checks pass. Raw evidence is in
+  `quality-reports/plan00026-baseline-*.log`, the saved failing smoke XML and
+  `quality-reports/plan00026-cold-baseline.log`.
+- Iteration 2 fix: use the already-pinned router's `useHydrated()` and native
+  `disabled` attribute. Its server and first hydration snapshots are false, then
+  it enables the control after handlers attach. No locale resolver, compiler
+  configuration, dependency or generated file is patched.
+- Clean-output verification: removed only the verified ignored translation output
+  directory and ran normal CLI generation, 251 frontend/BFF tests, explicit
+  TypeScript, production Nitro packaging and Biome successfully. The unchanged
+  Vite smoke now passes all 8 checks. Nine focused locale cases pass in both Vite
+  and Nitro; actual My page/localized-404 and actual Vite HMR cases also pass.
+  The HMR probe waits for a real Vite event, restores source timestamps and
+  verifies the selector content hash remains unchanged.
+- Corrected browser evidence capture to read each raw response before subsequent
+  navigation can evict it, and wait for an actual main-frame HTTP response rather
+  than treating same-document history changes as language reloads. Assertions
+  remain cookie/request/raw SSR/hydrated DOM checks without fixed readiness waits.
+- Normal coverage now includes ten locale cases plus a dedicated opt-in HMR case.
+  New tests avoid assumptions about PR #60's required-form field count and PR
+  #61's recipient post-login destination, preserving independent plan integration.
+- Final verification: 251 frontend/BFF tests, 118 complete production browser
+  scenarios plus eight smoke checks, ten final Vite locale scenarios and the
+  dedicated actual HMR probe pass. The unchanged Vite smoke suite passes 8/8.
+  Clean generation, TypeScript/Nitro/Biome and full repository quality pass.
+  Existing calendar/authentication/cache/image/opening regressions remain intact.
+- Independent review found a potential slow false pass in the held-script test's
+  fail-safe timer. The test now asserts scripts were not auto-released before
+  inspection/choice; both final mode runs verify that correction.
+- Windows health: application unchanged at 92.1, 145 duplicated lines / 15 clones;
+  tooling improves 49.6 to 50.0 with 12 lines / two clones. Maximum file complexity
+  is unchanged. Heuristic findings increase 19 to 20 for the shared localization
+  fixture explicitly classified as only used by tests; its four suite consumers
+  are verified. No analyzer settings, exclusions or coverage were weakened.
+- Current frontend documentation and verification record are updated, and the
+  local ignored TODO is reconciled with completed plans. Historical implemented
+  plans are preserved. Physical devices/assistive technology and native macOS/Linux
+  hosts remain unverified; runtime evidence uses headless Windows Edge.
+- All implementation iterations are complete. Publish the committed-head review
+  and PR against `main`; merge approval remains with the owner.
 
 ### Dependencies and verification scope
 
