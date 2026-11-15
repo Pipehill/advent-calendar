@@ -1,0 +1,136 @@
+# 00026: Fix interface language switching in Vite development
+
+Status: Not implemented
+
+Last updated: 2026-11-15
+
+Resolve the inherited TODO where selecting English leaves Norwegian interface
+text in three development browser smoke cases, while the equivalent production
+cases pass. Earlier implemented plans recorded this as a follow-up rather than
+delivering a dedicated fix. This plan owns investigation, correction and evidence
+for that remaining defect; it does not rewrite their verification history.
+
+## Requirements
+
+1. Selecting English or Norwegian updates application interface text and the HTML
+   language consistently in Vite development, survives reload/navigation and has
+   the same observable language behavior in production Nitro.
+2. Preserve the established cookie-first, Norwegian-default language policy.
+   A new visitor remains Norwegian even with English browser preferences. The
+   language switch stays on the same route and preserves its relevant URL state;
+   English route names remain identical across interface languages.
+3. SSR, initial browser hydration and subsequent rendering agree on the selected
+   locale. Concurrent requests/browser contexts with different language cookies
+   remain isolated; one visitor cannot change another visitor's output.
+4. Translate application-owned interface/errors while preserving authored names,
+   calendar titles, door messages and stored values exactly. Language selection
+   must not change authentication, roles, calendar access, CSRF or no-store policy.
+5. Reproduce and identify the reported development failures against current HEAD,
+   then verify the corrected equivalent scenarios in both modes. Keep meaningful
+   assertions; do not hide the defect with language-test exclusions, longer waits,
+   hardcoded English labels or an unverified global locale override.
+
+## Outstanding questions
+
+None at the product level: the existing architecture rules define the language
+policy and the TODO asks for parity with production. The root cause and current
+reproducibility are investigation tasks, not owner decisions. If fixing the
+confirmed cause requires a new dependency, unsupported version change or a major
+localization design change, record that consequential choice here for the owner
+before dependent implementation; no such change is pre-approved by this plan.
+
+## Implementation details
+
+### Repository facts and investigation starting points
+
+- [Plan 00010](00010-simplify-developer-tooling.md) records three inherited Vite
+  language-switch failures and owner acceptance of that follow-up on 2026-10-25.
+  [Plan 00011](00011-login-and-my-page.md) explicitly left it unresolved. Later
+  Vite login/recipient checks are not proof that these language cases were fixed.
+  The current smoke suite has evolved, so identify the affected scenario names
+  and assertions instead of assuming its historical test count still applies.
+- `src/frontend/vite.config.ts` configures `paraglideVitePlugin` with
+  `strategy: ['cookie', 'baseLocale']`. `project.inlang/settings.json` defines
+  `nb` as the base locale and `nb`/`en` message catalogs.
+- `components/language-selector.tsx` uses generated `getLocale`/`setLocale`;
+  `routes/__root.tsx` gets the HTML language from that runtime.
+  `src/frontend/src/server.ts` wraps SSR in generated `paraglideMiddleware`.
+- `server/localization.test.ts` already tests Norwegian default and concurrent
+  middleware requests with separate `PARAGLIDE_LOCALE` cookies. Those unit tests
+  do not exercise Vite's actual SSR module graph and browser hydration.
+- `package.json` has both an explicit translation-generation command and Vite
+  plugin generation. The command does not visibly specify the Vite strategy.
+  Inspect the pinned compiler's actual output and invocation order; differing
+  generation options are a hypothesis, not a confirmed cause.
+- Existing browser evidence is owned by
+  [frontend verification](../../src/frontend/verification.md). Use
+  [frontend browser instructions](../../src/frontend/README.md#browser-verification),
+  `tools/frontend/smoke.mjs`, `browser/smoke.test.mjs` and relevant authenticated
+  browser cases rather than introducing another runner.
+
+### Agent-selected work order
+
+1. [ ] Start an isolated development stack through the existing launcher, without
+   changing the owner's running data. Run the current smoke scenarios and capture
+   failing names, exact expected/actual text, URL, cookie, response HTML, DOM locale,
+   hydration errors and tool versions. Run equivalent cases against production
+   Nitro built from the same source and message inputs.
+2. [ ] Trace selection, cookie persistence, incoming SSR cookie, middleware locale,
+   server-rendered labels and browser hydration as separate observations. Inspect
+   request-local locale storage/module identity in Vite and generated runtime
+   strategy/output after CLI generation, Vite startup and hot reload. Check whether
+   browser and SSR code are loading distinct or stale generated module copies.
+3. [ ] If the historical failures no longer reproduce, document the precise current
+   evidence and locate the intervening fix before changing code. Establish
+   regression coverage for the actual language flow; do not manufacture a fix or
+   report old failures as current observations.
+4. [ ] Correct the demonstrated cause at its owning compiler configuration,
+   runtime integration or supported Vite SSR boundary. Keep existing pinned
+   dependencies unless evidence shows an update is necessary. Do not patch
+   ignored generated files, bypass request-local storage or maintain separate
+   message catalogs for development and production.
+5. [ ] If compiler-option drift is confirmed, use one maintained source for the
+   relevant generation options across CLI, Vite and verification. If module
+   identity is the cause, repair the integration at that boundary instead. Follow
+   the evidence rather than implementing both speculative remedies.
+6. [ ] Add regression coverage at the smallest seam that reproduces the real
+   failure, plus actual browser verification in both modes. Keep the existing
+   concurrent middleware tests and add server-rendered/browser assertions so a
+   hydrated DOM alone cannot mask a language mismatch.
+7. [ ] Update the current frontend documentation and verification record with
+   baseline, cause, affected paths, correction, mode-specific results and remaining
+   platform limitations. Close the local TODO item only after the fix/evidence
+   meets the requirements. Preserve all implemented plans as historical records.
+
+### Dependencies and verification scope
+
+This investigation can be implemented independently and is useful before the
+new bilingual UI/browser work in plans
+[00023](00023-restricted-session-password-setup.md),
+[00024](00024-login-progress-and-calendar-routing.md) and
+[00025](00025-recipient-interface-and-locked-door-feedback.md). Those plans remain
+responsible for their own new messages and behavior; this plan owns the shared
+development-language defect. No backend/API/schema change is expected.
+
+Use isolated existing fixtures and remove only processes/containers created for
+verification. Do not reset development volumes or change language preferences in
+the owner's active browser profile to obtain a clean test.
+
+## Verification
+
+| Requirement | Evidence to collect during implementation |
+| --- | --- |
+| 1, 5 | Name the historical/current equivalent failures and record before/after Vite and Nitro results from identical source. English then Norwegian selection, reload and navigation show correct translated labels without fixed waits or skipped assertions. |
+| 2 | New context with English Accept-Language still renders Norwegian. Valid language cookie wins; missing/invalid cookie safely falls back. Language switching preserves the URL path and relevant query state. |
+| 3 | Assert server response HTML language/text, first hydrated DOM and no hydration/page errors. Overlap real SSR requests/independent contexts with opposite locales; exercise reload and Vite hot updates without cross-request locale contamination. Existing middleware isolation tests remain green. |
+| 1, 4 | Check landing, login, required/voluntary password UI, My page and recipient/administrator calendar interfaces, including translated errors. Use unchanged Norwegian/Unicode authored names, titles and door text while switching languages. |
+| 4 | Login/logout, cookie allowlisting, CSRF-bound mutations, role checks, no-store and protected SSR/cache isolation retain their current behavior in both modes. Language selection does not issue content writes. |
+| 5 | From a clean generated-output state, exercise normal CLI generation followed by Vite and production build/start. Run affected unit/browser tests, explicit TypeScript/build checks and the required full quality/health review for the actual code/configuration diff. Record unavailable native-platform evidence without claiming it passed. |
+
+## Sources checked on 2026-11-15
+
+Paraglide documents ordered locale strategies in its
+[strategy guide](https://paraglidejs.com/strategy) and request-isolated rendering
+in its [SSR guide](https://paraglidejs.com/server-side-rendering). Treat current
+documentation as a guide and verify behavior against the repository's pinned
+Paraglide version; it does not establish this defect's root cause.
