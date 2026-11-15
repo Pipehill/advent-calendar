@@ -1,8 +1,10 @@
 import { useForm } from '@tanstack/react-form';
-import { useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
 import { changePasswordInput, completePasswordSetupInput, loginInput } from '../lib/auth-input';
 import { leaveSession } from '../lib/auth-navigation';
+import { createLoginTransition } from '../lib/login-transition';
 import type { RouterContext } from '../router';
 import { authError, backendFieldErrors } from './auth-feedback';
 import { Button } from './ui/button';
@@ -20,6 +22,11 @@ export function CredentialForm({
   administrator?: boolean;
 }) {
   const [failure, setFailure] = useState('');
+  const submitting = useRef(false);
+  const [navigating, setNavigating] = useState(false);
+  const [loginTransition] = useState(() =>
+    createLoginTransition(context.auth.login, () => leaveSession(context, '/login-complete')),
+  );
   const fields = changePassword
     ? [
         {
@@ -65,6 +72,7 @@ export function CredentialForm({
             : loginInput;
         const result = schema.safeParse(input);
         if (!result.success) {
+          if (!changePassword && loginTransition.authenticated) return undefined;
           return {
             fields: Object.fromEntries(
               result.error.issues.map((issue) => [issue.path[0], m.auth_field_invalid()]),
@@ -92,14 +100,16 @@ export function CredentialForm({
           formApi.reset();
           leaveSession(context, '/login?changed=1');
         } else {
-          const session = await context.auth.login({
-            username: value.username,
-            password: value.password,
-          });
-          formApi.reset();
-          leaveSession(context, session.mustChangePassword ? '/change-password' : '/my-page');
+          await loginTransition.submit({ username: value.username, password: value.password }, () =>
+            setNavigating(true),
+          );
         }
       } catch (error) {
+        if (!changePassword && loginTransition.authenticated) {
+          setNavigating(false);
+          setFailure(m.login_navigation_failed());
+          return;
+        }
         const errors = backendFieldErrors(error);
         formApi.setErrorMap({
           onSubmit: {
@@ -123,7 +133,11 @@ export function CredentialForm({
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        void form.handleSubmit();
+        if (submitting.current || navigating) return;
+        submitting.current = true;
+        void form.handleSubmit().finally(() => {
+          submitting.current = false;
+        });
       }}
     >
       {fields.map(({ name, label, type, autocomplete }) => (
@@ -162,15 +176,29 @@ export function CredentialForm({
         </p>
       )}
       <form.Subscribe selector={(state) => state.isSubmitting}>
-        {(pending) => (
-          <Button type="submit" className="w-full" disabled={pending} aria-busy={pending}>
-            {pending
-              ? m.auth_pending()
-              : changePassword
-                ? m.password_change_title()
-                : m.login_label()}
-          </Button>
-        )}
+        {(submitting) => {
+          const pending = submitting || navigating;
+          return (
+            <Button type="submit" className="w-full" disabled={pending} aria-busy={pending}>
+              {pending && (
+                <LoaderCircle
+                  data-login-spinner
+                  aria-hidden="true"
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              )}
+              <span role={pending ? 'status' : undefined}>
+                {pending
+                  ? m.auth_pending()
+                  : changePassword
+                    ? m.password_change_title()
+                    : loginTransition.authenticated
+                      ? m.retry_label()
+                      : m.login_label()}
+              </span>
+            </Button>
+          );
+        }}
       </form.Subscribe>
     </form>
   );

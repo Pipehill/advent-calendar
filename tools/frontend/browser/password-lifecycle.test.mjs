@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
+import { selectLanguage } from './localization-fixture.mjs';
 
 export function registerPasswordLifecycleScenarios(environment) {
   for (const locale of ['nb', 'en']) {
@@ -8,8 +9,7 @@ export function registerPasswordLifecycleScenarios(environment) {
       // Given the real creation page, localized before selecting an account type.
       const { page, accounts, signIn, frontendUrl } = environment();
       await signIn(accounts.find(account => account.username === 'browser-superadmin'));
-      await page.getByRole('combobox').selectOption(locale);
-      await page.waitForLoadState('networkidle');
+      if (await page.getByRole('combobox').inputValue() !== locale) await selectLanguage(page, locale);
       await page.goto(`${frontendUrl}/create-account`, { waitUntil: 'networkidle' });
       const field = page.locator('#account-password');
 
@@ -57,8 +57,7 @@ export function registerPasswordLifecycleScenarios(environment) {
           assert.equal((await recipient.request.get(`${frontendUrl}/api/trpc/auth.session`)).status(), 401);
           assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 401);
           await signIn({ ...input, password: replacement }, '/my-page', recipientPage);
-          await recipientPage.getByRole('combobox').selectOption(locale);
-          await recipientPage.waitForLoadState('networkidle');
+          if (await recipientPage.getByRole('combobox').inputValue() !== locale) await selectLanguage(recipientPage, locale);
           await recipientPage.getByRole('link', { name: locale === 'nb' ? 'Bytt passord' : 'Change password', exact: true }).click();
           await recipientPage.locator('#currentPassword').fill(replacement);
           const voluntary = `Voluntary!${randomUUID()}`;

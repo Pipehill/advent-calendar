@@ -113,9 +113,18 @@ zero stale/garbage-collection times. The local test option belongs to the
 ## Sign-in and personal pages
 
 `/login` accepts username and password through a TanStack Form/Zod form.
-Successful login opens `/my-page`, or `/change-password` for a restricted temporary
-administrator session. Calendar-user creation/reset supplies a permanent password
-and login goes directly to `/my-page`; the user can keep it or change it later.
+Successful login keeps its values and masked password visible with localized
+progress until document navigation completes. `/login-complete` validates the live
+session: restricted sessions go to `/change-password`, administrators to
+`/my-page`, and a calendar user with exactly one current assignment directly to
+`/my-calendars/{id}`. Zero or multiple assignments use My page. Its chooser and
+calendar return links remain explicit destinations without automatic redirects.
+Destination resolution uses the backend total across all years/content states;
+the calendar independently rechecks current access. Recoverable list failures
+fall back to My page, while session-service errors offer a fixed GET retry link.
+A navigation retry never replays accepted login credentials. Calendar-user
+creation/reset supplies a permanent password without required setup; the user
+can keep it or change it later.
 Required setup renders only the new-password field and uses the persisted
 restricted session without retaining or replaying the login password. Voluntary
 change still renders and verifies the current password. Both operations revoke
@@ -303,6 +312,11 @@ The language selector writes `PARAGLIDE_LOCALE` and reloads the current page so
 SSR and browser hydration agree. The cookie allows the server to remember the
 selection; the current URL stays unchanged. Request-local language state avoids
 mixing concurrent readers' languages.
+
+The selector stays disabled in SSR and initial hydration until its cookie/reload
+handler is attached. This prevents an early native selection from being silently
+lost while Vite loads the client modules. It then uses the same generated locale
+setter in development and production, preserving the current path and query.
 
 Translate interface text, labels/prompts and user-facing errors. Calendar titles
 and door contents remain exactly as authored; translations do not add language

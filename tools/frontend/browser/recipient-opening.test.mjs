@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { owner, recipient, logout } from './calendar-fixture.mjs';
+import { owner, provisionRecipient, logout } from './calendar-fixture.mjs';
 
 export const door = (page, number) => page.locator(`[data-door-number="${number}"]`);
 export const dialog = page => page.locator('dialog[open]');
@@ -19,7 +19,8 @@ export const read = async (state, operation, input) => {
 };
 export async function prepare(state, { future = false, image = false, background = 'aurora', random = false } = {}) {
   await state.signIn(owner(state.accounts));
-  const response = await state.mutation('calendar.create', { title: 'Recipient gifts ÆØÅ', recipientId: recipient(state.accounts).id, background });
+  const { account: recipientAccount, user } = await provisionRecipient(state);
+  const response = await state.mutation('calendar.create', { title: 'Recipient gifts ÆØÅ', recipientId: user.id, background });
   assert.equal(response.status(), 200, await response.text());
   const calendar = (await response.json()).result.data;
   const save = await state.mutation('calendar.saveDoor', {
@@ -39,10 +40,10 @@ export async function prepare(state, { future = false, image = false, background
   if (random) assert.equal((await state.mutation('calendar.saveLayout', { id: calendar.id, layout: 'random' })).status(), 200);
   state.fixture('calendar-year', calendar.id, future ? '2090' : '2025');
   await logout(state.page, state.frontendUrl);
-  await state.signIn(recipient(state.accounts));
+  await state.signIn(recipientAccount, `/my-calendars/${calendar.id}`);
   const session = await read(state, 'auth.session');
   await state.page.goto(`${state.frontendUrl}/my-calendars/${calendar.id}`, { waitUntil: 'networkidle' });
-  return { ...calendar, scope: session.cacheScope };
+  return { ...calendar, scope: session.cacheScope, recipientAccount };
 }
 
 export function registerRecipientOpeningScenarios(environment) {

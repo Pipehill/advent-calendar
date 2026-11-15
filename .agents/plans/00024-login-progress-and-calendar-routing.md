@@ -1,8 +1,10 @@
 # 00024: Login progress and direct routing to a single assigned calendar
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
+
+Implementation type: feature
 
 Keep the login form stable and visibly busy until authenticated navigation
 completes. After login, send a calendar user with exactly one assigned calendar
@@ -102,13 +104,80 @@ and `/change-password`; implement either first, then reconcile both modes.
 controls. [Plan 00026](00026-vite-development-language-switching.md) owns the inherited
 Vite language defect; this plan still verifies its new text in both languages.
 
-- [ ] Add destination-selection tests using current session/list behavior and
-  introduce the SSR post-login entry route.
-- [ ] Implement stable input/pending state and the accessible spinner.
-- [ ] Add deliberately delayed browser tests for both login and target-document
-  loading; adapt existing list/navigation helpers without hiding redirects.
-- [ ] Verify both frontend modes, update relevant frontend documentation and
-  record results in [frontend verification](../../src/frontend/verification.md).
+- [x] Iteration 1: add the SSR post-login entry route and destination helper;
+  verify live session, role, scoped assignment counts and failure cases with unit
+  tests before committing.
+- [x] Iteration 2: preserve form values, latch pending navigation and add an
+  accessible localized spinner; verify frontend unit/type/build/lint checks and
+  commit the form change.
+- [x] Iteration 3: add delayed login/document browser coverage and actual assignment
+  counts/races; adapt explicit helper destinations, verify production and focused
+  Vite behavior and commit the browser integration.
+- [x] Iteration 4: update frontend documentation and verification, complete full
+  quality and advisory comparisons, commit completion and publish the PR.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices without questions; record material
+  choices/uncertainties in this plan and the PR. Each implementation branches
+  independently from `main` and targets `main`.
+- Plan 00023 is green in PR #60 before this work begins. This branch starts from
+  synchronized clean `main` at `58fc70b`, keeping the PR independent rather than
+  including that unmerged implementation. Keep form edits focused so its required
+  setup mode can merge with this login-only behavior.
+- Use the planned `/login-complete` server entry and existing recipient list total
+  with limit two; no backend endpoint, schema, dependency or product filter changes.
+- Baseline captured before edits; prior baseline archived as
+  `quality-reports/health/baseline-before-00024-20261115`.
+- Iteration 1: nineteen destination-selection cases pass (32 focused navigation
+  tests; 270 frontend/BFF tests before the pending coordinator cases). Restrictions,
+  administrators, zero/one/many/inconsistent assignment totals, fresh scopes,
+  uncached reads and service/revocation failures are covered. Session service
+  errors retain a fixed GET retry link to `/login-complete`, never a login replay.
+  Route-tree generation and full TypeScript/build integration follow in iteration 2.
+- Iteration 2: all 273 frontend/BFF tests, production Vite/TypeScript/Nitro build
+  and Biome pass. A per-form coordinator retains only accepted/pending flags;
+  synchronous navigation retry never replays credentials. A form ref also guards
+  duplicate submission before React renders its disabled button. Login values
+  are not reset; localized spinner/status remain through document replacement.
+- Browser measurement decision: Chromium suspends old-frame script inspection
+  during held native navigation. Verify actual fields/status before navigation
+  and at `beforeunload`, then compare direct compositor PNGs while the destination
+  response is held. The reduced-motion/caret-hidden viewport is byte-identical;
+  artifacts contain masked fields only. Bounded gates and unconditional release
+  prevent test cleanup from deadlocking. The first Norwegian case passes.
+- Iteration 3: eleven focused production transition/count/race/recovery cases pass;
+  seven focused Vite cases pass again on the final form and split browser modules.
+  New fixtures use isolated recipients and explicit known destinations. The
+  existing second-owner recipient records its actual sole calendar ID so legacy
+  denial/account-switch cases assert the correct login path without weakening
+  their later My page/cache checks. New cases run after legacy empty-system tests.
+- Split the growing browser coverage into progress, routing and shared fixture
+  modules after investigating complexity. Remaining measured tooling regressions
+  are a necessary current-process callback for real outage testing (harness 229
+  to 230) and one test-only fixture heuristic (19 to 20 findings). Its imports in
+  both live suites are verified; keep the fixture instead of duplicating setup.
+- Moved the accepted-login validation exception inside the failure branch so the
+  independent required-setup schema changes in PR #60 can merge cleanly. Behavior
+  and complete frontend checks remain passing; no PR #60 code is copied here.
+- Final verification: 273 frontend/BFF tests, the complete production run of 119
+  scenarios plus eight smoke checks, and seven final Vite scenarios pass. All
+  eleven focused production cases pass again after the final harness import
+  placement. Generation, TypeScript/Nitro/Biome and full repository quality pass.
+  Existing administrator/recipient, image/dialog/history, account-switch and
+  revoked-session regressions remain intact. No backend/dependency/migration
+  changes were needed.
+- Final Windows health: application 92.1 to 92.2, tooling 49.6 to 49.7. Detected
+  application duplication is 145 to 136 lines / 15 to 14 clones; tooling remains
+  12 lines / two clones. Tooling dead-code score 20.1 to 20.0 and finding count
+  19 to 20 reflect the verified test-only shared fixture. Maximum harness
+  complexity increases 229 to 230 for the current-process outage callback.
+  Raw scope/configuration/input identities and limitations remain in reports.
+- Independent review found one stale README destination sentence, now corrected;
+  no remaining runtime/test issues were found. Physical devices, native macOS/Linux
+  and assistive technology remain unverified. Mobile is Edge emulation.
+- All implementation iterations are complete. Publish the committed-head review
+  and PR against `main`, leaving merge approval to the owner.
 
 ## Verification
 
