@@ -29,6 +29,7 @@
   "auth_forbidden": "The request could not be authorized. Try again, or sign in again.",
   "auth_field_invalid": "Check this field.",
   "auth_pending": "Please wait …",
+  "login_navigation_failed": "You are signed in, but the next page could not open. Try again to continue.",
   "logout_label": "Log out",
   "current_password": "Current password",
   "new_password": "New password",

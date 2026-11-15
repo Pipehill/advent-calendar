@@ -107,7 +107,7 @@ Vite language defect; this plan still verifies its new text in both languages.
 - [x] Iteration 1: add the SSR post-login entry route and destination helper;
   verify live session, role, scoped assignment counts and failure cases with unit
   tests before committing.
-- [ ] Iteration 2: preserve form values, latch pending navigation and add an
+- [x] Iteration 2: preserve form values, latch pending navigation and add an
   accessible localized spinner; verify frontend unit/type/build/lint checks and
   commit the form change.
 - [ ] Iteration 3: add delayed login/document browser coverage and actual assignment
@@ -135,7 +135,18 @@ Vite language defect; this plan still verifies its new text in both languages.
   uncached reads and service/revocation failures are covered. Session service
   errors retain a fixed GET retry link to `/login-complete`, never a login replay.
   Route-tree generation and full TypeScript/build integration follow in iteration 2.
-- Next unfinished step: iteration 2 stable form/spinner and type/build integration.
+- Iteration 2: all 273 frontend/BFF tests, production Vite/TypeScript/Nitro build
+  and Biome pass. A per-form coordinator retains only accepted/pending flags;
+  synchronous navigation retry never replays credentials. A form ref also guards
+  duplicate submission before React renders its disabled button. Login values
+  are not reset; localized spinner/status remain through document replacement.
+- Browser measurement decision: Chromium suspends old-frame script inspection
+  during held native navigation. Verify actual fields/status before navigation
+  and at `beforeunload`, then compare direct compositor PNGs while the destination
+  response is held. The reduced-motion/caret-hidden viewport is byte-identical;
+  artifacts contain masked fields only. Bounded gates and unconditional release
+  prevent test cleanup from deadlocking. The first Norwegian case passes.
+- Next unfinished step: iteration 3 complete production/Vite browser regressions.
 
 ## Verification
 

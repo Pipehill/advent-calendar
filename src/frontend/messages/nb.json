@@ -29,6 +29,7 @@
   "auth_forbidden": "Forespørselen kunne ikke godkjennes. Prøv igjen, eller logg inn på nytt.",
   "auth_field_invalid": "Kontroller dette feltet.",
   "auth_pending": "Vennligst vent …",
+  "login_navigation_failed": "Du er logget inn, men neste side kunne ikke åpnes. Prøv igjen for å fortsette.",
   "logout_label": "Logg ut",
   "current_password": "Nåværende passord",
   "new_password": "Nytt passord",
