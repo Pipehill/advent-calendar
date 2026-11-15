@@ -1,6 +1,41 @@
 # Frontend verification
 
-Last updated: 2026-11-08
+Last updated: 2026-11-15
+
+## 2026-11-15: Restricted-session password setup
+
+All **265 frontend/BFF tests**, Biome, explicit TypeScript checking and the
+production Vite/Nitro build pass. Required setup renders only a masked new-password
+field, while voluntary change preserves current-password verification. The strict
+BFF operation rejects missing/null/extra/oversized inputs, forwards only the new
+password and principal-bound cookies/CSRF, preserves field errors and never
+automatically retries a write. Cookie deletion is relayed after successful setup.
+
+Five focused production browser scenarios pass, including Norwegian/English
+mobile keyboard setup, same/weak field errors, exact request bodies, revocation
+of two restricted sessions and fresh login followed by the voluntary form.
+The English fixture registers its document-navigation wait before selection to
+avoid interacting with the prior page. Independent frontend/BFF and backend
+security review found no remaining actionable issues.
+
+The final complete isolated production run passes **112 scenarios plus eight
+smoke checks**, with no page/hydration errors. Existing account administration,
+calendar editing/preview, protected images, recipient opening/history and
+revoked-session/cache boundaries remain green.
+
+The Windows advisory comparison improves application health **92.1 to 92.3** and
+tooling **49.6 to 49.9**. Application duplication increases **145 to 156 lines**,
+**15 to 16 clones**, **0.71637% to 0.74381%**: the new remaining clone is eleven
+import/namespace/class declaration lines, retained for explicit dependencies and
+separate behavior-focused suites. A duplicated race assertion was extracted into
+the shared test context. Maximum file complexity and heuristic dead-code counts
+are unchanged; supported coverage limitations and raw findings remain in
+`quality-reports/health/`. No scoring rules/exclusions changed.
+
+Raw checks and browser evidence are under ignored
+`quality-reports/plan00023-*.log` and `quality-reports/plan00015/browser/`.
+Mobile is Edge emulation; physical assistive devices and native macOS/Linux host
+execution remain unverified.
 
 ## 2026-11-08: Permanent calendar-user passwords
 

@@ -1,6 +1,6 @@
 # 00023: Complete required password setup using the restricted session
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
 
@@ -114,7 +114,7 @@ removes the calendar-user password button but does not remove the voluntary API.
   verify generated contracts and direct integration/security race tests, then commit.
 - [x] Iteration 2: add the strict BFF/schema operation and localized form modes;
   verify unit tests, type/build checks and actual browser coverage, then commit.
-- [ ] Iteration 3: update current rules/examples and verification records; complete
+- [x] Iteration 3: update current rules/examples and verification records; complete
   full tests, lint, baseline comparison and committed-head regression review,
   update the plan/index and publish the draft PR.
 
@@ -146,8 +146,23 @@ removes the calendar-user password button but does not remove the voluntary API.
   field errors, revocation, fresh login and retained voluntary fields pass.
   The English fixture now explicitly awaits document navigation before using
   translated fields to avoid an old-document race.
-- Next unfinished step: complete full regressions, final documentation/status
-  commit and committed-head review before PR publication.
+- Final verification: all 444 backend tests pass on both Debug and Release,
+  265 frontend/BFF tests pass, and 112 complete production browser scenarios plus
+  eight smoke checks pass without page/hydration errors. Generated contracts,
+  Release build/publish, solution format/analyzers, TypeScript/Nitro/Biome and
+  full repository quality checks pass. A Release build initially hit Windows DLL
+  locks from the browser API; rerunning after fixture cleanup succeeds with zero
+  warnings/errors. No source workaround or weakened check was introduced.
+- Advisory application health improves 92.1 to 92.3; tooling improves 49.6 to 49.9.
+  Declaration-only application duplication increases 145 to 156 lines, 15 to 16
+  clones and 0.71637% to 0.74381%. Maximum file complexity and heuristic finding
+  counts remain unchanged. Full identities, configuration, raw clone details and
+  supported-dimension limits remain in ignored quality reports.
+- Independent frontend/BFF and backend security reviews found no remaining
+  actionable issues. Physical devices/assistive technology and native macOS/Linux
+  hosts remain unverified; mobile coverage uses Windows Edge emulation.
+- All implementation iterations are complete. Publish the committed-head review
+  and draft PR; leave merging to the owner.
 
 ## Verification
 

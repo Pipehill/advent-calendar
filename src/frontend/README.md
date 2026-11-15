@@ -116,7 +116,10 @@ zero stale/garbage-collection times. The local test option belongs to the
 Successful login opens `/my-page`, or `/change-password` for a restricted temporary
 administrator session. Calendar-user creation/reset supplies a permanent password
 and login goes directly to `/my-page`; the user can keep it or change it later.
-Own-password change revokes all sessions and requires a fresh login.
+Required setup renders only the new-password field and uses the persisted
+restricted session without retaining or replaying the login password. Voluntary
+change still renders and verifies the current password. Both operations revoke
+all sessions and require a fresh login.
 Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
 
