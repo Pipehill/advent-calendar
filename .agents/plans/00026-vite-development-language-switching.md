@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-15
 
+Implementation type: bugfix
+
 Resolve the inherited TODO where selecting English leaves Norwegian interface
 text in three development browser smoke cases, while the equivalent production
 cases pass. Earlier implemented plans recorded this as a follow-up rather than
@@ -70,17 +72,23 @@ before dependent implementation; no such change is pre-approved by this plan.
 
 ### Agent-selected work order
 
-1. [ ] Start an isolated development stack through the existing launcher, without
+Implementation commit boundaries: iteration 1 records reproduction/investigation
+and baseline regression coverage (steps 1–3); iteration 2 corrects the demonstrated
+cause and verifies focused unit/browser behavior (steps 4–6); iteration 3 completes
+the full mode/quality review, documentation and publication (step 7). A failing
+baseline is evidence for iteration 1, not a claim that the fix is complete.
+
+1. [x] Start an isolated development stack through the existing launcher, without
    changing the owner's running data. Run the current smoke scenarios and capture
    failing names, exact expected/actual text, URL, cookie, response HTML, DOM locale,
    hydration errors and tool versions. Run equivalent cases against production
    Nitro built from the same source and message inputs.
-2. [ ] Trace selection, cookie persistence, incoming SSR cookie, middleware locale,
+2. [x] Trace selection, cookie persistence, incoming SSR cookie, middleware locale,
    server-rendered labels and browser hydration as separate observations. Inspect
    request-local locale storage/module identity in Vite and generated runtime
    strategy/output after CLI generation, Vite startup and hot reload. Check whether
    browser and SSR code are loading distinct or stale generated module copies.
-3. [ ] If the historical failures no longer reproduce, document the precise current
+3. [x] If the historical failures no longer reproduce, document the precise current
    evidence and locate the intervening fix before changing code. Establish
    regression coverage for the actual language flow; do not manufacture a fix or
    report old failures as current observations.
@@ -101,6 +109,38 @@ before dependent implementation; no such change is pre-approved by this plan.
    baseline, cause, affected paths, correction, mode-specific results and remaining
    platform limitations. Close the local TODO item only after the fix/evidence
    meets the requirements. Preserve all implemented plans as historical records.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices without questions and explicit PR
+  documentation. Plans 00023/#60 and 00024/#61 are green and ready for review;
+  this final plan starts independently from clean synchronized `main` at `58fc70b`.
+- Baseline captured before edits; previous baseline archived under
+  `quality-reports/health/baseline-before-00026-20261115`.
+- Preserve pinned dependencies and the cookie-first Norwegian-default policy.
+  Diagnose the selection/cookie/SSR/hydration boundary before choosing a fix;
+  compiler-option drift remains a hypothesis until demonstrated.
+- Iteration 1 baseline: unchanged Vite passes 7/8 smoke checks; the landing switch
+  expects `en` but retains `nb`. Identical-source Nitro passes 8/8. The historical
+  anonymous calendar cases are now protected, so the current equivalent matrix
+  includes authenticated calendar/error paths rather than reviving anonymous reads.
+- A fully hydrated login selection proves the existing cookie setter, incoming
+  request, raw SSR and hydrated DOM agree in both languages. The compiler options
+  differ between standalone CLI and Vite, but both prioritize the cookie; that
+  drift is not the demonstrated cause and is intentionally left unchanged.
+- Controlled script loading proves the defect: SSR offers an enabled native
+  selector before React attaches its handler. Selecting English does not set a
+  cookie; after hydration the cookie/document stay Norwegian while the native
+  select can still display English. Cold selection also observes same-document
+  hydration navigation (`waitForNavigation` returns null), explaining why the old
+  smoke proceeded without a successful language document reload.
+- Added nine normal browser regression cases and an opt-in actual Vite HMR probe.
+  Baseline cold/script-held cases fail as expected; the hydrated transport probe
+  passes. Node syntax/diff checks pass. Raw evidence is in
+  `quality-reports/plan00026-baseline-*.log`, the saved failing smoke XML and
+  `quality-reports/plan00026-cold-baseline.log`.
+- Next unfinished step: iteration 2 disable the selector until hydration using
+  the existing router hook; verify cold/script-held and complete language cases.
 
 ### Dependencies and verification scope
 
