@@ -29,8 +29,12 @@ export function registerLocalizationScenarios(environment) {
     // Given actual SSR with client scripts delayed before React can attach handlers.
     const state = environment();
     let release;
+    let deadlineReleasedScripts = false;
     const held = new Promise(resolve => { release = resolve; });
-    const deadline = setTimeout(() => release(), 10000);
+    const deadline = setTimeout(() => {
+      deadlineReleasedScripts = true;
+      release();
+    }, 10000);
     t.after(() => { clearTimeout(deadline); release(); });
     const reader = await localizedBrowser(state, t);
     await reader.page.route('**/*', async route => {
@@ -43,10 +47,12 @@ export function registerLocalizationScenarios(environment) {
     const selector = reader.page.getByRole('combobox');
     await selector.waitFor();
     const disabledBeforeHydration = await selector.isDisabled();
+    assert.equal(deadlineReleasedScripts, false, 'Client scripts are still held during the prehydration snapshot');
 
     // When an enabled native selector is used before scripts are released.
     if (!disabledBeforeHydration) await selector.selectOption('en');
     const cookieBeforeHydration = (await reader.context.cookies()).find(cookie => cookie.name === 'PARAGLIDE_LOCALE')?.value ?? null;
+    assert.equal(deadlineReleasedScripts, false, 'The prehydration choice completes before cleanup releases scripts');
     release();
     clearTimeout(deadline);
     await reader.page.waitForLoadState('networkidle');

@@ -1,6 +1,6 @@
 # 00026: Fix interface language switching in Vite development
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
 
@@ -105,7 +105,7 @@ baseline is evidence for iteration 1, not a claim that the fix is complete.
    failure, plus actual browser verification in both modes. Keep the existing
    concurrent middleware tests and add server-rendered/browser assertions so a
    hydrated DOM alone cannot mask a language mismatch.
-7. [ ] Update the current frontend documentation and verification record with
+7. [x] Update the current frontend documentation and verification record with
    baseline, cause, affected paths, correction, mode-specific results and remaining
    platform limitations. Close the local TODO item only after the fix/evidence
    meets the requirements. Preserve all implemented plans as historical records.
@@ -157,8 +157,25 @@ baseline is evidence for iteration 1, not a claim that the fix is complete.
 - Normal coverage now includes ten locale cases plus a dedicated opt-in HMR case.
   New tests avoid assumptions about PR #60's required-form field count and PR
   #61's recipient post-login destination, preserving independent plan integration.
-- Next unfinished step: iteration 3 full final production and Vite checks,
-  documentation, TODO closure and committed-head review before publication.
+- Final verification: 251 frontend/BFF tests, 118 complete production browser
+  scenarios plus eight smoke checks, ten final Vite locale scenarios and the
+  dedicated actual HMR probe pass. The unchanged Vite smoke suite passes 8/8.
+  Clean generation, TypeScript/Nitro/Biome and full repository quality pass.
+  Existing calendar/authentication/cache/image/opening regressions remain intact.
+- Independent review found a potential slow false pass in the held-script test's
+  fail-safe timer. The test now asserts scripts were not auto-released before
+  inspection/choice; both final mode runs verify that correction.
+- Windows health: application unchanged at 92.1, 145 duplicated lines / 15 clones;
+  tooling improves 49.6 to 50.0 with 12 lines / two clones. Maximum file complexity
+  is unchanged. Heuristic findings increase 19 to 20 for the shared localization
+  fixture explicitly classified as only used by tests; its four suite consumers
+  are verified. No analyzer settings, exclusions or coverage were weakened.
+- Current frontend documentation and verification record are updated, and the
+  local ignored TODO is reconciled with completed plans. Historical implemented
+  plans are preserved. Physical devices/assistive technology and native macOS/Linux
+  hosts remain unverified; runtime evidence uses headless Windows Edge.
+- All implementation iterations are complete. Publish the committed-head review
+  and PR against `main`; merge approval remains with the owner.
 
 ### Dependencies and verification scope
 
