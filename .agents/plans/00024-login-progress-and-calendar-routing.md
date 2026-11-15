@@ -1,6 +1,6 @@
 # 00024: Login progress and direct routing to a single assigned calendar
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
 
@@ -113,7 +113,7 @@ Vite language defect; this plan still verifies its new text in both languages.
 - [x] Iteration 3: add delayed login/document browser coverage and actual assignment
   counts/races; adapt explicit helper destinations, verify production and focused
   Vite behavior and commit the browser integration.
-- [ ] Iteration 4: update frontend documentation and verification, complete full
+- [x] Iteration 4: update frontend documentation and verification, complete full
   quality and advisory comparisons, commit completion and publish the PR.
 
 ### Implementation decisions and resume record
@@ -160,8 +160,24 @@ Vite language defect; this plan still verifies its new text in both languages.
 - Moved the accepted-login validation exception inside the failure branch so the
   independent required-setup schema changes in PR #60 can merge cleanly. Behavior
   and complete frontend checks remain passing; no PR #60 code is copied here.
-- Next unfinished step: iteration 4 complete full production regressions, final
-  documentation/status and committed-head review before publication.
+- Final verification: 273 frontend/BFF tests, the complete production run of 119
+  scenarios plus eight smoke checks, and seven final Vite scenarios pass. All
+  eleven focused production cases pass again after the final harness import
+  placement. Generation, TypeScript/Nitro/Biome and full repository quality pass.
+  Existing administrator/recipient, image/dialog/history, account-switch and
+  revoked-session regressions remain intact. No backend/dependency/migration
+  changes were needed.
+- Final Windows health: application 92.1 to 92.2, tooling 49.6 to 49.7. Detected
+  application duplication is 145 to 136 lines / 15 to 14 clones; tooling remains
+  12 lines / two clones. Tooling dead-code score 20.1 to 20.0 and finding count
+  19 to 20 reflect the verified test-only shared fixture. Maximum harness
+  complexity increases 229 to 230 for the current-process outage callback.
+  Raw scope/configuration/input identities and limitations remain in reports.
+- Independent review found one stale README destination sentence, now corrected;
+  no remaining runtime/test issues were found. Physical devices, native macOS/Linux
+  and assistive technology remain unverified. Mobile is Edge emulation.
+- All implementation iterations are complete. Publish the committed-head review
+  and PR against `main`, leaving merge approval to the owner.
 
 ## Verification
 

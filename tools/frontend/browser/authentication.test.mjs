@@ -20,9 +20,9 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { capturePageErrors } from './page-errors.mjs';
 import { registerLoginProgressScenarios } from './login-progress.test.mjs';
 import { registerLoginRoutingScenarios } from './login-routing.test.mjs';
-import { capturePageErrors } from './page-errors.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);

@@ -1,6 +1,51 @@
 # Frontend verification
 
-Last updated: 2026-11-08
+Last updated: 2026-11-15
+
+## 2026-11-15: Login progress and direct recipient destinations
+
+All **273 frontend/BFF tests**, explicit TypeScript checking, authored contract
+validation/generation, production Vite/Nitro build and Biome pass. Nineteen route
+cases cover current sessions, restrictions/roles, bounded scoped list totals and
+failure recovery. Three coordinator cases cover repeated submission, corrected
+credentials and synchronous navigation failure without another login write.
+
+Eleven focused production browser scenarios and seven focused Vite development
+scenarios pass with real PostgreSQL, cookies/CSRF and Windows Edge. They verify
+Norwegian/English progress, failed-input retention, reduced motion/mobile layout,
+one login write, actual 0/1/2/13 assignments, empty calendars across years, explicit
+My page/return navigation, revocation/reassignment before detail authorization and
+real session-service outage/recovery through the fixed GET retry link.
+
+The complete isolated production suite passes **119 scenarios plus eight smoke
+checks**, without page/hydration errors. All legacy account/calendar/system-preview,
+image, recipient-opening/history and protected-cache regressions remain green.
+
+Chromium pauses old-frame script inspection during native navigation. Pending
+tests assert actual values/masking/status before navigation and at `beforeunload`,
+then compare byte-identical direct compositor PNGs while the destination response
+is held. Test-only snapshots remain in Node memory; artifacts contain masked
+fields. Caret hiding/reduced motion stabilize the frames. Bounded gates and
+unconditional transport release corrected an initial test cleanup deadlock.
+The saved screenshots were also visually inspected.
+
+The initial growing browser module was split into progress, routing and a shared
+fixture by behavior after reviewing complexity. Windows advisory application
+health improves **92.1 to 92.2** and tooling **49.6 to 49.7**. Application detected
+duplication is **145 to 136 lines / 15 to 14 clones**; tooling stays **12 lines /
+two clones**. The remaining tooling regressions are prominent: maximum harness
+complexity **229 to 230** for exposing its current backend process to the real
+outage test, and heuristic findings **19 to 20** / dead-code score **20.1 to 20.0**.
+The new finding explicitly says `login-fixture.mjs` is only imported by tests;
+both live progress/routing suites import and exercise it. Keeping that shared
+fixture avoids duplicate setup; it is intentional test support, not unused
+production code. No scoring, exclusions or coverage were weakened.
+
+Raw evidence is under ignored `quality-reports/plan00024-*.log`, compositor images
+under `quality-reports/plan00024/`, and detailed scope/identity/analyzer reports
+under `quality-reports/health/`. Mobile is emulation; native macOS/Linux hosts and
+physical assistive devices remain unverified. Plan 00026 owns Vite language-switch
+behavior; these cases preselect and verify both interface languages.
 
 ## 2026-11-08: Permanent calendar-user passwords
 
