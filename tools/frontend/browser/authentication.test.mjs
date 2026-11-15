@@ -20,6 +20,8 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { registerLoginProgressScenarios } from './login-progress.test.mjs';
+import { registerLoginRoutingScenarios } from './login-routing.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -961,6 +963,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
     revoke: revokeSessions,
     restartApi,
+    stopApi: () => stopChild(apiProcess),
     fixture: (...args) => command(dotnet, [fixtureDll, ...args], environment),
   });
   registerCredentialTransportScenarios(calendarEnvironment);
@@ -975,6 +978,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerDoorImageSecurityScenarios(calendarEnvironment);
   registerRecipientOpeningScenarios(calendarEnvironment);
   registerRecipientRefreshScenarios(calendarEnvironment);
+  registerLoginProgressScenarios(calendarEnvironment);
+  registerLoginRoutingScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
-import { owner, recipient } from './calendar-fixture.mjs';
+import { owner } from './calendar-fixture.mjs';
 import { dialog, door, prepare, read } from './recipient-opening.test.mjs';
 
 async function independentOwner(state, t) {
@@ -32,8 +32,7 @@ export function registerRecipientRefreshScenarios(environment) {
     const reader = { ...state, context, page };
 
     // When direct recipient login opens content, then a permanent reset revokes that session.
-    await state.signIn(account, '/my-page', page);
-    await page.getByRole('link', { name: /Permanent password calendar/ }).click();
+    await state.signIn(account, `/my-calendars/${calendar.id}`, page);
     await door(page, 1).click();
     await dialog(page).waitFor();
     await page.getByRole('button', { name: 'Lukk', exact: true }).click();
@@ -42,8 +41,7 @@ export function registerRecipientRefreshScenarios(environment) {
     const password = `Replacement!${randomUUID()}`;
     assert.equal((await state.mutation('accounts.resetPassword', { id: user.id, password })).status(), 200);
     const revoked = await context.request.get(`${state.frontendUrl}/api/trpc/auth.session`);
-    await state.signIn({ ...account, password }, '/my-page', page);
-    await page.getByRole('link', { name: /Permanent password calendar/ }).click();
+    await state.signIn({ ...account, password }, `/my-calendars/${calendar.id}`, page);
     await door(page, 1).click();
     await dialog(page).waitFor();
     const nextSession = await read(reader, 'auth.session');
@@ -186,7 +184,7 @@ export function registerRecipientRefreshScenarios(environment) {
     assert.equal(writes, 1);
     assert.equal(await dialog(state.page).count(), 0);
     assert.equal(await state.page.getByText('Gave <b>ÆØÅ</b>', { exact: true }).count(), 0);
-    await state.signIn(recipient(state.accounts));
+    await state.signIn(calendar.recipientAccount, `/my-calendars/${calendar.id}`);
     await state.page.goto(`${state.frontendUrl}/my-calendars/${calendar.id}`, { waitUntil: 'networkidle' });
     assert.equal(await door(state.page, 1).getAttribute('data-opened'), 'true');
   });

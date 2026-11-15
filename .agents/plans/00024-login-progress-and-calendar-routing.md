@@ -110,7 +110,7 @@ Vite language defect; this plan still verifies its new text in both languages.
 - [x] Iteration 2: preserve form values, latch pending navigation and add an
   accessible localized spinner; verify frontend unit/type/build/lint checks and
   commit the form change.
-- [ ] Iteration 3: add delayed login/document browser coverage and actual assignment
+- [x] Iteration 3: add delayed login/document browser coverage and actual assignment
   counts/races; adapt explicit helper destinations, verify production and focused
   Vite behavior and commit the browser integration.
 - [ ] Iteration 4: update frontend documentation and verification, complete full
@@ -146,7 +146,22 @@ Vite language defect; this plan still verifies its new text in both languages.
   response is held. The reduced-motion/caret-hidden viewport is byte-identical;
   artifacts contain masked fields only. Bounded gates and unconditional release
   prevent test cleanup from deadlocking. The first Norwegian case passes.
-- Next unfinished step: iteration 3 complete production/Vite browser regressions.
+- Iteration 3: eleven focused production transition/count/race/recovery cases pass;
+  seven focused Vite cases pass again on the final form and split browser modules.
+  New fixtures use isolated recipients and explicit known destinations. The
+  existing second-owner recipient records its actual sole calendar ID so legacy
+  denial/account-switch cases assert the correct login path without weakening
+  their later My page/cache checks. New cases run after legacy empty-system tests.
+- Split the growing browser coverage into progress, routing and shared fixture
+  modules after investigating complexity. Remaining measured tooling regressions
+  are a necessary current-process callback for real outage testing (harness 229
+  to 230) and one test-only fixture heuristic (19 to 20 findings). Its imports in
+  both live suites are verified; keep the fixture instead of duplicating setup.
+- Moved the accepted-login validation exception inside the failure branch so the
+  independent required-setup schema changes in PR #60 can merge cleanly. Behavior
+  and complete frontend checks remain passing; no PR #60 code is copied here.
+- Next unfinished step: iteration 4 complete full production regressions, final
+  documentation/status and committed-head review before publication.
 
 ## Verification
 

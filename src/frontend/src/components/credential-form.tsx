@@ -58,12 +58,12 @@ export function CredentialForm({
     defaultValues: { username: '', password: '', currentPassword: '', newPassword: '' },
     validators: {
       onSubmit: ({ value }) => {
-        if (!changePassword && loginTransition.authenticated) return undefined;
         const input = changePassword
           ? { currentPassword: value.currentPassword, newPassword: value.newPassword }
           : { username: value.username, password: value.password };
         const result = (changePassword ? changePasswordInput : loginInput).safeParse(input);
         if (!result.success) {
+          if (!changePassword && loginTransition.authenticated) return undefined;
           return {
             fields: Object.fromEntries(
               result.error.issues.map((issue) => [issue.path[0], m.auth_field_invalid()]),

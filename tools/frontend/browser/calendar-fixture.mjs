@@ -3,6 +3,10 @@ import { randomUUID } from 'node:crypto';
 
 export const owner = accounts => accounts.find(account => account.username === 'browser-admin');
 export const recipient = accounts => accounts.find(account => account.username === 'browser-user');
+export const expectedLoginDestination = account => {
+  if (account.restricted) return '/change-password';
+  return account.assignedCalendarId ? `/my-calendars/${account.assignedCalendarId}` : '/my-page';
+};
 export const sessionCookie = async context => {
   const cookie = (await context.cookies()).find(item => item.name === 'advent.auth');
   assert(cookie, 'The authenticated browser has an opaque session cookie');
@@ -17,11 +21,13 @@ export const create = async (state, title = 'Prepared calendar') => {
   assert.equal(response.status(), 200, await response.text());
   return (await response.json()).result.data;
 };
-export const createRecipient = async state => {
-  const response = await state.mutation('accounts.create', {
+export const createRecipient = async state => (await provisionRecipient(state)).user;
+export const provisionRecipient = async state => {
+  const account = {
     name: 'Ny kalenderbruker ÆØÅ', username: `recipient-${randomUUID().slice(0, 8)}`,
     password: `Recipient!${randomUUID()}`, role: 'calendarUser',
-  });
+  };
+  const response = await state.mutation('accounts.create', account);
   assert.equal(response.status(), 200, await response.text());
-  return (await response.json()).result.data;
+  return { account, user: (await response.json()).result.data };
 };

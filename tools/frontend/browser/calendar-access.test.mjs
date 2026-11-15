@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { owner, create, logout, sessionCookie } from './calendar-fixture.mjs';
+import { owner, create, logout, sessionCookie, expectedLoginDestination } from './calendar-fixture.mjs';
 
 // Registered in the production-stack suite to share its isolated lifecycle.
 export function registerCalendarAccessScenarios(environment) {
@@ -35,7 +35,7 @@ export function registerCalendarAccessScenarios(environment) {
       // Given a role or temporary session without calendar administration authority.
       const { page, accounts, signIn, frontendUrl, context } = environment();
       const account = accounts.find(item => item.username === username);
-      await signIn(account, account.restricted ? '/change-password' : '/my-page');
+      await signIn(account, expectedLoginDestination(account));
       const id = '00000000-0000-4000-8000-000000000001';
 
       // When direct creation/preview routes and direct BFF reads bypass navigation controls.
