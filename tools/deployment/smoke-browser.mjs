@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { chromium } from '../../src/frontend/node_modules/playwright/index.mjs';
 import { capturePageErrors } from '../frontend/browser/page-errors.mjs';
 import { readVersion } from './version.mjs';
+import { navigateDocument } from './release-browser-navigation.mjs';
 
 export async function verifyBrowser(stack) {
   const browser = await chromium.launch({ headless: true, channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined) });
@@ -59,14 +60,14 @@ export async function verifyBrowser(stack) {
       id: calendar.id, number: 1, title: 'Smoke gift', text: 'Persisted production image', imageAction: 'replace', imageData,
     });
     assert.equal(saved.status(), 200, await saved.text());
-    await page.goto(`${stack.origin}/calendars/${calendar.id}`, { waitUntil: 'networkidle' });
+    await navigateDocument(page, `${stack.origin}/calendars/${calendar.id}`);
     assert.equal(await page.locator('[aria-labelledby=selected-door-heading] img').count(), 1);
     await page.waitForFunction(() => document.querySelector('[aria-labelledby=selected-door-heading] img')?.naturalWidth > 0);
     // Only isolated fixtures can alter dates; Production's time bypass stays disabled.
     stack.run(['exec', stack.database, 'psql', '-U', 'postgres', '-d', stack.databaseName,
       '-v', 'ON_ERROR_STOP=1', '-c', `UPDATE calendars SET calendar_year=2020 WHERE id='${calendar.id}'`]);
     await context.clearCookies();
-    await signIn(page, stack.origin, recipient);
+    await signIn(page, stack.origin, recipient, `/my-calendars/${calendar.id}`);
     const session = await query(context, stack.origin, 'auth.session');
     const input = { id: calendar.id, number: 1, scope: session.cacheScope };
     const denied = await context.request.post(`${stack.origin}/api/trpc/recipient.open`, { data: input });
@@ -92,7 +93,7 @@ async function verifyFooter(page, context, origin, routes, version) {
     for (const [locale, label] of [['nb', 'Versjon'], ['en', 'Version']]) {
       await context.addCookies([{ name: 'PARAGLIDE_LOCALE', value: locale, url: origin }]);
       for (const route of routes) {
-        const response = await page.goto(origin + route, { waitUntil: 'networkidle' });
+        const response = await navigateDocument(page, origin + route);
         assert.equal(response.status(), 200);
         assert((await response.text()).includes(version), 'Version is server rendered');
         assert.equal(await page.locator('footer').textContent(), `${label} ${version}`);
@@ -106,17 +107,17 @@ async function verifyFooter(page, context, origin, routes, version) {
   await context.addCookies([{ name: 'PARAGLIDE_LOCALE', value: 'nb', url: origin }]);
 }
 
-async function signIn(page, origin, account) {
-  await page.goto(`${origin}/login`, { waitUntil: 'networkidle' });
+async function signIn(page, origin, account, destination = '/my-page') {
+  await navigateDocument(page, `${origin}/login`);
   await page.getByLabel('Brukernavn').fill(account.username);
   await page.getByLabel('Passord', { exact: true }).fill(account.password);
   await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
-  await page.waitForURL(`${origin}/my-page`);
+  await page.waitForURL(origin + destination);
   await page.waitForLoadState('networkidle');
 }
 
 async function assertProtected(page, origin, version) {
-  const response = await page.goto(`${origin}/my-page`, { waitUntil: 'networkidle' });
+  const response = await navigateDocument(page, `${origin}/my-page`);
   assert.equal(new URL(page.url()).pathname, '/my-page');
   assert.match(response.headers()['cache-control'], /no-store/);
   assert((await response.text()).includes('browser-superadmin'));
