@@ -36,6 +36,7 @@ export function getRouter() {
         openRecipientDoor: caller.recipient.open,
         login: caller.auth.login,
         changePassword: caller.auth.changePassword,
+        completePasswordSetup: caller.auth.completePasswordSetup,
         logout: () => caller.auth.logout(),
         reauthenticate: caller.auth.reauthenticate,
         createAccount: caller.accounts.create,

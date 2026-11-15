@@ -6,6 +6,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
 import { registerLocalizationScenarios } from './localization.test.mjs';
+import { selectLanguage } from './localization-fixture.mjs';
 import { registerAuthenticationLocalizationScenarios } from './localization-auth.test.mjs';
 import { registerCalendarLocalizationScenarios } from './localization-calendar.test.mjs';
 import { registerLocalizationHotUpdateScenario } from './localization-hot-update.test.mjs';
@@ -24,6 +25,7 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { registerRequiredPasswordSetupScenarios } from './required-password-setup.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
 import { registerLoginProgressScenarios } from './login-progress.test.mjs';
 import { registerLoginRoutingScenarios } from './login-routing.test.mjs';
@@ -204,7 +206,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 0);
     assert.equal((await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
     const replacement = `Fresh!Ærlig${randomUUID()}`;
-    await page.getByLabel('Nåværende passord').fill(account.password);
+    assert.equal(await page.locator('#currentPassword').count(), 0);
     await page.getByLabel('Nytt passord').fill('Password123456!');
     await page.getByRole('button', { name: 'Bytt passord', exact: true }).click();
     await page.locator('#newPassword[aria-invalid=true]').waitFor();
@@ -223,14 +225,14 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
   test('Given an invalid password, When the language changes, Then generic localized errors and accessible field validation appear', async () => {
     // Given the sign-in form in Norwegian.
-    await page.goto(`${frontendUrl}/login`);
+    await page.goto(`${frontendUrl}/login`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Logg inn' }).click();
+    await page.locator('input[aria-invalid=true]').nth(1).waitFor();
     assert.equal(await page.locator('input[aria-invalid=true]').count(), 2);
 
     // When an unknown account submits an incorrect credential in each language.
     for (const locale of ['nb', 'en']) {
-      await page.getByRole('combobox').selectOption(locale);
-      await page.waitForLoadState('networkidle');
+      if (await page.getByRole('combobox').inputValue() !== locale) await selectLanguage(page, locale);
       await page.locator('input[name=username]').fill('unknown-account');
       await page.locator('input[name=password]').fill('Wrong!ButMasked');
       await page.getByRole('button', { name: locale === 'nb' ? 'Logg inn' : 'Log in', exact: true }).click();
@@ -323,7 +325,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     command(dotnet, [fixtureDll, 'expire', account.username], environment);
 
     // When the former credential is submitted through the normal sign-in form.
-    await page.goto(`${frontendUrl}/login`);
+    await page.goto(`${frontendUrl}/login`, { waitUntil: 'networkidle' });
     await page.getByLabel('Brukernavn').fill(account.username);
     await page.getByLabel('Passord', { exact: true }).fill(account.password);
     await page.getByRole('button', { name: 'Logg inn', exact: true }).click();
@@ -973,6 +975,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   });
   registerCredentialTransportScenarios(calendarEnvironment);
   registerPasswordLifecycleScenarios(calendarEnvironment);
+  registerRequiredPasswordSetupScenarios(calendarEnvironment);
   registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);

@@ -2,7 +2,7 @@ import { useForm } from '@tanstack/react-form';
 import { LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import * as m from '../generated/paraglide/messages.js';
-import { changePasswordInput, loginInput } from '../lib/auth-input';
+import { changePasswordInput, completePasswordSetupInput, loginInput } from '../lib/auth-input';
 import { leaveSession } from '../lib/auth-navigation';
 import { createLoginTransition } from '../lib/login-transition';
 import type { RouterContext } from '../router';
@@ -13,10 +13,12 @@ import { Input } from './ui/input';
 export function CredentialForm({
   context,
   changePassword = false,
+  requiredSetup = false,
   administrator = false,
 }: {
   context: RouterContext;
   changePassword?: boolean;
+  requiredSetup?: boolean;
   administrator?: boolean;
 }) {
   const [failure, setFailure] = useState('');
@@ -39,7 +41,7 @@ export function CredentialForm({
           type: 'password',
           autocomplete: 'new-password',
         },
-      ]
+      ].filter((field) => !requiredSetup || field.name !== 'currentPassword')
     : [
         {
           name: 'username' as const,
@@ -58,10 +60,17 @@ export function CredentialForm({
     defaultValues: { username: '', password: '', currentPassword: '', newPassword: '' },
     validators: {
       onSubmit: ({ value }) => {
-        const input = changePassword
-          ? { currentPassword: value.currentPassword, newPassword: value.newPassword }
-          : { username: value.username, password: value.password };
-        const result = (changePassword ? changePasswordInput : loginInput).safeParse(input);
+        const input = requiredSetup
+          ? { newPassword: value.newPassword }
+          : changePassword
+            ? { currentPassword: value.currentPassword, newPassword: value.newPassword }
+            : { username: value.username, password: value.password };
+        const schema = requiredSetup
+          ? completePasswordSetupInput
+          : changePassword
+            ? changePasswordInput
+            : loginInput;
+        const result = schema.safeParse(input);
         if (!result.success) {
           if (!changePassword && loginTransition.authenticated) return undefined;
           return {
@@ -80,10 +89,14 @@ export function CredentialForm({
       setFailure('');
       try {
         if (changePassword) {
-          await context.auth.changePassword({
-            currentPassword: value.currentPassword,
-            newPassword: value.newPassword,
-          });
+          if (requiredSetup) {
+            await context.auth.completePasswordSetup({ newPassword: value.newPassword });
+          } else {
+            await context.auth.changePassword({
+              currentPassword: value.currentPassword,
+              newPassword: value.newPassword,
+            });
+          }
           formApi.reset();
           leaveSession(context, '/login?changed=1');
         } else {

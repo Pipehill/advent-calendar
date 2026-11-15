@@ -13,6 +13,7 @@ public sealed class AuthenticationService(
     ISessionService sessions,
     AccountCredentialService credentials,
     PasswordAttempts attempts,
+    IPasswordVerification verifier,
     TimeProvider time,
     ILogger<AuthenticationService> logger
 ) : IAuthenticationService
@@ -160,6 +161,69 @@ public sealed class AuthenticationService(
             },
             cancellationToken
         );
+    }
+
+    public async Task CompletePasswordSetupAsync(
+        SessionIdentity? identity,
+        string? newPassword,
+        CancellationToken cancellationToken
+    )
+    {
+        var actor = await transaction.RunAsync(
+            () => RequirePasswordSetupAsync(identity),
+            cancellationToken
+        );
+        await credentials.ValidatePasswordAsync(actor.Account.Role, newPassword, "newPassword");
+        // A failed comparison proves that the proposal differs. It is not an
+        // authentication attempt and must never add to persisted login failures.
+        if (
+            await verifier.VerifyAsync(actor.Account, newPassword!)
+            != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed
+        )
+            throw new AccountFailureException(
+                AccountFailure.Conflict,
+                "Replacement password must differ",
+                "newPassword"
+            );
+        var hash = credentials.HashPassword(actor.Account, newPassword!);
+        await transaction.RunAsync(
+            async () =>
+            {
+                var current = await RequirePasswordSetupAsync(identity);
+                if (!attempts.Matches(current.Account, actor.Account))
+                    throw new AccountFailureException(
+                        AccountFailure.Conflict,
+                        "Account changed; sign in again"
+                    );
+                await credentials.ReplacePasswordAsync(current.Account.Id, hash, temporary: false);
+                SecurityLog.Event(
+                    logger,
+                    "complete-password-setup",
+                    current.Account.Id,
+                    current.Account.Id,
+                    "accepted"
+                );
+                return true;
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task<AuthenticatedAccount> RequirePasswordSetupAsync(SessionIdentity? identity)
+    {
+        var actor = await sessions.RequireAsync(identity, unrestricted: false);
+        if (
+            !actor.Session.Restricted
+            || !actor.Account.MustChangePassword
+            || actor.Account.TemporaryPasswordExpiresAt is null
+            || actor.Account.TemporaryPasswordExpiresAt <= time.GetUtcNow()
+            || actor.Account.LockedUntil > time.GetUtcNow()
+        )
+            throw new AccountFailureException(
+                AccountFailure.Forbidden,
+                "Required password setup is not permitted"
+            );
+        return actor;
     }
 
     public Task<bool> LogoutAsync(SessionIdentity? identity, CancellationToken cancellationToken) =>

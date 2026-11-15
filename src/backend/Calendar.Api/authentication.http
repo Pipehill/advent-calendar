@@ -20,7 +20,14 @@ GET {{baseUrl}}/auth/csrf
 ### Restricted sessions may inspect themselves.
 GET {{baseUrl}}/auth/session
 
-### Requires a different password; all sessions are revoked, then log in again.
+### Required setup: the restricted session proves login; send only the new password.
+POST {{baseUrl}}/auth/complete-password-setup
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{"newPassword":"{{newPassword}}"}
+
+### Voluntary change verifies the current password; both flows require fresh login.
 POST {{baseUrl}}/auth/change-password
 Content-Type: application/json
 X-CSRF-TOKEN: {{csrfToken}}

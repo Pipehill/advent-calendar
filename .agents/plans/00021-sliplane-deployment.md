@@ -1,16 +1,19 @@
 # 00021: Deploy the application on Sliplane Starter
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
-Last updated: 2026-11-14
+Last updated: 2026-11-15
 
 Implementation type: feature
 
 ## Implementation progress
 
 The implementation branch is `feature/sliplane-deployment`, based on synchronized
-`main`. Owner-operated infrastructure and live verification remain separate gates;
-do not mark this plan implemented before its required live evidence exists.
+`main`. The owner explicitly accepted this plan as implemented on 2026-11-15
+and requested this status update alongside plan 00023. The unchecked owner/live
+verification entries below remain an accurate record of evidence not collected
+by the agent; acceptance does not manufacture production measurements or change
+their recorded outcomes.
 
 - [x] Iteration 1: canonical version, checked mirrors, build metadata and localized
   footer. Verify version drift/update tests, generation and frontend checks.

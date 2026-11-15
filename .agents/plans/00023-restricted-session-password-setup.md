@@ -1,8 +1,10 @@
 # 00023: Complete required password setup using the restricted session
 
-Status: Not implemented
+Status: Implemented (2026-11-15)
 
 Last updated: 2026-11-15
+
+Implementation type: feature
 
 After a temporary-password login, ask only for the replacement password. The
 backend-validated restricted session proves the successful login, so the user
@@ -108,11 +110,59 @@ This plan can be implemented independently of release and recipient UI plans.
 the changes. [Plan 00025](00025-recipient-interface-and-locked-door-feedback.md)
 removes the calendar-user password button but does not remove the voluntary API.
 
-- [ ] Implement the authored operation, backend security transaction and direct
-  integration tests before wiring the BFF and form.
-- [ ] Add BFF/schema tests and localized form/browser coverage for both modes.
-- [ ] Update current rules/examples and record actual verification in the backend
-  and frontend verification records under the normal quality workflow.
+- [x] Iteration 1: implement the authored operation and backend security transaction;
+  verify generated contracts and direct integration/security race tests, then commit.
+- [x] Iteration 2: add the strict BFF/schema operation and localized form modes;
+  verify unit tests, type/build checks and actual browser coverage, then commit.
+- [x] Iteration 3: update current rules/examples and verification records; complete
+  full tests, lint, baseline comparison and committed-head regression review,
+  update the plan/index and publish the draft PR.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices and deferred any discovered clarification
+  to explicit documentation in each PR description. No questions will interrupt
+  these implementations. Each plan gets its own branch and PR against `main`.
+- The owner explicitly requested marking plan 00021 implemented in this PR.
+  Record that acceptance without inventing live deployment measurements or
+  changing unchecked historical verification obligations into passing evidence.
+- Initial source: `58fc70b` on clean, synchronized `main`. Baseline captured before
+  edits under `quality-reports/health/baseline`; previous baseline archived as
+  `baseline-before-00023-20261115`.
+- Iteration 1 verification: generated contract and Release compilation pass;
+  42 setup/concurrency cases pass after formatting, and the broader authentication
+  selection passed 86 cases before the final assertion-helper extraction.
+  Both administrator roles, strict payloads, CSRF, persisted eligibility, paused
+  accounts, concurrent completion/reset/disable/role changes and deadline expiry
+  during comparison and actual hashing are covered. No migrations changed.
+- Extracted the shared one-winner race assertion and separated setup boundary and
+  concurrency suites after inspecting duplication. The remaining new clone is
+  11 import/namespace/class declaration lines shared with existing test suites;
+  preserving required imports and separate behavioral suites is intentional.
+- Iteration 2 verification: 265 frontend/BFF tests, Biome and the production
+  Vite/TypeScript/Nitro build pass. Five focused production browser scenarios pass;
+  the complete suite has also passed all four new Norwegian/English setup cases.
+  Actual wire assertions show only `newPassword`; keyboard/mobile, same/weak
+  field errors, revocation, fresh login and retained voluntary fields pass.
+  The English fixture now explicitly awaits document navigation before using
+  translated fields to avoid an old-document race.
+- Final verification: all 444 backend tests pass on both Debug and Release,
+  265 frontend/BFF tests pass, and 112 complete production browser scenarios plus
+  eight smoke checks pass without page/hydration errors. Generated contracts,
+  Release build/publish, solution format/analyzers, TypeScript/Nitro/Biome and
+  full repository quality checks pass. A Release build initially hit Windows DLL
+  locks from the browser API; rerunning after fixture cleanup succeeds with zero
+  warnings/errors. No source workaround or weakened check was introduced.
+- Advisory application health improves 92.1 to 92.3; tooling improves 49.6 to 49.9.
+  Declaration-only application duplication increases 145 to 156 lines, 15 to 16
+  clones and 0.71637% to 0.74381%. Maximum file complexity and heuristic finding
+  counts remain unchanged. Full identities, configuration, raw clone details and
+  supported-dimension limits remain in ignored quality reports.
+- Independent frontend/BFF and backend security reviews found no remaining
+  actionable issues. Physical devices/assistive technology and native macOS/Linux
+  hosts remain unverified; mobile coverage uses Windows Edge emulation.
+- All implementation iterations are complete. Publish the committed-head review
+  and draft PR; leave merging to the owner.
 
 ## Verification
 

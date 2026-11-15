@@ -474,8 +474,8 @@ sequenceDiagram
     API-->>BFF: Auth result and backend-issued Set-Cookie
     BFF-->>Browser: tRPC result and separate Set-Cookie headers at public origin
     opt Temporary password requires change before normal access
-        Browser->>BFF: Change password with current temporary password and CSRF token
-        BFF->>API: Allowlisted cookies/token and password-change input
+        Browser->>BFF: Complete required setup with only new password and CSRF token
+        BFF->>API: Allowlisted restricted-session cookies/token and new password
         API->>DB: Atomically replace credential and revoke all sessions
         API-->>Browser: Clear authentication through BFF and require new login
         Browser->>BFF: Login with new password and refreshed CSRF token

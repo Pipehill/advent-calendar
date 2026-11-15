@@ -125,7 +125,10 @@ fall back to My page, while session-service errors offer a fixed GET retry link.
 A navigation retry never replays accepted login credentials. Calendar-user
 creation/reset supplies a permanent password without required setup; the user
 can keep it or change it later.
-Own-password change revokes all sessions and requires a fresh login.
+Required setup renders only the new-password field and uses the persisted
+restricted session without retaining or replaying the login password. Voluntary
+change still renders and verifies the current password. Both operations revoke
+all sessions and require a fresh login.
 Protected pages include logout. Forms use maintained shadcn/ui inputs,
 accessible labels/errors, password autofill and Norwegian/English messages.
 

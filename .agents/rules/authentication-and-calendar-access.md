@@ -65,8 +65,9 @@ behavior to plan 00008.
   hold the ordinary role. Apply list filtering in SQL and recheck target role and
   responsibility when committing a reset. Superadmins may list all accounts and
   reset, enable/disable or change roles of nonsuperadmin accounts. Other-account
-  superadmin maintenance remains manual; every user may change their own password
-  after current-password verification. Return only authorized public metadata.
+  superadmin maintenance remains manual; voluntary own-password changes require
+  current-password verification. Required setup has the narrow restricted-session
+  exception described below. Return only authorized public metadata.
 - Preserve responsibility through promotion and later demotion. On first entry to
   the ordinary role, require superadmin assignment; on returning, require the
   original responsible account still to be a calendaradmin. Block calendaradmin
@@ -112,9 +113,13 @@ behavior to plan 00008.
   bypass the restriction. Login/activity cannot extend the credential deadline.
   Expiry retains the mandatory-change flag, account and username reservation;
   a fresh authorized reset is needed after credential expiry.
-- Own-password change verifies the current password, requires a different compliant
-  password, clears the temporary restriction atomically, revokes all sessions and
-  requires a new login. A later reset supersedes every previous credential and
+- Voluntary own-password change verifies the current password. Required setup
+  instead accepts only a different compliant new password through
+  `/auth/complete-password-setup`; the live restricted session proves the prior
+  login. Recheck mandatory state, session/credential deadlines, lockout and account
+  version/hash/role before committing. Never retain or replay the login password.
+  Both operations atomically clear temporary state, revoke all sessions and
+  require a new login. A later reset supersedes every previous credential and
   restricted session. Reject expired authorization rather than restoring access.
 - Every promotion to calendaradmin replaces the credential with a different
   administrator-compliant temporary password supplied by superadmin and unknown
