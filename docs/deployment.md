@@ -135,14 +135,33 @@ of browser forwarding headers. Backend forwarding processes only that scheme,
 with one trusted hop, before the HTTPS/authentication guards. It does not trust
 client-selected host/IP/identity chains; resource limits retain the actual BFF peer.
 
-Inspect the backend's actual BFF peer after frontend replacement and configure
-that exact IP or the narrow server-container CIDR (IPv4 /24 or narrower, IPv6 /64
-or narrower). Sliplane's edge gateway range is a different hop; do not copy it as
-backend BFF trust. Recheck after replacement. Verify host-only Secure cookies,
+Inspect the backend's actual BFF peer and the frontend's interface CIDR. Prefer a
+verified server-container network (IPv4 /16 or narrower, IPv6 /64 or narrower)
+when frontend replacement changes its IP. Trust a network only when all services
+in it are controlled and trusted: any member can assert the original HTTPS scheme.
+Keep backend private and never infer the network mask from an individual IP.
+Sliplane's edge gateway range is a different hop; do not copy it as backend BFF
+trust. Recheck the network after server/network changes. Exact-IP configurations
+must be rechecked after each frontend replacement. Verify host-only Secure cookies,
 separate Set-Cookie headers, real login/CSRF, no-store and protected SSR through
 the actual edge. Shared peer budgets initially allow two hashing operations in
 flight and 30 authentication writes/minute per peer; measure normal simultaneous
 logins before changing limits.
+
+For the owner-confirmed frontend interfaces on 2026-11-15, the networks are
+`172.18.0.0/16` and `fd74:e4a2:35b7::/64`. After deploying backend support for IPv4
+`/16`, replace the old `Hosting__KnownProxies__*` entries with:
+
+```text
+Hosting__KnownNetworks__0=172.18.0.0/16
+Hosting__KnownNetworks__1=fd74:e4a2:35b7::/64
+```
+
+Apply these values only to that verified deployment, then redeploy backend and
+verify CSRF issuance and login. Older backend versions reject IPv4 networks wider
+than `/24` before startup; retain working exact-IP settings until the updated
+backend is deployed. No default network is trusted automatically. Login,
+authorization, CSRF and peer-based resource budgets remain enforced.
 
 ## Restricted database initialization
 
