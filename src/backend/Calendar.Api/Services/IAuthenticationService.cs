@@ -20,5 +20,10 @@ public interface IAuthenticationService
         string? newPassword,
         CancellationToken cancellationToken
     );
+    Task CompletePasswordSetupAsync(
+        SessionIdentity? identity,
+        string? newPassword,
+        CancellationToken cancellationToken
+    );
     Task<bool> LogoutAsync(SessionIdentity? identity, CancellationToken cancellationToken);
 }

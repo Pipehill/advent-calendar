@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Calendar.Api.Generated;
 using Calendar.Security;
@@ -76,6 +77,26 @@ internal sealed class AuthTestContext : IAsyncDisposable
             }
         );
         return new(id, username, password, role);
+    }
+
+    public async Task<TestAccount> ProvisionTemporaryAsync(string role = AccountRoles.Administrator)
+    {
+        var account = await ProvisionAsync(role);
+        await ExecuteAsync(
+            "UPDATE accounts SET must_change_password = true, temporary_password_expires_at = @Deadline WHERE id = @Id",
+            new { account.Id, Deadline = Time.GetUtcNow().AddMinutes(30) }
+        );
+        return account;
+    }
+
+    public static void AssertSinglePasswordReplacementWinner(HttpResponseMessage[] responses)
+    {
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.NoContent);
+        Assert.Single(
+            responses,
+            response =>
+                response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Conflict
+        );
     }
 
     public Task<int> ExecuteAsync(string sql, object? parameters = null) =>

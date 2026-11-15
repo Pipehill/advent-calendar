@@ -16,7 +16,11 @@ public sealed class AccountCredentialService(
     public string HashPassword(Account account, string password) =>
         manager.PasswordHasher.HashPassword(account, password);
 
-    public async Task ValidatePasswordAsync(string role, string? password)
+    public async Task ValidatePasswordAsync(
+        string role,
+        string? password,
+        string field = "password"
+    )
     {
         foreach (var validator in manager.PasswordValidators)
         {
@@ -29,7 +33,7 @@ public sealed class AccountCredentialService(
                 throw new AccountFailureException(
                     AccountFailure.InvalidInput,
                     result.Errors.First().Description,
-                    "password"
+                    field
                 );
         }
     }

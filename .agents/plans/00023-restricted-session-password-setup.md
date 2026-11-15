@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-15
 
+Implementation type: feature
+
 After a temporary-password login, ask only for the replacement password. The
 backend-validated restricted session proves the successful login, so the user
 does not have to type the temporary password a second time. Voluntary password
@@ -108,11 +110,36 @@ This plan can be implemented independently of release and recipient UI plans.
 the changes. [Plan 00025](00025-recipient-interface-and-locked-door-feedback.md)
 removes the calendar-user password button but does not remove the voluntary API.
 
-- [ ] Implement the authored operation, backend security transaction and direct
-  integration tests before wiring the BFF and form.
-- [ ] Add BFF/schema tests and localized form/browser coverage for both modes.
-- [ ] Update current rules/examples and record actual verification in the backend
-  and frontend verification records under the normal quality workflow.
+- [x] Iteration 1: implement the authored operation and backend security transaction;
+  verify generated contracts and direct integration/security race tests, then commit.
+- [ ] Iteration 2: add the strict BFF/schema operation and localized form modes;
+  verify unit tests, type/build checks and actual browser coverage, then commit.
+- [ ] Iteration 3: update current rules/examples and verification records; complete
+  full tests, lint, baseline comparison and committed-head regression review,
+  update the plan/index and publish the draft PR.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices and deferred any discovered clarification
+  to explicit documentation in each PR description. No questions will interrupt
+  these implementations. Each plan gets its own branch and PR against `main`.
+- The owner explicitly requested marking plan 00021 implemented in this PR.
+  Record that acceptance without inventing live deployment measurements or
+  changing unchecked historical verification obligations into passing evidence.
+- Initial source: `58fc70b` on clean, synchronized `main`. Baseline captured before
+  edits under `quality-reports/health/baseline`; previous baseline archived as
+  `baseline-before-00023-20261115`.
+- Iteration 1 verification: generated contract and Release compilation pass;
+  42 setup/concurrency cases pass after formatting, and the broader authentication
+  selection passed 86 cases before the final assertion-helper extraction.
+  Both administrator roles, strict payloads, CSRF, persisted eligibility, paused
+  accounts, concurrent completion/reset/disable/role changes and deadline expiry
+  during comparison and actual hashing are covered. No migrations changed.
+- Extracted the shared one-winner race assertion and separated setup boundary and
+  concurrency suites after inspecting duplication. The remaining new clone is
+  11 import/namespace/class declaration lines shared with existing test suites;
+  preserving required imports and separate behavioral suites is intentional.
+- Next unfinished step: iteration 2 browser regression verification and commit.
 
 ## Verification
 
