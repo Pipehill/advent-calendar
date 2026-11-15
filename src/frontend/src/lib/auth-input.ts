@@ -6,8 +6,7 @@ export const loginInput = z.strictObject({
   password,
 });
 
-export const changePasswordInput = z.strictObject({
-  currentPassword: password,
+export const completePasswordSetupInput = z.strictObject({
   newPassword: z.string().refine((value) => {
     const length = [...value].length;
     return (
@@ -18,4 +17,8 @@ export const changePasswordInput = z.strictObject({
       /[\p{P}\p{S}]/u.test(value)
     );
   }),
+});
+
+export const changePasswordInput = completePasswordSetupInput.extend({
+  currentPassword: password,
 });

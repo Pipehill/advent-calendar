@@ -20,6 +20,7 @@ import { registerCredentialTransportScenarios } from './credential-transport.tes
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
+import { registerRequiredPasswordSetupScenarios } from './required-password-setup.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -198,7 +199,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
     assert.equal(await page.getByRole('button', { name: /^Lag ny/ }).count(), 0);
     assert.equal((await context.request.get(`${frontendUrl}/api/trpc/accounts.list?input=${encodeURIComponent(JSON.stringify({ offset: 0, limit: 50 }))}`)).status(), 403);
     const replacement = `Fresh!Ærlig${randomUUID()}`;
-    await page.getByLabel('Nåværende passord').fill(account.password);
+    assert.equal(await page.locator('#currentPassword').count(), 0);
     await page.getByLabel('Nytt passord').fill('Password123456!');
     await page.getByRole('button', { name: 'Bytt passord', exact: true }).click();
     await page.locator('#newPassword[aria-invalid=true]').waitFor();
@@ -965,6 +966,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   });
   registerCredentialTransportScenarios(calendarEnvironment);
   registerPasswordLifecycleScenarios(calendarEnvironment);
+  registerRequiredPasswordSetupScenarios(calendarEnvironment);
   registerSystemCalendarScenarios(calendarEnvironment);
   registerCalendarRecipientScenarios(calendarEnvironment);
   registerCalendarCreationScenarios(calendarEnvironment);

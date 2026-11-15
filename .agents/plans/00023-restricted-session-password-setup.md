@@ -112,7 +112,7 @@ removes the calendar-user password button but does not remove the voluntary API.
 
 - [x] Iteration 1: implement the authored operation and backend security transaction;
   verify generated contracts and direct integration/security race tests, then commit.
-- [ ] Iteration 2: add the strict BFF/schema operation and localized form modes;
+- [x] Iteration 2: add the strict BFF/schema operation and localized form modes;
   verify unit tests, type/build checks and actual browser coverage, then commit.
 - [ ] Iteration 3: update current rules/examples and verification records; complete
   full tests, lint, baseline comparison and committed-head regression review,
@@ -139,7 +139,15 @@ removes the calendar-user password button but does not remove the voluntary API.
   concurrency suites after inspecting duplication. The remaining new clone is
   11 import/namespace/class declaration lines shared with existing test suites;
   preserving required imports and separate behavioral suites is intentional.
-- Next unfinished step: iteration 2 browser regression verification and commit.
+- Iteration 2 verification: 265 frontend/BFF tests, Biome and the production
+  Vite/TypeScript/Nitro build pass. Five focused production browser scenarios pass;
+  the complete suite has also passed all four new Norwegian/English setup cases.
+  Actual wire assertions show only `newPassword`; keyboard/mobile, same/weak
+  field errors, revocation, fresh login and retained voluntary fields pass.
+  The English fixture now explicitly awaits document navigation before using
+  translated fields to avoid an old-document race.
+- Next unfinished step: complete full regressions, final documentation/status
+  commit and committed-head review before PR publication.
 
 ## Verification
 
