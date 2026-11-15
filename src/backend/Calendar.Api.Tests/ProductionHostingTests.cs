@@ -66,7 +66,8 @@ public sealed class ProductionHostingTests
     [InlineData("::", null)]
     [InlineData(null, "0.0.0.0/0")]
     [InlineData(null, "10.0.0.0/8")]
-    [InlineData(null, "172.18.0.0/16")]
+    [InlineData(null, "172.18.0.0/15")]
+    [InlineData(null, "fd74:e4a2:35b7::/63")]
     [InlineData(null, "::/0")]
     public void RejectBroadProxyTrust(string? proxy, string? network)
     {
@@ -137,14 +138,32 @@ public sealed class ProductionHostingTests
     }
 
     [Theory(
-        DisplayName = "Given a forwarded HTTPS scheme, When the actual peer is checked, Then only the trusted BFF can change scheme while host and client IP remain unchanged"
+        DisplayName = "Given a forwarded HTTPS scheme, When the actual peer is checked, Then only an explicitly trusted peer or network can change scheme while host and client IP remain unchanged"
     )]
-    [InlineData("10.12.0.4", "https")]
-    [InlineData("10.12.0.5", "http")]
-    public async Task ForwardedSchemeChecksActualPeer(string peer, string expectedScheme)
+    [InlineData("10.12.0.4", null, "10.12.0.4", "https")]
+    [InlineData("10.12.0.4", null, "10.12.0.5", "http")]
+    [InlineData(null, "172.18.0.0/16", "172.18.0.4", "https")]
+    [InlineData(null, "172.18.0.0/16", "172.18.0.5", "https")]
+    [InlineData(null, "172.18.0.0/16", "172.18.255.254", "https")]
+    [InlineData(null, "172.18.0.0/16", "::ffff:172.18.0.5", "https")]
+    [InlineData(null, "172.18.0.0/16", "172.17.255.254", "http")]
+    [InlineData(null, "172.18.0.0/16", "172.19.0.1", "http")]
+    [InlineData(null, "172.18.0.0/24", "172.18.0.5", "https")]
+    [InlineData(null, "172.18.0.0/24", "172.18.1.5", "http")]
+    [InlineData(null, "fd74:e4a2:35b7::/64", "fd74:e4a2:35b7::4", "https")]
+    [InlineData(null, "fd74:e4a2:35b7::/64", "fd74:e4a2:35b7::5", "https")]
+    [InlineData(null, "fd74:e4a2:35b7::/64", "fd74:e4a2:35b8::4", "http")]
+    public async Task ForwardedSchemeChecksActualPeer(
+        string? proxy,
+        string? network,
+        string peer,
+        string expectedScheme
+    )
     {
-        // Given a private HTTP hop with forged host and client-address chains.
-        var configuration = Configuration(new() { ["Hosting:KnownProxies:0"] = "10.12.0.4" });
+        // Given explicit peer/network trust and an HTTP hop with forged host and IP chains.
+        var configuration = Configuration(
+            new() { ["Hosting:KnownProxies:0"] = proxy, ["Hosting:KnownNetworks:0"] = network }
+        );
         var environment = WebApplication
             .CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production" })
             .Environment;
@@ -171,5 +190,8 @@ public sealed class ProductionHostingTests
     }
 
     private static IConfiguration Configuration(Dictionary<string, string?> values) =>
-        new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        // Null theory arguments represent absent settings, not empty array entries.
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(values.Where(entry => entry.Value is not null))
+            .Build();
 }

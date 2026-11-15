@@ -86,10 +86,10 @@ public static class ProductionHosting
                 !System.Net.IPNetwork.TryParse(entry.Value, out var network)
                 || !IsUnicast(network.BaseAddress)
                 || network.PrefixLength
-                    < (network.BaseAddress.AddressFamily == AddressFamily.InterNetwork ? 24 : 64)
+                    < (network.BaseAddress.AddressFamily == AddressFamily.InterNetwork ? 16 : 64)
             )
                 throw new InvalidOperationException(
-                    "Hosting:KnownNetworks requires a narrow server-container CIDR (IPv4 /24 or narrower, IPv6 /64 or narrower)."
+                    "Hosting:KnownNetworks requires a verified server-container CIDR (IPv4 /16 or narrower, IPv6 /64 or narrower)."
                 );
             options.KnownIPNetworks.Add(network);
         }

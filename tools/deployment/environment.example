@@ -23,6 +23,8 @@ Authentication__KeyCertificatePassword=<pfx-password>
 CalendarOpening__DisableTimeCheck=false
 Hosting__KnownProxies__0=<actual-bff-container-ip>
 # Alternative: Hosting__KnownNetworks__0=<verified-narrow-server-container-cidr>
+# Verified controlled networks may use IPv4 /16 or narrower and IPv6 /64 or narrower.
+# Network trust survives IP changes within that network; keep the backend private.
 # Inspect the pinned backend image's user/group before setting volume ownership:
 SLIPLANE_USER_ID=<backend-uid>
 SLIPLANE_GROUP_ID=<backend-gid>
