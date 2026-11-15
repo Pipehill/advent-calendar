@@ -25,6 +25,8 @@ import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs'
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
+import { registerLoginProgressScenarios } from './login-progress.test.mjs';
+import { registerLoginRoutingScenarios } from './login-routing.test.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const settings = readLocalSettings(root);
@@ -608,6 +610,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
 
     // When the localized form loads and is canceled.
     await page.getByLabel('Display name').waitFor();
+    await page.waitForLoadState('networkidle');
     assert.equal(await page.locator('#account-role').count(), 0);
     assert.equal(await page.getByLabel("Recipient's password", { exact: true }).getAttribute('type'), 'password');
     await page.getByText(/keep this password, or change it later/).waitFor();
@@ -965,6 +968,7 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   const calendarEnvironment = () => ({ page, context, accounts, frontendUrl, apiUrl, reports, signIn, mutation,
     revoke: revokeSessions,
     restartApi,
+    stopApi: () => stopChild(apiProcess),
     fixture: (...args) => command(dotnet, [fixtureDll, ...args], environment),
   });
   registerCredentialTransportScenarios(calendarEnvironment);
@@ -979,6 +983,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerDoorImageSecurityScenarios(calendarEnvironment);
   registerRecipientOpeningScenarios(calendarEnvironment);
   registerRecipientRefreshScenarios(calendarEnvironment);
+  registerLoginProgressScenarios(calendarEnvironment);
+  registerLoginRoutingScenarios(calendarEnvironment);
 
   test('Given the protected calendar stack, When the browser smoke suite runs, Then public languages and anonymous calendar denials remain intact', () => {
     // Given the same isolated API and production frontend used by authentication tests.
