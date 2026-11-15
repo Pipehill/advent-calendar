@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-15
 
+Implementation type: feature
+
 Keep the login form stable and visibly busy until authenticated navigation
 completes. After login, send a calendar user with exactly one assigned calendar
 directly to that calendar; use My page when there are multiple calendars. These
@@ -102,13 +104,38 @@ and `/change-password`; implement either first, then reconcile both modes.
 controls. [Plan 00026](00026-vite-development-language-switching.md) owns the inherited
 Vite language defect; this plan still verifies its new text in both languages.
 
-- [ ] Add destination-selection tests using current session/list behavior and
-  introduce the SSR post-login entry route.
-- [ ] Implement stable input/pending state and the accessible spinner.
-- [ ] Add deliberately delayed browser tests for both login and target-document
-  loading; adapt existing list/navigation helpers without hiding redirects.
-- [ ] Verify both frontend modes, update relevant frontend documentation and
-  record results in [frontend verification](../../src/frontend/verification.md).
+- [x] Iteration 1: add the SSR post-login entry route and destination helper;
+  verify live session, role, scoped assignment counts and failure cases with unit
+  tests before committing.
+- [ ] Iteration 2: preserve form values, latch pending navigation and add an
+  accessible localized spinner; verify frontend unit/type/build/lint checks and
+  commit the form change.
+- [ ] Iteration 3: add delayed login/document browser coverage and actual assignment
+  counts/races; adapt explicit helper destinations, verify production and focused
+  Vite behavior and commit the browser integration.
+- [ ] Iteration 4: update frontend documentation and verification, complete full
+  quality and advisory comparisons, commit completion and publish the PR.
+
+### Implementation decisions and resume record
+
+- The owner authorized autonomous choices without questions; record material
+  choices/uncertainties in this plan and the PR. Each implementation branches
+  independently from `main` and targets `main`.
+- Plan 00023 is green in PR #60 before this work begins. This branch starts from
+  synchronized clean `main` at `58fc70b`, keeping the PR independent rather than
+  including that unmerged implementation. Keep form edits focused so its required
+  setup mode can merge with this login-only behavior.
+- Use the planned `/login-complete` server entry and existing recipient list total
+  with limit two; no backend endpoint, schema, dependency or product filter changes.
+- Baseline captured before edits; prior baseline archived as
+  `quality-reports/health/baseline-before-00024-20261115`.
+- Iteration 1: nineteen destination-selection cases pass (32 focused navigation
+  tests; 270 frontend/BFF tests before the pending coordinator cases). Restrictions,
+  administrators, zero/one/many/inconsistent assignment totals, fresh scopes,
+  uncached reads and service/revocation failures are covered. Session service
+  errors retain a fixed GET retry link to `/login-complete`, never a login replay.
+  Route-tree generation and full TypeScript/build integration follow in iteration 2.
+- Next unfinished step: iteration 2 stable form/spinner and type/build integration.
 
 ## Verification
 
