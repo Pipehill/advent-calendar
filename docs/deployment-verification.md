@@ -26,7 +26,7 @@ counts remain 12 lines/two clones. Complexity score improves 63.9 to 64.7 and sh
 20.2, share rises 19.5% to 19.7%, and heuristic findings rise 22 to 23. The added
 70%-confidence unused-file finding is `release-tag-fixture.mjs`, directly imported
 by all three workflow suites. This shared simulator removes duplicated setup;
-the finding is a verified `.mjs` import-analysis limitation. Notes/publication
+the finding reflects the used-only-by-tests heuristic on a dedicated test fixture. Notes/publication
 suites were split and an introduced six-line clone removed before acceptance.
 
 Measurements use pinned jscpd 5.4.1 and configuration
