@@ -2,7 +2,7 @@
 
 Status: Not implemented
 
-Last updated: 2026-11-15
+Last updated: 2026-11-17
 
 Address three related calendar-user TODO items: remove the idle `recipient_hint`
 text, remove the change-password button from that role's interface, and explain
@@ -21,10 +21,12 @@ lifecycle from [plan 00020](00020-calendar-user-passwords.md).
    voluntary password-change authorization and its current-password check remain
    as defined in current rules and plan 00020.
 3. When a calendar user activates a time-locked door, visibly explain its opening
-   time. Use the requested Norwegian sentence:
-   “Du må vente til kl 7 den X. før du kan åpne denne luken.” Replace X with the
-   door's opening date in `Europe/Oslo`, subject to the date-format question below.
-   Provide the equivalent English interface message through maintained catalogs.
+   time. Use the approved Norwegian sentence:
+   “Du må vente til kl 7 den {date} før du kan åpne denne luken.” The approved
+   English equivalent is “You must wait until 07:00 on {date} before you can open
+   this door.” Maintain both messages in the interface catalogs. Format the
+   opening date as day and month, adding the year only when the opening year
+   differs from the current year in `Europe/Oslo`.
 4. Derive the displayed date from authorized backend `opensAt` metadata, not the
    door's screen position, browser timezone or current browser year. Keep backend
    enforcement of December N at 07:00 Oslo and the existing local time bypass.
@@ -38,19 +40,25 @@ lifecycle from [plan 00020](00020-calendar-user-passwords.md).
 
 ## Outstanding questions
 
-The owner explicitly deferred these choices on 2026-11-15. Proposed wording is
-not an agreed translation or date format.
-
-1. What should X contain: only a day number (`den 1.`), day/month (`den 1.
-   desember`) or a full date including year for old/future calendars? The supplied
-   template puts a period immediately after X, so choose final punctuation along
-   with the format. Proposed: day/month, adding the year when needed to distinguish
-   calendar years; keep the requested “kl 7” wording.
-2. Is the English message “You must wait until 07:00 on {date} before you can open
-   this door.” acceptable? It will use an English date rendered in Europe/Oslo,
-   while authored calendar content remains unchanged.
+None. The owner approved the date format, punctuation and English wording on
+2026-11-17; the confirmed choices are recorded below.
 
 ## Implementation details
+
+### Confirmed wording and date format
+
+The owner approved both proposals on 2026-11-17:
+
+- Use a localized day and full month name: `1. desember` in Norwegian and
+  `1 December` in English. Include the opening year only when it differs from the
+  current year, comparing both years in `Europe/Oslo`: `1. desember 2027` and
+  `1 December 2027`, for example, when the current Oslo year is 2026.
+- Norwegian: “Du må vente til kl 7 den 1. desember før du kan åpne denne luken.”
+  With a different opening year: “Du må vente til kl 7 den 1. desember 2027 før du
+  kan åpne denne luken.” Keep `kl 7`; there is no extra period after the date.
+- English: “You must wait until 07:00 on 1 December before you can open this
+  door.” With a different opening year: “You must wait until 07:00 on 1 December
+  2027 before you can open this door.”
 
 ### Current behavior and scope
 
@@ -87,9 +95,10 @@ not an agreed translation or date format.
    content opening is unavailable, while timing help is discoverable. Adjust
    `aria-disabled`, `aria-describedby` and dialog hints consistently; do not mark
    a locked tile as an available content-opening action just to receive a click.
-5. Format the authorized `opensAt` instant in Europe/Oslo and insert the chosen
-   date into a maintained message. Resolve the questions before finalizing literal
-   copy/tests. Avoid date arithmetic from door numbers or hardcoded UTC offsets.
+5. Format the authorized `opensAt` instant in Europe/Oslo and insert the approved
+   localized date into a maintained message. Compare its Oslo year with the
+   current Oslo year to decide whether to include the year. Avoid date arithmetic
+   from door numbers or hardcoded UTC offsets.
 6. Clear or replace timing feedback when another door is selected, the calendar
    changes, authorization fails or refreshed state no longer says locked. Keep
    existing next-opening/30-second/focus/reconnect refresh behavior. A local bypass
@@ -108,7 +117,7 @@ but intentionally leaves My page reachable, so test controls on both destination
 [Plan 00026](00026-vite-development-language-switching.md) owns the inherited
 development-language defect; it does not own this new message's translation.
 
-- [ ] Resolve date/punctuation and English wording.
+- [x] Resolve date/punctuation and English wording (owner approved 2026-11-17).
 - [ ] Remove idle guidance and role-inappropriate password controls.
 - [ ] Implement locked-door feedback using existing authorized metadata and
   update focused presentation and recipient browser cases.
@@ -120,7 +129,7 @@ development-language defect; it does not own this new message's translation.
 | Requirement | Evidence to collect during implementation |
 | --- | --- |
 | 1, 2 | Calendar users see neither idle hint nor change-password button on My page or recipient calendars in either language. Administrator password controls, all logout controls, opened marks and real progress/error statuses remain available. Voluntary API behavior/current-password checks remain covered. |
-| 3, 4 | Assert exact approved Norwegian/English output for early, same-day-before-07:00 and future-year doors, using non-Oslo browser/host timezones as well as Oslo. Both saved layouts show the date from `opensAt`, independently of tile order. |
+| 3, 4 | Assert exact approved Norwegian/English output for early, same-day-before-07:00 and different-year doors, using non-Oslo browser/host timezones as well as Oslo. Verify day/full-month formatting, Norwegian ordinal punctuation, no extra period after the date, and a year only when the opening year differs from the current Oslo year, including an Oslo/browser year-boundary case. Both saved layouts show the date from `opensAt`, independently of tile order. |
 | 5 | Pointer, touch, Enter and Space on a locked tile show timing feedback with zero opening/image writes, no new history, no hidden content in HTML/cache/dialog and no success animation. Empty-door activation does not show a false schedule warning. |
 | 4, 6 | Immediately before, at and after backend 07:00, refresh changes the state correctly; an already-open page becomes usable and stale warnings clear. Local bypass opens populated future doors normally; Production still rejects bypass configuration. Previously opened-but-now-locked doors keep history without exposing content. |
 | 5, 6 | Race opening against changed schedule/state, content removal, reassignment and session revocation. Only refreshed authorized locked state produces the timing message; other failures stay distinct and no protected content survives loss of access. |
