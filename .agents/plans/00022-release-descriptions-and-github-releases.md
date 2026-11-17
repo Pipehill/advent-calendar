@@ -1,6 +1,6 @@
 # 00022: Release descriptions and GitHub Releases
 
-Status: Not implemented
+Status: Implemented (2026-11-17)
 
 Last updated: 2026-11-17
 
@@ -147,7 +147,7 @@ No Release lookup is added to the preparation gate.
    note policy, partial-failure recovery and the distinction between tag, Release
    and live deployment. Preserve implemented plans unchanged. Review links and
    operational recovery against the implemented API behavior, then commit.
-5. [ ] Complete code/configuration verification under the shared quality rules;
+5. [x] Complete code/configuration verification under the shared quality rules;
    record final evidence in [deployment verification](../../docs/deployment-verification.md).
 
 ## Verification
