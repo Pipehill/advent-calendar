@@ -143,7 +143,7 @@ No Release lookup is added to the preparation gate.
    publication, Latest protection and retry recovery to Tag release; update the
    inline workflow test fixture for the new API calls. Verify provenance, ancestry,
    range, publication and recovery with the exact inline API fixture, then commit.
-4. [ ] Update [deployment operations](../../docs/deployment.md) with the resulting
+4. [x] Update [deployment operations](../../docs/deployment.md) with the resulting
    note policy, partial-failure recovery and the distinction between tag, Release
    and live deployment. Preserve implemented plans unchanged. Review links and
    operational recovery against the implemented API behavior, then commit.
@@ -181,6 +181,14 @@ health scope. MCP's proposed-snippet match is the numeric SemVer comparator also
 used by preparation; that small duplication preserves the API-only write-token
 boundary without executing checked-out code. Raw measurements remain local.
 
+Iteration 3: deployment operations now explain checkbox-free descriptions,
+immutable future-only scope, exact-range notes, stable publication/Latest policy
+and independent publication recovery. Final full quality checks, all 80 relevant
+release/version tests, saved-source checks and the advisory comparison passed.
+Evidence and material measurement/live limitations are recorded in deployment
+verification. No application/schema/dependency inputs changed, so application
+builds, database tests and live deployment were outside this verification scope.
+
 | Requirement | Evidence to collect during implementation |
 | --- | --- |
 | 1 | Fresh and refreshed PR bodies have zero task-list markers, valid identical release metadata and all original instruction/owner text. Cover checked and unchecked markers, repeated refresh and version/source changes. Existing metadata parser tests still pass. |
@@ -197,3 +205,12 @@ Release creation, lookup by tag and generated notes with a previous-tag input.
 These are API capabilities, not evidence that repository permissions or actual
 release-note contents have been verified. Recheck endpoint compatibility with the
 workflow's pinned API version during implementation.
+
+Rechecked on 2026-11-17: GitHub documents explicit `make_latest` control,
+first-publication notifications, tag lookup, authenticated draft listings and
+generated notes with `previous_tag_name`. The real note preview confirmed the
+existing pinned `2022-11-28` API version. Existing-tag Release creation omits the
+unused `target_commitish` to retain contents-only token compatibility when older
+workflow content differs from current main; the tag is re-verified immediately
+before publication. Workflow concurrency serializes automated finalization;
+manual tag/Release changes should not race it.

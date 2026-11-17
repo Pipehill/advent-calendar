@@ -1,5 +1,56 @@
 # Deployment verification
 
+## 2026-11-17: release descriptions and GitHub Releases (plan 00022)
+
+Implemented on `ci/release-descriptions-and-github-releases` from
+`eee0a165e3c0cdf01548dec0c2783fd2a583ae3e`. Verification used Windows, Node 24.20.0
+and the existing Podman quality image. No production Release was published and
+no hosting configuration or application/runtime behavior changed.
+
+| Check | Evidence/result |
+| --- | --- |
+| Release/version suites | 80/80 pass through `node --test tools/deployment/release*.test.mjs tools/deployment/version.test.mjs`. The API fixture runs the exact inline write-token workflow; unexpected API paths/mutations fail. Covers fresh/refreshed checkbox-free bodies, retained owner text/links/metadata, repeated refresh, version rules and existing validation. |
+| Publication provenance and range | Current mirror/merge/provenance/conflicting-tag cases reject before writes. Notes use the exact event merge, validated nearest deploy first-parent predecessor and paginated exact commits/associated source PRs. Initial history, historical predecessors without Releases, unrelated/newer/off-chain tags and later PR associations are covered. |
+| Retry/publication policy | Fixtures cover historical annotated/lightweight tags, delayed old events, immutable policy/workflow records, successful tag then failed publication/retry, existing owner edits, incompatible draft/prerelease metadata, concurrent 409/422 creation and genuine validation failures, forbidden/rate-limited reads/writes and changed tags. Stable publication and explicit Latest protection cover pagination, a newer release appearing during note generation, multi-digit versions, large integer components and manual tag names without `v`. |
+| Actual GitHub note preview | Requested generated notes for `v1.0.1...v1.0.2` using API version `2022-11-28`, without creating/editing a Release. Output includes source PRs #59, #60, #61, #62, #63 and #65 plus release wrapper #64. The exact comparison `1a4ed250e2355f05be148172ab1d680d56c2faee...3706b288bf690c4824f8026fdc38bef731805d96` contains those seven commits. Local raw evidence: `quality-reports/plan00022-generated-notes.json` and `quality-reports/plan00022-source-range.json`. |
+| Privilege boundary | Existing contents-write/PR-read permissions and serialized API-only finalization remain. No checkout, repository JavaScript execution, additional token or runtime dependency was introduced. Existing Releases and final tags are never updated. Release existence remains outside the preparation gate. |
+
+Full repository quality checks and saved-source checks passed after correcting
+YAML line lengths. The final mixed PR receives full quality/health verification;
+the prose-only completion commit does not substitute for these checks.
+
+Application health is unchanged at 92.5. Tooling health declines **50.7 to 50.5**
+(-0.2), with duplication improving 0.1019108280% to 0.0978792822% while absolute
+counts remain 12 lines/two clones. Complexity score improves 63.9 to 64.7 and share
+34.3% to 33.1%; maximum complexity stays 231. Dead-code score declines 20.7 to
+20.2, share rises 19.5% to 19.7%, and heuristic findings rise 22 to 23. The added
+70%-confidence unused-file finding is `release-tag-fixture.mjs`, directly imported
+by all three workflow suites. This shared simulator removes duplicated setup;
+the finding is a verified `.mjs` import-analysis limitation. Notes/publication
+suites were split and an introduced six-line clone removed before acceptance.
+
+Measurements use pinned jscpd 5.4.1 and configuration
+`8db8aa8fa36be20b014e5104f18362dd285bee0ba8f634e4501110eef8982478`.
+Application source hash remains
+`a43f58db31c6fb90642d080a7a5d4d88008bdfb1054c0deb0e02fee9b9f206ea`;
+baseline tooling hash is
+`d61c8b813e70cce4c55c2bdf54a96fb77871da6398f4af5ed8197df9963093bb`.
+Exact final input identities, per-scope measurements, raw clone/complexity/dead-code
+findings and the whole-repository reference remain in ignored
+`quality-reports/health/`. Working-tree MCP was refreshed before statistics and
+found no new clones. Proposed inline numeric SemVer code matches six lines in
+`release-api.mjs`; keeping this small comparator in the workflow preserves the
+API-only privilege boundary. YAML/inline JavaScript is outside authored-code
+health scoring and is instead exercised by the exact-workflow fixture and lint.
+
+Local evidence rehearses publication through API fixtures. GitHub documents that
+published Release creation sends ordinary notifications, but notification delivery
+and an actual future production Release under the Actions token are not claimed
+by fixtures or the read-only note preview. Earlier live deployment/platform
+limitations remain recorded in the historical sections below; no app/database
+build or live migration is needed for this tooling-only change. Verification
+containers use automatic removal; no images or database volumes are created.
+
 ## 2026-11-14: repository implementation for plan 00021
 
 Repository work is on `feature/sliplane-deployment`, based on

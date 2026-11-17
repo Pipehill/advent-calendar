@@ -283,8 +283,10 @@ No startup, migration, release script or production test creates accounts.
    tags numerically; resolve any prior merged release's missing tag first.
 4. Keep one release PR at a time. Its source remains live `main`; new commits rerun
    PR checks. An unchanged version can remain in the candidate. If VERSION changes,
-   rerun preparation to refresh only workflow-owned metadata, preserving owner
-   prose/checklist. A token-authored body edit does not itself restart PR tests:
+   rerun preparation to refresh workflow-owned metadata, preserving owner prose
+   and instructions. Preparation converts checked/unchecked task markers to
+   ordinary list markers in both new and existing descriptions, retaining the
+   associated text and links. A token-authored body edit does not itself restart PR tests:
    rerun failed validation in Actions after repairing stale metadata and approve
    pending runs when requested. Do not substitute preparation success.
 5. Wait for **Deploy readiness**, including candidate-merge provenance/tree/version
@@ -299,13 +301,61 @@ No startup, migration, release script or production test creates accounts.
 7. Finalization creates annotated `vX.Y.Z` on that event's exact `deploy` merge
    commit, even if branches later advance. A retry with the same tag/commit succeeds;
    a tag pointing elsewhere fails and must never be moved/deleted. Unmerged closure
-   creates no tag. Tagging and hosting progress independently: a tag identifies
-   source, not production health. Retry a failed finalization run after correcting
-   token/ruleset restrictions; this needs no new version or redeployment.
+   creates no tag. For eligible future tags, **Tag release** then publishes the
+   stable GitHub Release and returns its URL. Tagging, Release publication and
+   hosting progress independently. Retry a failed finalization run after correcting
+   token/ruleset restrictions; this needs no new version or redeployment. See
+   [publication recovery](#release-notes-and-publication-recovery) below.
 8. Inspect both running service commits, `/health/ready`, visible version footer
    before/after login, cookie/CSRF/SSR behavior and preserved account/calendar/image/
    opening data. Verify an existing session after backend replacement. Record
    version, tag/merge SHA, source SHA, running commits and results in verification.
+
+### Release notes and publication recovery
+
+Release notes are generated in English. GitHub's generated PR/contributor notes
+use the verified current version tag and the nearest earlier finalized stable
+tag on the deploy merge's first-parent history. An earlier tag does not need a
+GitHub Release to bound the comparison. Paginated commits from that exact range
+and their merged source PRs provide an additional source list, including changes
+behind a combined release PR and direct commits. Later main/deploy changes and
+unrelated tags do not change the range. An initial release with no predecessor
+uses its complete pinned source history rather than a guessed previous tag.
+Notes record the version, exact deploy merge, release PR and immutable comparison
+link. They record source identity; they do not attest to hosting or live checks.
+
+Publication applies only to future releases under policy `00022-v1`. When the
+policy marker exists in the workflow at the exact released merge, newly created
+annotated tags record `Release publication policy: 00022-v1` and the immutable
+workflow commit. That tag record survives retries. Existing unmarked annotated
+or lightweight tags stay historical, even if retried after rollout; a delayed
+pre-policy release event also stays outside publication scope. Historical tags
+remain valid comparison boundaries. Existing Releases remain unchanged; no
+historical backfill command is provided.
+
+If tagging succeeds but Release publication fails, the workflow fails visibly
+and its summary retains the successful tag result and recovery instructions.
+Correct the reported API/ruleset problem and rerun that **Tag release** run in
+Actions. Its original event still identifies the same deploy merge. Recovery
+publishes the missing Release without moving tags or redeploying Sliplane.
+Preparation continues to require final tags for merged releases; missing Releases
+are reported by finalization and do not introduce an additional preparation gate.
+A same-tag published stable Release is reused without rewriting its notes or
+republishing it, preserving owner edits. A same-tag draft/prerelease is reported
+for manual review rather than silently converted. Conflicting source tags always
+fail and must never be moved or deleted to make the workflow pass.
+
+New Releases publish automatically with ordinary GitHub first-publication
+notifications. There is no separate retry notification. A successful recovery of
+a missing Release is its first publication; a retry of an existing Release sends
+no publication request. Immediately before creation, the workflow refreshes the
+paginated Release list and re-verifies its exact tag. It explicitly avoids Latest
+when a higher stable published version exists, including older-version retries;
+the workflow concurrency group serializes automated publications. Keep manual
+Release/tag maintenance separate from a running finalization. The write-token
+job remains API-only with contents write and PR read, without checkout or executing
+repository code. GitHub's [Releases API](https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28)
+documents publication notifications, explicit Latest control and tag lookup.
 
 ## Backups, restore and credential rotation
 
