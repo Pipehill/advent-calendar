@@ -1,6 +1,6 @@
 # 00025: Simplify recipient controls and explain time-locked doors
 
-Status: Not implemented
+Status: Implemented (2026-11-17)
 
 Implementation type: feature
 
@@ -124,7 +124,7 @@ development-language defect; it does not own this new message's translation.
   verify translation generation, focused tests, lint and TypeScript.
 - [x] Iteration 2: implement locked-door feedback using existing authorized
   metadata; verify date formatting, security/race browser cases and type/build checks.
-- [ ] Iteration 3: recheck accessible/visual behavior and opening security in both frontend
+- [x] Iteration 3: recheck accessible/visual behavior and opening security in both frontend
   modes; record evidence in [frontend verification](../../src/frontend/verification.md).
   Run final full quality, all unit/backend tests, production build and advisory
   comparison, then commit completion metadata and review the committed PR head.
@@ -162,8 +162,23 @@ development-language defect; it does not own this new message's translation.
 - Routed browser tests release delayed responses and drain callbacks before
   returning, preventing fixture teardown from disposing their request context.
   The expanded full suite has a 15-minute bound instead of ten minutes; the
-  new timing/date/race scenarios add meaningful runtime. Final production
-  verification and the final advisory comparison remain for iteration 3.
+  new timing/date/race scenarios add meaningful runtime.
+- Final verification: all 148 production browser scenarios plus eight smoke
+  checks pass without page/hydration errors. The final production build, explicit
+  TypeScript, Biome, full repository quality, all 292 frontend/BFF unit tests,
+  all 444 backend tests and 19 focused Vite scenarios pass. Screenshots and
+  automated focus/viewport checks cover both layouts and languages; actual human
+  assistive-technology use and physical devices remain unverified.
+- Final advisory review: application health stays 92.5; tooling improves
+  50.5 to 51.0. Duplicated lines/clones stay 147/15 and 12/2, with unchanged
+  heuristic findings and maximum file complexity. Tooling complexity score
+  declines 64.7 to 64.1 and share rises 33.1% to 33.9% because the asynchronous
+  failure matrix and gated transport cleanup require extra control flow. Shared
+  assertions remove introduced duplication and behavior-focused suites retain
+  the needed lifecycle coverage. The concrete tradeoff and measurement limits
+  are recorded in frontend verification; raw reports preserve exact identities,
+  percentages and the whole-repository reference. Final committed-head review
+  and draft publication follow these completion updates.
 
 ## Verification
 
