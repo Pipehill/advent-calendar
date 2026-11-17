@@ -1,4 +1,5 @@
 name: Tag release
+# Release publication policy: 00022-v1
 on:
   pull_request:
     branches: [deploy]
@@ -49,11 +50,24 @@ jobs:
               body: body === undefined ? undefined : JSON.stringify(body),
             });
             if (response.status === 404 && method === 'GET') return null;
-            if (!response.ok) throw new Error(`GitHub API ${path}: HTTP ${response.status}`);
+            if (!response.ok) {
+              const error = new Error(`GitHub API ${path}: HTTP ${response.status}`);
+              error.status = response.status;
+              throw error;
+            }
             return response.json();
           };
-          const read = async path => {
-            const result = await api(`contents/${path}?ref=${sha}`);
+          const pages = async (path, select = value => value) => {
+            const values = [];
+            for (let page = 1; ; page++) {
+              const result = select(await api(`${path}${path.includes('?') ? '&' : '?'}per_page=100&page=${page}`));
+              if (!Array.isArray(result)) throw new Error(`Missing paginated release input ${path}`);
+              values.push(...result);
+              if (result.length < 100) return values;
+            }
+          };
+          const read = async (path, ref = sha) => {
+            const result = await api(`contents/${path}?ref=${ref}`);
             if (!result || result.encoding !== 'base64') throw new Error(`Missing release input ${path}`);
             return Buffer.from(result.content, 'base64').toString('utf8');
           };
@@ -78,28 +92,186 @@ jobs:
               !block?.match(/^Prepared source: [a-f0-9]{40}$/m)) throw new Error('Stale Prepare release metadata');
           if (merge?.parents.length !== 2 || merge.parents[1].sha !== pr.head.sha ||
               merge.tree.sha !== source?.tree.sha) throw new Error('Release was not a main-to-deploy merge commit');
+          const policy = 'Release publication policy: 00022-v1';
+          const resolveTag = async ref => {
+            let object = ref?.object;
+            let annotation;
+            for (let depth = 0; object?.type === 'tag' && depth < 10; depth++) {
+              const tag = await api(`git/tags/${object.sha}`);
+              annotation ??= tag;
+              object = tag?.object;
+            }
+            if (object?.type !== 'commit') throw new Error('Invalid annotated tag');
+            return { sha: object.sha, annotation };
+          };
           const tagName = `v${version}`;
           const existing = await api(`git/ref/tags/${tagName}`);
+          let publicationEligible;
           if (existing) {
-            let object = existing.object;
-            for (let depth = 0; object.type === 'tag' && depth < 10; depth++) {
-              object = (await api(`git/tags/${object.sha}`))?.object;
-              if (!object) throw new Error('Invalid annotated tag');
-            }
-            if (object.type !== 'commit' || object.sha !== sha) {
+            const resolved = await resolveTag(existing);
+            if (resolved.sha !== sha) {
               throw new Error('Existing tag points elsewhere; never move it');
             }
+            publicationEligible = resolved.annotation?.message?.split('\n').includes(policy) === true;
           } else {
+            // Pin rollout to the released workflow content, never the retry date.
+            const workflow = await api(`contents/.github/workflows/tag-release.yml?ref=${sha}`);
+            publicationEligible = workflow?.encoding === 'base64' &&
+              Buffer.from(workflow.content, 'base64').toString('utf8').split('\n').includes(`# ${policy}`);
+            const workflowSha = process.env.GITHUB_WORKFLOW_SHA;
+            if (publicationEligible && !/^[a-f0-9]{40}$/.test(workflowSha ?? '')) {
+              throw new Error('Missing immutable workflow provenance');
+            }
+            const publicationRecord = publicationEligible ? `\n${policy}\nWorkflow commit: ${workflowSha}` : '';
             const tag = await api('git/tags', 'POST', {
               tag: tagName,
-              message: `Release ${version}\nRelease PR #${pr.number}\nSource ${pr.head.sha}\nDeploy merge ${sha}`,
+              message: `Release ${version}\nRelease PR #${pr.number}\nSource ${pr.head.sha}\n` +
+                `Deploy merge ${sha}${publicationRecord}`,
               object: sha,
               type: 'commit',
             });
             await api('git/refs', 'POST', { ref: `refs/tags/${tagName}`, sha: tag.sha });
+            const finalized = await resolveTag(await api(`git/ref/tags/${tagName}`));
+            if (finalized.sha !== sha) throw new Error('New tag does not identify the exact deploy merge');
           }
           const message = `Finalized ${tagName} on exact deploy merge ${sha}.\n` +
             'This identifies release source; verify Sliplane deployment health separately.\n';
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, message);
           console.log(message);
+          const report = text => {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
+            console.log(text);
+          };
+          if (!publicationEligible) {
+            report('Historical tag: GitHub Release creation is outside the future-only publication policy.');
+          } else {
+            // SemVer ordering remains numeric even for components beyond Number precision.
+            const stableTag = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+            const compareVersions = (left, right) => {
+              const a = left.slice(1).split('.').map(BigInt);
+              const b = right.slice(1).split('.').map(BigInt);
+              for (let index = 0; index < a.length; index++) {
+                if (a[index] !== b[index]) return a[index] > b[index] ? 1 : -1;
+              }
+              return 0;
+            };
+            const findRelease = async releases => {
+              const found = await api(`releases/tags/${tagName}`);
+              return found ?? releases.find(release => release.tag_name === tagName);
+            };
+            const verifyRelease = release => {
+              if (release.tag_name !== tagName || release.draft || release.prerelease || !release.published_at) {
+                throw new Error('Existing Release has incompatible publication metadata; review it manually');
+              }
+              report(`GitHub Release: ${release.html_url} (published stable Release; existing notes preserved).`);
+            };
+            const publish = async () => {
+              const releases = await pages('releases');
+              const found = await findRelease(releases);
+              if (found) return verifyRelease(found);
+
+              // Tags without Releases still bound the comparison. Restrict candidates
+              // to verified main-to-deploy release merges on the prior deploy ancestry.
+              const tags = (await pages('tags')).filter(tag => stableTag.test(tag.name) &&
+                compareVersions(tag.name, tagName) < 0);
+              const closed = await pages('pulls?state=closed&base=deploy');
+              const candidates = new Map();
+              for (const tag of tags) {
+                const prior = closed.find(item => item.merged_at && item.merge_commit_sha === tag.commit.sha &&
+                  item.head.ref === 'main' && item.base.ref === 'deploy' &&
+                  item.head.repo?.full_name === repository && item.base.repo?.full_name === repository);
+                if (prior) candidates.set(tag.commit.sha, { tag, prior });
+              }
+              let previous;
+              let ancestor = merge.parents[0].sha;
+              while (ancestor && candidates.size) {
+                const commit = await api(`git/commits/${ancestor}`);
+                if (!commit) throw new Error('Missing deploy ancestor');
+                const candidate = candidates.get(ancestor);
+                if (!candidate) {
+                  ancestor = commit.parents[0]?.sha;
+                  continue;
+                }
+                const { tag, prior } = candidate;
+                const resolved = await resolveTag(await api(`git/ref/tags/${tag.name}`));
+                const priorSource = await api(`git/commits/${prior.head.sha}`);
+                if (resolved.sha !== tag.commit.sha || commit?.parents.length !== 2 ||
+                    commit.parents[1].sha !== prior.head.sha || commit.tree.sha !== priorSource?.tree.sha ||
+                    (await read('VERSION', resolved.sha)).trim() !== tag.name.slice(1) ||
+                    !prior.body?.includes(`Release version: ${tag.name.slice(1)}\n`)) {
+                  throw new Error('Invalid previous finalized release provenance');
+                }
+                previous = { name: tag.name, sha: resolved.sha };
+                break;
+              }
+
+              const commits = previous ? await pages(`compare/${previous.sha}...${sha}`, value => value?.commits) :
+                await pages(`commits?sha=${sha}`);
+              const commitShas = new Set(commits.map(commit => commit.sha));
+              const sourcePrs = new Map();
+              const direct = [];
+              for (const commit of commits) {
+                const associated = await pages(`commits/${commit.sha}/pulls`);
+                const included = associated.filter(item => item.number !== pr.number && item.merged_at &&
+                  item.base.ref === 'main' && item.base.repo?.full_name === repository &&
+                  commitShas.has(item.merge_commit_sha));
+                for (const item of included) sourcePrs.set(item.number, item);
+                if (!included.length && commit.sha !== sha) direct.push(commit);
+              }
+              const sourceNotes = [...sourcePrs.values()].map(item =>
+                `- ${item.title.replace(/[\r\n]/g, ' ')} by @${item.user.login} in ` +
+                `https://github.com/${repository}/pull/${item.number}`);
+              for (const commit of direct) {
+                const author = commit.author?.login ? ` by @${commit.author.login}` : '';
+                sourceNotes.push(`- ${commit.commit.message.split('\n')[0]}${author} (${commit.sha})`);
+              }
+              const comparison = previous ? `https://github.com/${repository}/compare/${previous.sha}...${sha}` :
+                `https://github.com/${repository}/commits/${sha}`;
+              // For an initial release, GitHub may guess an unrelated previous tag.
+              // Generate its full source history explicitly instead of accepting that guess.
+              const generated = previous ? await api('releases/generate-notes', 'POST', {
+                tag_name: tagName, target_commitish: sha, previous_tag_name: previous.name,
+              }) : { body: 'Initial release: complete source history at the exact deploy merge.' };
+              const range = previous ? `${previous.name} (${previous.sha}) ... ${tagName} (${sha})` :
+                `Initial history through ${tagName} (${sha}); no previous finalized stable release`;
+              const body = `${generated.body}\n\n## Exact source changes\n${sourceNotes.join('\n')}\n\n` +
+                `Version: ${version}\nDeploy merge: ${sha}\n` +
+                `Release PR: https://github.com/${repository}/pull/${pr.number}\n` +
+                `Comparison range: ${range}\n[Exact source comparison](${comparison})\n\n` +
+                'This Release identifies source only. Sliplane deployment and live checks must be verified separately.';
+              // Explicit false prevents an older recovery from taking Latest. The
+              // workflow concurrency group serializes this workflow's publications.
+              const latestReleases = await pages('releases');
+              const concurrent = await findRelease(latestReleases);
+              if (concurrent) return verifyRelease(concurrent);
+              const newer = latestReleases.some(release => {
+                const name = release.tag_name.startsWith('v') ? release.tag_name : `v${release.tag_name}`;
+                return !release.draft && !release.prerelease && stableTag.test(name) &&
+                  compareVersions(name, tagName) > 0;
+              });
+              const finalTag = await resolveTag(await api(`git/ref/tags/${tagName}`));
+              if (finalTag.sha !== sha) throw new Error('Final tag changed before Release publication');
+              let created;
+              try {
+                // An already verified tag supplies the target. Omitting the unused
+                // target_commitish also avoids workflow-write authorization on old retries.
+                created = await api('releases', 'POST', {
+                  tag_name: tagName, name: tagName, body, draft: false, prerelease: false,
+                  make_latest: newer ? 'false' : 'true',
+                });
+              } catch (error) {
+                if (![409, 422].includes(error.status)) throw error;
+                created = await findRelease(await pages('releases'));
+                if (!created) throw error;
+              }
+              verifyRelease(created);
+            };
+            try {
+              await publish();
+            } catch (error) {
+              report(`Tag ${tagName} is finalized, but Release publication failed. Retry this Tag release run; ` +
+                'no redeployment or tag movement is needed.');
+              throw error;
+            }
+          }
           NODE

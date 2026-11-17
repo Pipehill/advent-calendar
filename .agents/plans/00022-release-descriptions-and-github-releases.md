@@ -87,6 +87,17 @@ The owner approved all three proposals on 2026-11-17:
 
 ### Agent-selected implementation approach
 
+Iteration 2 decisions: a newly created annotated tag records the immutable
+`Release publication policy: 00022-v1` and workflow commit only when that policy
+marker exists in the workflow at the event merge. An existing unmarked tag is
+always historical, including a lightweight tag or a delayed old-code retry.
+Marked tags retain recovery eligibility independently of subsequent branch moves.
+Select the nearest validated lower stable tag by walking deploy's first parents;
+source-side and newer tags cannot bound notes. Paginated exact-range commits and
+their merged main PRs supplement GitHub's generated notes. An initial release
+uses its complete pinned commit history to avoid GitHub guessing a previous tag.
+No Release lookup is added to the preparation gate.
+
 - Convert task-list markers to ordinary list markers in generated descriptions,
   preserving instruction text and the `advent-release` metadata block. Refresh
   existing open release PRs as well as newly created ones. Keep owner prose;
@@ -128,7 +139,7 @@ The owner approved all three proposals on 2026-11-17:
    (owner approved 2026-11-17).
 2. [x] Replace release-PR checkboxes and cover new/existing PR refresh behavior;
    verify with the preparation/validation suite and saved-source lint, then commit.
-3. [ ] Add future-only API Release creation, exact-range English notes, automatic
+3. [x] Add future-only API Release creation, exact-range English notes, automatic
    publication, Latest protection and retry recovery to Tag release; update the
    inline workflow test fixture for the new API calls. Verify provenance, ancestry,
    range, publication and recovery with the exact inline API fixture, then commit.
@@ -147,6 +158,28 @@ checks passed. MCP refresh found no introduced clones. Application health remain
 34.3% to 34.4% share. Inspection traces this to the marker-conversion expression
 and its necessary refresh cases; existing entry-point heuristic findings remain
 unchanged. Baseline and raw MCP/comparison reports are retained locally.
+
+Iteration 2: all 80 release/version tests pass, including exact workflow execution,
+initial/consecutive notes, first-parent ancestry, API pagination, older Latest
+recovery, large numeric versions, changed tags, partial failure/retry and conflict
+handling. Independent read-only workflow review found no remaining blockers.
+GitHub's real generated output for `v1.0.1...v1.0.2`, requested with API version
+`2022-11-28`, includes source PRs #59, #60, #61, #62, #63 and #65 plus release #64;
+the exact immutable comparison contains those seven source commits. This preview
+created no Release. API fixtures rehearse publication; actual first-publication
+notification delivery remains outside local evidence.
+
+Health review removed an introduced six-line clone and split notes/publication
+tests by behavior. Application health stays 92.5; tooling changes 50.7 to 50.5.
+Tooling duplication improves 0.1019108280% to 0.0978792822% (12 lines/two clones
+unchanged), complexity score 63.9 to 64.7 and share 34.3% to 33.1%. The remaining
+decline is the verified `release-tag-fixture.mjs` unused-file heuristic (70%
+confidence): all three workflow suites import this strict shared API simulator.
+It preserves test isolation without repeating the simulator; deleting/inlining it
+would reduce maintainability. YAML/inline JavaScript is outside authored-code
+health scope. MCP's proposed-snippet match is the numeric SemVer comparator also
+used by preparation; that small duplication preserves the API-only write-token
+boundary without executing checked-out code. Raw measurements remain local.
 
 | Requirement | Evidence to collect during implementation |
 | --- | --- |

@@ -37,7 +37,7 @@ export function recordedVersion(body) {
 export function refreshMetadata(body, version, source) {
   const block = metadata(version, source);
   const refreshed = metadataPattern.test(body ?? '') ? body.replace(metadataPattern, block) : `${body ?? ''}\n\n${block}`;
-  return refreshed.replace(/^(\s*(?:[-+*]|\d+[.)])\s+)\[[ xX]\][ \t]+/gm, '$1');
+  return refreshed.replace(/^([ \t]*(?:>[ \t]*)*(?:[-+*]|\d+[.)])[ \t]+)\[[ xX]\](?:[ \t]+|(?=\r?$))/gm, '$1');
 }
 
 export function assertNewVersion(version, tags) {

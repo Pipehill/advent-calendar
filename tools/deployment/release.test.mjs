@@ -133,6 +133,17 @@ test('Given checked and unchecked nested owner tasks without metadata, When refr
   assert.equal(refreshMetadata(refreshed, '1.0.0', mainSha), refreshed);
 });
 
+test('Given quoted and empty owner tasks, When refreshing, Then task markers are removed without changing quote structure', () => {
+  // Given valid Markdown task lists inside quotations and with no instruction text.
+  const body = '> - [x] Reviewed.\n> > 1) [ ] Next.\n- [X]\n';
+
+  // When preparation normalizes the existing description.
+  const refreshed = refreshMetadata(body, '1.0.0', mainSha);
+
+  // Then no task markers remain, including empty tasks, and the quoted prose survives.
+  assert.equal(refreshed, `> - Reviewed.\n> > 1) Next.\n- \n\n\n${metadata('1.0.0', mainSha)}`);
+});
+
 test('Given a release PR already created by preparation, When preparing again, Then it returns the same PR without another write', async () => {
   // Given an existing candidate created by an earlier successful run.
   const { api, calls } = fixture();
