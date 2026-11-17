@@ -24,6 +24,8 @@ import { registerDoorImageSecurityScenarios } from './door-image-security.test.m
 import { registerCredentialTransportScenarios } from './credential-transport.test.mjs';
 import { registerRecipientOpeningScenarios } from './recipient-opening.test.mjs';
 import { registerRecipientRefreshScenarios } from './recipient-refresh.test.mjs';
+import { registerRecipientLockedScenarios } from './recipient-locked.test.mjs';
+import { registerRecipientRaceScenarios } from './recipient-race.test.mjs';
 import { registerPasswordLifecycleScenarios } from './password-lifecycle.test.mjs';
 import { registerRequiredPasswordSetupScenarios } from './required-password-setup.test.mjs';
 import { capturePageErrors } from './page-errors.mjs';
@@ -64,7 +66,7 @@ let apiProcess;
 let apiEnvironment;
 
 // Include recipient motion/refresh and the full background/layout/language matrix.
-describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 600000 }, () => {
+describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { timeout: 900000 }, () => {
   before(async () => {
     fs.mkdirSync(reports, { recursive: true });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
@@ -986,6 +988,8 @@ describe(`Authentication through ${frontend.label} and isolated PostgreSQL`, { t
   registerDoorImageSecurityScenarios(calendarEnvironment);
   registerRecipientOpeningScenarios(calendarEnvironment);
   registerRecipientRefreshScenarios(calendarEnvironment);
+  registerRecipientLockedScenarios(calendarEnvironment);
+  registerRecipientRaceScenarios(calendarEnvironment);
   registerLoginProgressScenarios(calendarEnvironment);
   registerLoginRoutingScenarios(calendarEnvironment);
 

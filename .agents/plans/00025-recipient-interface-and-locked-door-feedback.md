@@ -1,6 +1,8 @@
 # 00025: Simplify recipient controls and explain time-locked doors
 
-Status: Not implemented
+Status: Implemented (2026-11-17)
+
+Implementation type: feature
 
 Last updated: 2026-11-17
 
@@ -118,11 +120,65 @@ but intentionally leaves My page reachable, so test controls on both destination
 development-language defect; it does not own this new message's translation.
 
 - [x] Resolve date/punctuation and English wording (owner approved 2026-11-17).
-- [ ] Remove idle guidance and role-inappropriate password controls.
-- [ ] Implement locked-door feedback using existing authorized metadata and
-  update focused presentation and recipient browser cases.
-- [ ] Recheck accessible/visual behavior and opening security in both frontend
+- [x] Iteration 1: remove idle guidance and role-inappropriate password controls;
+  verify translation generation, focused tests, lint and TypeScript.
+- [x] Iteration 2: implement locked-door feedback using existing authorized
+  metadata; verify date formatting, security/race browser cases and type/build checks.
+- [x] Iteration 3: recheck accessible/visual behavior and opening security in both frontend
   modes; record evidence in [frontend verification](../../src/frontend/verification.md).
+  Run final full quality, all unit/backend tests, production build and advisory
+  comparison, then commit completion metadata and review the committed PR head.
+
+### Implementation evidence
+
+- Iteration 1: removed both unused hint messages and idle paragraph; My page now
+  offers password controls only to administrators. Other session-control callers
+  already omit the link. Translation generation, targeted Biome, all 287
+  frontend/BFF unit tests, Vite typecheck-mode build and explicit `tsc --noEmit`
+  passed. Baseline archived and recaptured before edits. The browser lifecycle
+  suite will retain voluntary recipient changes through direct route navigation.
+- Iteration 2 implementation: locked buttons are explicitly named timing-help
+  actions, retain `data-state="locked"` and omit dialog hints; `aria-disabled`
+  applies to pending/empty actions. This lets assistive technology activate help
+  without presenting locked content as available. A sticky board-adjacent live
+  status stays in the viewport without moving tile focus; each selection replaces
+  its announcement node. The current year comes from the backend `serverTime`,
+  comparing both instants in Europe/Oslo. Conflict recovery cancels an older board
+  read before requesting subsequent authorized metadata, so deduplication cannot
+  classify an opening failure from a pre-denial read.
+- All 292 frontend/BFF unit tests and explicit TypeScript checking pass. All 444
+  backend tests pass, including actual migrations, controlled 07:00 boundaries
+  and production bypass rejection. Initial Nitro packaging hit sandbox readlink
+  permissions; an unrestricted retry passed. All 19 final targeted Vite browser
+  scenarios pass, including viewport visibility, pointer pass-through,
+  unobscured keyboard focus, repeated announcements and delayed-read recovery.
+  All 13 date/presentation cases also pass with host `TZ=Pacific/Honolulu`.
+- Wider Vite checking found an existing owner-edit SSR limitation: the completed
+  document can contain loading output while hydration displays the correct saved
+  recipient. The identical test fails at the same assertion on clean `origin/main`
+  `1842b8d`, verified in a disposable checkout. This plan does not change owner
+  loading/cache behavior. Baseline diagnostics are retained under ignored
+  `quality-reports/plan00025/baseline-vite-*`.
+- Routed browser tests release delayed responses and drain callbacks before
+  returning, preventing fixture teardown from disposing their request context.
+  The expanded full suite has a 15-minute bound instead of ten minutes; the
+  new timing/date/race scenarios add meaningful runtime.
+- Final verification: all 148 production browser scenarios plus eight smoke
+  checks pass without page/hydration errors. The final production build, explicit
+  TypeScript, Biome, full repository quality, all 292 frontend/BFF unit tests,
+  all 444 backend tests and 19 focused Vite scenarios pass. Screenshots and
+  automated focus/viewport checks cover both layouts and languages; actual human
+  assistive-technology use and physical devices remain unverified.
+- Final advisory review: application health stays 92.5; tooling improves
+  50.5 to 51.0. Duplicated lines/clones stay 147/15 and 12/2, with unchanged
+  heuristic findings and maximum file complexity. Tooling complexity score
+  declines 64.7 to 64.1 and share rises 33.1% to 33.9% because the asynchronous
+  failure matrix and gated transport cleanup require extra control flow. Shared
+  assertions remove introduced duplication and behavior-focused suites retain
+  the needed lifecycle coverage. The concrete tradeoff and measurement limits
+  are recorded in frontend verification; raw reports preserve exact identities,
+  percentages and the whole-repository reference. Final committed-head review
+  and draft publication follow these completion updates.
 
 ## Verification
 

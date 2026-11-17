@@ -58,7 +58,7 @@ export function registerPasswordLifecycleScenarios(environment) {
           assert.equal((await mutation('auth.login', { username: input.username, password: input.password }, recipient.request)).status(), 401);
           await signIn({ ...input, password: replacement }, '/my-page', recipientPage);
           if (await recipientPage.getByRole('combobox').inputValue() !== locale) await selectLanguage(recipientPage, locale);
-          await recipientPage.getByRole('link', { name: locale === 'nb' ? 'Bytt passord' : 'Change password', exact: true }).click();
+          await recipientPage.goto(`${frontendUrl}/change-password`, { waitUntil: 'networkidle' });
           await recipientPage.locator('#currentPassword').fill(replacement);
           const voluntary = `Voluntary!${randomUUID()}`;
           await recipientPage.locator('#newPassword').fill(voluntary);

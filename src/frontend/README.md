@@ -101,6 +101,16 @@ Tab/Shift+Tab stays in the modal. Reduced motion displays content directly.
 Authored text keeps line breaks and images keep their aspect ratios. Only the
 selected image is read; image errors can be retried without repeating an opening.
 
+Selecting a locked door shows its opening date in a visible, politely announced
+status beside the board. Keyboard, pointer and touch select timing help without
+opening content or recording history. Dates use backend opening metadata and
+Europe/Oslo, with the year included only when it differs from the current backend
+Oslo year. A conflicted opening refreshes authorized state before showing timing;
+empty doors and other failures retain separate feedback. Calendar users have
+logout controls on their calendar and My page; administrator password controls
+remain available, and the voluntary password-change route still checks the
+current password.
+
 Availability refresh uses backend current/next-opening instants, 30-second
 visible-page polling and focus/reconnect revalidation. Other-device content,
 emptying and assignment changes are discovered within this interval or on the
