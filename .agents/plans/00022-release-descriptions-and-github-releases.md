@@ -4,6 +4,8 @@ Status: Not implemented
 
 Last updated: 2026-11-17
 
+Implementation type: ci
+
 Improve the release automation delivered by [plan 00021](00021-sliplane-deployment.md).
 Remove checkboxes from release PR descriptions and extend **Tag release** to
 create a GitHub Release with notes about changes since the previous release.
@@ -124,17 +126,27 @@ The owner approved all three proposals on 2026-11-17:
 
 1. [x] Resolve publication, note-format and historical-tag scope questions
    (owner approved 2026-11-17).
-2. [ ] Replace release-PR checkboxes and cover new/existing PR refresh behavior.
+2. [x] Replace release-PR checkboxes and cover new/existing PR refresh behavior;
+   verify with the preparation/validation suite and saved-source lint, then commit.
 3. [ ] Add future-only API Release creation, exact-range English notes, automatic
    publication, Latest protection and retry recovery to Tag release; update the
-   inline workflow test fixture for the new API calls.
+   inline workflow test fixture for the new API calls. Verify provenance, ancestry,
+   range, publication and recovery with the exact inline API fixture, then commit.
 4. [ ] Update [deployment operations](../../docs/deployment.md) with the resulting
    note policy, partial-failure recovery and the distinction between tag, Release
-   and live deployment. Preserve implemented plans unchanged.
+   and live deployment. Preserve implemented plans unchanged. Review links and
+   operational recovery against the implemented API behavior, then commit.
 5. [ ] Complete code/configuration verification under the shared quality rules;
    record final evidence in [deployment verification](../../docs/deployment-verification.md).
 
 ## Verification
+
+Iteration 1: all 32 preparation/validation/tag tests and full saved-source quality
+checks passed. MCP refresh found no introduced clones. Application health remains
+92.5 and tooling health 50.7; tooling complexity score changes 63.9 to 63.8 with
+34.3% to 34.4% share. Inspection traces this to the marker-conversion expression
+and its necessary refresh cases; existing entry-point heuristic findings remain
+unchanged. Baseline and raw MCP/comparison reports are retained locally.
 
 | Requirement | Evidence to collect during implementation |
 | --- | --- |
