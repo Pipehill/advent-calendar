@@ -162,5 +162,7 @@
   "recipient_opened": "Åpnet",
   "recipient_opening": "Åpner luken …",
   "recipient_close": "Lukk",
-  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen."
+  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen.",
+  "recipient_wait": "Du må vente til kl 7 den {date} før du kan åpne denne luken.",
+  "recipient_timing_help": "Velg luken for å vise åpningstiden."
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { owner } from './calendar-fixture.mjs';
-import { dialog, door, prepare, read } from './recipient-opening.test.mjs';
+import { dialog, door, prepare, read, withRecipientRoutes } from './recipient-opening.test.mjs';
 
 async function independentOwner(state, t) {
   const context = await state.context.browser().newContext();
@@ -82,31 +82,33 @@ export function registerRecipientRefreshScenarios(environment) {
   test('Given a scheduled recipient board response, When its backend-relative timer expires, Then availability is refreshed without an implicit opening', async () => {
     // Given real available content and one simulated boundary response from the BFF.
     const state = environment();
-    await prepare(state);
-    let reads = 0;
-    let writes = 0;
-    await state.page.route('**/api/trpc/recipient.get*', async route => {
-      const response = await route.fetch();
-      const body = await response.json();
-      reads++;
-      if (reads === 1) {
-        body.result.data.serverTime = '2026-12-01T05:59:59Z';
-        body.result.data.nextOpeningAt = '2026-12-01T06:00:00Z';
-        body.result.data.doors[0].state = 'locked';
-      }
-      await route.fulfill({ response, json: body });
+    await withRecipientRoutes(state, async () => {
+      await prepare(state);
+      let reads = 0;
+      let writes = 0;
+      await state.page.route('**/api/trpc/recipient.get*', async route => {
+        const response = await route.fetch();
+        const body = await response.json();
+        reads++;
+        if (reads === 1) {
+          body.result.data.serverTime = '2026-12-01T05:59:59Z';
+          body.result.data.nextOpeningAt = '2026-12-01T06:00:00Z';
+          body.result.data.doors[0].state = 'locked';
+        }
+        await route.fulfill({ response, json: body });
+      });
+      state.page.on('request', request => { if (request.url().includes('recipient.open')) writes++; });
+
+      // When the visible board receives a relative boundary and then re-reads the actual backend.
+      await state.page.reload({ waitUntil: 'networkidle' });
+      await state.page.waitForFunction(() => document.querySelector('[data-door-number="1"]')?.dataset.state === 'locked');
+      await state.page.waitForFunction(() => document.querySelector('[data-door-number="1"]')?.dataset.state === 'available');
+
+      // Then a server read changes the state while no content mutation occurs.
+      assert(reads >= 2);
+      assert.equal(writes, 0);
+      assert.equal(await dialog(state.page).count(), 0);
     });
-    state.page.on('request', request => { if (request.url().includes('recipient.open')) writes++; });
-
-    // When the visible board receives a relative boundary and then re-reads the actual backend.
-    await state.page.reload({ waitUntil: 'networkidle' });
-    await state.page.waitForFunction(() => document.querySelector('[data-door-number="1"]')?.dataset.state === 'locked');
-    await state.page.waitForFunction(() => document.querySelector('[data-door-number="1"]')?.dataset.state === 'available');
-
-    // Then a server read changes the state while no content mutation occurs.
-    assert(reads >= 2);
-    assert.equal(writes, 0);
-    assert.equal(await dialog(state.page).count(), 0);
   });
 
   test('Given an open recipient dialog, When another device empties the door, Then bounded refresh hides stale content while retaining its green history', async t => {
@@ -156,36 +158,38 @@ export function registerRecipientRefreshScenarios(environment) {
   test('Given a pending recipient opening, When repeated clicks and logout precede its delayed response, Then only one explicit write occurs and late content stays absent', async () => {
     // Given a real committed opening whose browser response is deliberately delayed.
     const state = environment();
-    const calendar = await prepare(state, { image: true });
     let release;
-    let received;
-    const gate = new Promise(resolve => { release = resolve; });
-    const committed = new Promise(resolve => { received = resolve; });
-    let writes = 0;
-    await state.page.route('**/api/trpc/recipient.open', async route => {
-      writes++;
-      const response = await route.fetch();
-      received();
-      await gate;
-      await route.fulfill({ response }).catch(() => {});
-    });
+    await withRecipientRoutes(state, async () => {
+      const calendar = await prepare(state, { image: true });
+      let received;
+      const gate = new Promise(resolve => { release = resolve; });
+      const committed = new Promise(resolve => { received = resolve; });
+      let writes = 0;
+      await state.page.route('**/api/trpc/recipient.open', async route => {
+        writes++;
+        const response = await route.fetch();
+        received();
+        await gate;
+        await route.fulfill({ response }).catch(() => {});
+      });
 
-    // When duplicate clicks are attempted before navigating away and logging out.
-    await door(state.page, 1).click();
-    await committed;
-    await door(state.page, 1).dispatchEvent('click');
-    await door(state.page, 2).dispatchEvent('click');
-    await state.page.goto(`${state.frontendUrl}/my-page`, { waitUntil: 'networkidle' });
-    await state.page.getByRole('button', { name: 'Logg ut', exact: true }).click();
-    await state.page.waitForURL(state.frontendUrl + '/');
-    release();
+      // When duplicate clicks are attempted before navigating away and logging out.
+      await door(state.page, 1).click();
+      await committed;
+      await door(state.page, 1).dispatchEvent('click');
+      await door(state.page, 2).dispatchEvent('click');
+      await state.page.goto(`${state.frontendUrl}/my-page`, { waitUntil: 'networkidle' });
+      await state.page.getByRole('button', { name: 'Logg ut', exact: true }).click();
+      await state.page.waitForURL(state.frontendUrl + '/');
+      release();
 
-    // Then a late response cannot repopulate protected UI after the session is left.
-    assert.equal(writes, 1);
-    assert.equal(await dialog(state.page).count(), 0);
-    assert.equal(await state.page.getByText('Gave <b>ÆØÅ</b>', { exact: true }).count(), 0);
-    await state.signIn(calendar.recipientAccount, `/my-calendars/${calendar.id}`);
-    await state.page.goto(`${state.frontendUrl}/my-calendars/${calendar.id}`, { waitUntil: 'networkidle' });
-    assert.equal(await door(state.page, 1).getAttribute('data-opened'), 'true');
+      // Then a late response cannot repopulate protected UI after the session is left.
+      assert.equal(writes, 1);
+      assert.equal(await dialog(state.page).count(), 0);
+      assert.equal(await state.page.getByText('Gave <b>ÆØÅ</b>', { exact: true }).count(), 0);
+      await state.signIn(calendar.recipientAccount, `/my-calendars/${calendar.id}`);
+      await state.page.goto(`${state.frontendUrl}/my-calendars/${calendar.id}`, { waitUntil: 'networkidle' });
+      assert.equal(await door(state.page, 1).getAttribute('data-opened'), 'true');
+    }, () => release?.());
   });
 }

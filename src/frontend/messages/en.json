@@ -162,5 +162,7 @@
   "recipient_opened": "Opened",
   "recipient_opening": "Opening the door …",
   "recipient_close": "Close",
-  "recipient_open_failed": "The door could not be opened. Try again."
+  "recipient_open_failed": "The door could not be opened. Try again.",
+  "recipient_wait": "You must wait until 07:00 on {date} before you can open this door.",
+  "recipient_timing_help": "Select the door to show its opening time."
 }

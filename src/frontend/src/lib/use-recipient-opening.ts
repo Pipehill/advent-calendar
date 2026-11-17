@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { errorCode } from '../components/error-state';
 import type { RecipientCalendarDto, RecipientOpeningDto } from '../generated/backend';
 import type { RouterContext } from '../router';
 import { recipientContentCurrent } from './recipient-presentation';
@@ -16,6 +17,7 @@ export function useRecipientOpening(
   const [presentation, setPresentation] = useState<DoorPresentation | null>(null);
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<unknown>(null);
+  const [timing, setTiming] = useState<{ number: number; request: number } | null>(null);
   const epoch = useRef(0);
   const busy = useRef(false);
   const current = useRef(calendar);
@@ -36,6 +38,13 @@ export function useRecipientOpening(
     !error && presentation && recipientContentCurrent(calendar, presentation.result)
       ? presentation
       : null;
+  const lockedDoor =
+    !error && !failure && timing
+      ? calendar?.doors.find((door) => door.number === timing.number && door.state === 'locked')
+      : undefined;
+  useEffect(() => {
+    if (timing && !lockedDoor) setTiming(null);
+  }, [timing, lockedDoor]);
   useEffect(() => {
     if (presentation && !visible) {
       setPresentation(null);
@@ -44,15 +53,14 @@ export function useRecipientOpening(
   }, [presentation, visible, context]);
 
   const open = async (number: number, origin: HTMLButtonElement) => {
-    if (
-      busy.current ||
-      current.current?.doors.find((door) => door.number === number)?.state !== 'available'
-    )
-      return;
+    if (busy.current || error) return;
+    const door = current.current?.doors.find((door) => door.number === number);
+    const request = ++epoch.current;
+    setFailure(null);
+    setTiming(door?.state === 'locked' ? { number, request } : null);
+    if (door?.state !== 'available') return;
     busy.current = true;
     setPending(true);
-    setFailure(null);
-    const request = ++epoch.current;
     try {
       const result = await context.auth.openRecipientDoor({ id, number, scope });
       if (request !== epoch.current) return;
@@ -79,7 +87,31 @@ export function useRecipientOpening(
       if (request === epoch.current && recipientContentCurrent(validated, result))
         setPresentation({ result, origin });
     } catch (cause) {
-      if (request === epoch.current) setFailure(cause);
+      let failure = cause;
+      if (errorCode(cause) === 'CONFLICT') {
+        try {
+          // A conflict can also mean empty/changed content; only a fresh board confirms time lock.
+          await context.queryClient.cancelQueries({
+            queryKey: context.trpc.recipient.get.queryKey({ id, scope }),
+            exact: true,
+          });
+          const board = await context.queryClient.fetchQuery({
+            ...context.trpc.recipient.get.queryOptions({ id, scope }),
+            staleTime: 0,
+            gcTime: 0,
+          });
+          if (
+            request === epoch.current &&
+            board.doors.some((door) => door.number === number && door.state === 'locked')
+          ) {
+            setTiming({ number, request });
+            return;
+          }
+        } catch (refreshFailure) {
+          failure = refreshFailure;
+        }
+      }
+      if (request === epoch.current) setFailure(failure);
     } finally {
       if (request === epoch.current) {
         busy.current = false;
@@ -88,5 +120,13 @@ export function useRecipientOpening(
       }
     }
   };
-  return { presentation: visible, pending, failure, open, close };
+  return {
+    presentation: visible,
+    pending,
+    failure,
+    lockedDoor,
+    timingRequest: timing?.request,
+    open,
+    close,
+  };
 }

@@ -13,6 +13,7 @@ export function CalendarBoard({
   onSelect,
   recipientDoors,
   opening,
+  timingDoor,
   pending = false,
 }: {
   background: string;
@@ -22,6 +23,7 @@ export function CalendarBoard({
   onSelect: (number: number, element: HTMLButtonElement) => void;
   recipientDoors?: RecipientDoorDto[];
   opening?: number;
+  timingDoor?: number;
   pending?: boolean;
 }) {
   const board = useRef<HTMLOListElement>(null);
@@ -53,7 +55,7 @@ export function CalendarBoard({
       >
         {geometry.doors.map(({ number, x, y, size }) => {
           const door = recipientDoors?.find((door) => door.number === number);
-          const unavailable = pending || (!!door && door.state !== 'available');
+          const unavailable = pending || door?.state === 'empty';
           return (
             <li
               key={number}
@@ -66,16 +68,22 @@ export function CalendarBoard({
                 }
                 title={door ? recipientDoorLabel(door) : undefined}
                 aria-pressed={recipientDoors ? undefined : selected === number}
-                aria-haspopup={recipientDoors ? 'dialog' : undefined}
+                aria-haspopup={door?.state === 'available' ? 'dialog' : undefined}
                 aria-disabled={unavailable || undefined}
+                aria-describedby={timingDoor === number ? 'recipient-door-status' : undefined}
                 data-state={door?.state}
                 data-opened={door?.openedAt ? true : undefined}
                 data-opening={opening === number ? true : undefined}
                 data-door-number={number}
                 onClick={(event) => {
-                  if (!unavailable) onSelect(number, event.currentTarget);
+                  // Locked tiles offer timing help; empty tiles can dismiss earlier feedback.
+                  if (!pending) onSelect(number, event.currentTarget);
                 }}
-                className="door-tile flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 font-serif text-2xl text-emerald-950 sm:text-3xl"
+                onFocus={(event) => {
+                  if (timingDoor && event.currentTarget.matches(':focus-visible'))
+                    event.currentTarget.scrollIntoView({ block: 'nearest' });
+                }}
+                className="door-tile flex aspect-square scroll-my-40 cursor-pointer items-center justify-center rounded-xl border-2 font-serif text-2xl text-emerald-950 sm:text-3xl"
               >
                 <span className="door-number">{number}</span>
                 {door?.openedAt && (

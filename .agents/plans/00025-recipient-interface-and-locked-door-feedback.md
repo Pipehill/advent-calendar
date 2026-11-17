@@ -122,7 +122,7 @@ development-language defect; it does not own this new message's translation.
 - [x] Resolve date/punctuation and English wording (owner approved 2026-11-17).
 - [x] Iteration 1: remove idle guidance and role-inappropriate password controls;
   verify translation generation, focused tests, lint and TypeScript.
-- [ ] Iteration 2: implement locked-door feedback using existing authorized
+- [x] Iteration 2: implement locked-door feedback using existing authorized
   metadata; verify date formatting, security/race browser cases and type/build checks.
 - [ ] Iteration 3: recheck accessible/visual behavior and opening security in both frontend
   modes; record evidence in [frontend verification](../../src/frontend/verification.md).
@@ -137,6 +137,33 @@ development-language defect; it does not own this new message's translation.
   frontend/BFF unit tests, Vite typecheck-mode build and explicit `tsc --noEmit`
   passed. Baseline archived and recaptured before edits. The browser lifecycle
   suite will retain voluntary recipient changes through direct route navigation.
+- Iteration 2 implementation: locked buttons are explicitly named timing-help
+  actions, retain `data-state="locked"` and omit dialog hints; `aria-disabled`
+  applies to pending/empty actions. This lets assistive technology activate help
+  without presenting locked content as available. A sticky board-adjacent live
+  status stays in the viewport without moving tile focus; each selection replaces
+  its announcement node. The current year comes from the backend `serverTime`,
+  comparing both instants in Europe/Oslo. Conflict recovery cancels an older board
+  read before requesting subsequent authorized metadata, so deduplication cannot
+  classify an opening failure from a pre-denial read.
+- All 292 frontend/BFF unit tests and explicit TypeScript checking pass. All 444
+  backend tests pass, including actual migrations, controlled 07:00 boundaries
+  and production bypass rejection. Initial Nitro packaging hit sandbox readlink
+  permissions; an unrestricted retry passed. All 19 final targeted Vite browser
+  scenarios pass, including viewport visibility, pointer pass-through,
+  unobscured keyboard focus, repeated announcements and delayed-read recovery.
+  All 13 date/presentation cases also pass with host `TZ=Pacific/Honolulu`.
+- Wider Vite checking found an existing owner-edit SSR limitation: the completed
+  document can contain loading output while hydration displays the correct saved
+  recipient. The identical test fails at the same assertion on clean `origin/main`
+  `1842b8d`, verified in a disposable checkout. This plan does not change owner
+  loading/cache behavior. Baseline diagnostics are retained under ignored
+  `quality-reports/plan00025/baseline-vite-*`.
+- Routed browser tests release delayed responses and drain callbacks before
+  returning, preventing fixture teardown from disposing their request context.
+  The expanded full suite has a 15-minute bound instead of ten minutes; the
+  new timing/date/race scenarios add meaningful runtime. Final production
+  verification and the final advisory comparison remain for iteration 3.
 
 ## Verification
 
