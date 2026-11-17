@@ -2,7 +2,7 @@
 
 Status: Not implemented
 
-Last updated: 2026-11-15
+Last updated: 2026-11-17
 
 Improve the release automation delivered by [plan 00021](00021-sliplane-deployment.md).
 Remove checkboxes from release PR descriptions and extend **Tag release** to
@@ -15,41 +15,56 @@ These are two related open TODO items; deployment readiness remains owned by
 1. Newly prepared and refreshed release PR descriptions contain no Markdown task
    checkboxes. Preserve release metadata, readable operator instructions, links
    and owner-written text when refreshing an existing open release PR.
-2. After validating and finalizing a version tag, Tag release creates the
-   corresponding GitHub Release with notes describing the changes since the
-   previous release. Record the version, exact deploy merge commit, release PR
+2. For future releases after this automation takes effect, Tag release creates
+   the corresponding GitHub Release after validating and finalizing its version
+   tag. Use automatically generated English notes with PRs/contributors and an
+   exact comparison link describing the changes since the previous release.
+   Include actual source changes even when the release is assembled through a
+   release-wrapper PR. Record the version, exact deploy merge commit, release PR
    and comparison range so the owner can identify the represented source.
 3. Release creation follows the verified same-repository `main`-to-`deploy` merge
    and its immutable `vX.Y.Z` tag. Reject conflicting tags and invalid provenance
    before writing a Release. Later branch movement must not change its source.
-4. Repeated finalization must recover a missing Release after successful tagging
-   without moving tags, creating duplicate Releases or overwriting owner edits.
-   Failures are visible and retryable independently of a Sliplane redeployment.
+4. For releases within the future-only scope, repeated finalization must recover
+   a missing Release after successful tagging without moving tags, creating
+   duplicate Releases or overwriting owner edits. Failures are visible and
+   retryable independently of a Sliplane redeployment.
 5. Retain manual release merging, existing validation and version rules, minimal
    workflow permissions and the API-only write-token job. A GitHub Release records
    source identity; it must not claim that hosting or live checks succeeded.
+6. Publish stable Releases automatically after validated tagging, rather than
+   creating drafts for owner review. An older-version retry must never take over
+   GitHub's Latest designation. Retain ordinary GitHub notifications on a
+   version's first publication; add no separate notification on retries and do
+   not republish an existing Release.
+7. Preserve existing Releases. Do not create Releases for version tags finalized
+   before this automation takes effect, including through an old workflow retry.
+   Any historical backfill requires a separate task.
 
 ## Outstanding questions
 
-The owner explicitly deferred clarification on 2026-11-15. The options below are
-proposals, not confirmed requirements; resolve the relevant choices before
-implementing dependent publication behavior.
-
-1. Should notes be GitHub-generated PR/contributor notes, an editorial summary of
-   user-visible changes, or both? Repository development content is English;
-   should public release notes also have a Norwegian version? Proposed starting
-   point: English generated notes plus an exact comparison link, reviewed for
-   whether they adequately describe the changes through the release-merge history.
-2. Should finalization publish the Release immediately or create a draft for owner
-   review? Proposed: publish stable Releases automatically after validated tagging.
-   Confirm how older reruns should affect GitHub's Latest designation and any
-   notifications; an old retry must not accidentally become the newest release.
-3. Does “each finalized version tag” include backfilling tags created before this
-   change? If so, which versions and how should existing manually written Releases
-   be handled? Proposed: preserve existing Releases and offer an explicit,
-   provenance-checked backfill rather than silently publishing old versions.
+None. The owner approved the note format, automatic publication policy and
+future-only scope on 2026-11-17; the confirmed choices are recorded below.
 
 ## Implementation details
+
+### Confirmed release policy
+
+The owner approved all three proposals on 2026-11-17:
+
+- Generate English release notes automatically, including PRs/contributors and
+  an exact comparison link. Verify that the represented source changes appear
+  even when they arrive through a combined release PR. A separate editorial
+  summary and Norwegian release notes are not required.
+- Publish stable Releases automatically after validated tagging. Preserve an
+  existing Release and its owner edits on retry; an older version must never
+  replace Latest. Use ordinary GitHub notifications on the first publication of
+  a version, with no separate retry notification. Recovering a missing Release
+  is that version's first publication, rather than republishing an existing one.
+- Apply Release creation only to future releases after the new automation takes
+  effect. Preserve existing Releases; historical backfill is deferred to a
+  separate task and is outside this plan. Earlier validated tags can still bound
+  the comparison for a future release without receiving a Release themselves.
 
 ### Repository facts and scope
 
@@ -76,16 +91,19 @@ implementing dependent publication behavior.
   conversion may remove a checkbox marker but must not delete its associated text.
   Keep workflow-summary wording consistent without changing release validation.
 - Use GitHub's release API after successful tag verification, within the existing
-  token boundary. Look up a Release by tag before creating one and re-read after
-  a concurrent creation conflict. Distinguish absence from authorization/rate-limit
-  failures; never treat every API error as permission to create a new object.
+  token boundary. Record a reproducible rollout boundary using immutable
+  release/workflow provenance so historical retries cannot backfill old tags;
+  do not infer future-only eligibility from a missing Release or the retry time.
+  Look up a Release by tag before creating one and re-read after a concurrent
+  creation conflict. Distinguish absence from authorization/rate-limit failures;
+  never treat every API error as permission to create a new object.
 - Select the previous finalized stable version on the event release's deploy
   ancestry, excluding the current tag and future/unrelated tags. Do not use the
   moving `main` tip or GitHub's latest Release as the sole comparison boundary:
   older tags may have no Release yet. Validate the chosen tag/commit and explicitly
-  handle an initial release with no predecessor. Note format/publication/backfill
-  still depend on the questions above.
-- If generated notes are selected, pass an explicit previous tag when there is
+  handle an initial release with no predecessor. Historical tags remain valid
+  comparison boundaries without enabling historical Release creation.
+- For generated notes, pass an explicit previous tag when there is
   one and use the verified current tag/merge as the upper bound. Inspect actual
   output for the long-lived `main`/`deploy` merge history; supplement it if it
   lists only release-wrapper PRs and omits meaningful changes. Do not add an LLM
@@ -93,16 +111,23 @@ implementing dependent publication behavior.
 - Return the Release URL in the workflow summary. Preserve existing notes on a
   same-tag retry, and report incompatible draft/publication metadata for review
   rather than silently replacing it.
+- Create new eligible stable Releases as published, with an explicit Latest
+  policy that prevents an older retry from displacing a newer release. Do not
+  update an existing Release merely because finalization ran again, or add a
+  separate retry-notification mechanism. Verify the relevant API behavior during
+  implementation rather than assuming GitHub defaults satisfy this policy.
 - Do not make GitHub Release existence a new `assertFinalized` preparation gate
   without an explicit owner decision. The tag gate continues to protect source
   provenance; the finalization run reports publication failure separately.
 
 ### Work order
 
-1. [ ] Resolve publication, note-format and historical-tag scope questions.
+1. [x] Resolve publication, note-format and historical-tag scope questions
+   (owner approved 2026-11-17).
 2. [ ] Replace release-PR checkboxes and cover new/existing PR refresh behavior.
-3. [ ] Add API-only Release creation, exact-range notes and retry recovery to Tag
-   release; update the inline workflow test fixture for the new API calls.
+3. [ ] Add future-only API Release creation, exact-range English notes, automatic
+   publication, Latest protection and retry recovery to Tag release; update the
+   inline workflow test fixture for the new API calls.
 4. [ ] Update [deployment operations](../../docs/deployment.md) with the resulting
    note policy, partial-failure recovery and the distinction between tag, Release
    and live deployment. Preserve implemented plans unchanged.
@@ -114,10 +139,11 @@ implementing dependent publication behavior.
 | Requirement | Evidence to collect during implementation |
 | --- | --- |
 | 1 | Fresh and refreshed PR bodies have zero task-list markers, valid identical release metadata and all original instruction/owner text. Cover checked and unchecked markers, repeated refresh and version/source changes. Existing metadata parser tests still pass. |
-| 2 | Notes for consecutive finalized versions identify the correct previous tag and exact event merge, include representative source changes and exclude later main/deploy changes. Cover first release, tag without a Release, pagination and unrelated/newer tags. Verify the chosen note/publication policy from the resolved questions. |
+| 2 | Automatically generated English notes for consecutive finalized versions identify the correct previous tag and exact event merge, include actual source PRs/contributors through the release-wrapper history and exclude later main/deploy changes. Include an exact comparison link. Cover first release, historical comparison tag without a Release, pagination and unrelated/newer tags. |
 | 3, 5 | Existing provenance, mirror mismatch, wrong merge, conflicting tag and unmerged-close tests still reject without Release writes. Inspect workflow permissions and confirm no checkout or repository code execution in the write-token job. |
-| 4 | Tag succeeds/Release creation fails, then retry creates exactly one Release without tag mutation. Cover existing Release with edited notes, concurrent creation, forbidden/rate-limited API response and old-version rerun. Verify the agreed Latest/draft policy. |
+| 4, 6 | For an eligible future release, tag succeeds/Release creation fails, then retry publishes exactly one Release without tag mutation. Cover existing Release with edited notes, concurrent creation, forbidden/rate-limited API response and older-version rerun after a newer release. Verify automatic stable publication, no older takeover of Latest, no mutation or republication of an existing Release, and no separate retry notification. Check ordinary first-publication notification behavior without claiming notification delivery from API fixtures. |
 | 5 | Existing release validation tests and relevant tooling tests pass; run required full quality/health review for the eventual code/configuration change. Rehearse publication in a disposable repository or API fixture; production publishing needs the normal release operation. |
+| 7 | Verify the immutable rollout boundary distinguishes historical finalized tags from eligible future releases, including delayed/concurrent runs and retries. Historical tags without Releases receive no Release; existing Releases remain unchanged. A historical tag can still serve as the comparison predecessor of a future release. No backfill command or automatic historical publication is introduced. |
 
 ## Sources checked on 2026-11-15
 
