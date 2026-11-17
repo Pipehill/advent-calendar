@@ -1,8 +1,10 @@
 # 00022: Release descriptions and GitHub Releases
 
-Status: Not implemented
+Status: Implemented (2026-11-17)
 
 Last updated: 2026-11-17
+
+Implementation type: ci
 
 Improve the release automation delivered by [plan 00021](00021-sliplane-deployment.md).
 Remove checkboxes from release PR descriptions and extend **Tag release** to
@@ -85,6 +87,17 @@ The owner approved all three proposals on 2026-11-17:
 
 ### Agent-selected implementation approach
 
+Iteration 2 decisions: a newly created annotated tag records the immutable
+`Release publication policy: 00022-v1` and workflow commit only when that policy
+marker exists in the workflow at the event merge. An existing unmarked tag is
+always historical, including a lightweight tag or a delayed old-code retry.
+Marked tags retain recovery eligibility independently of subsequent branch moves.
+Select the nearest validated lower stable tag by walking deploy's first parents;
+source-side and newer tags cannot bound notes. Paginated exact-range commits and
+their merged main PRs supplement GitHub's generated notes. An initial release
+uses its complete pinned commit history to avoid GitHub guessing a previous tag.
+No Release lookup is added to the preparation gate.
+
 - Convert task-list markers to ordinary list markers in generated descriptions,
   preserving instruction text and the `advent-release` metadata block. Refresh
   existing open release PRs as well as newly created ones. Keep owner prose;
@@ -124,17 +137,57 @@ The owner approved all three proposals on 2026-11-17:
 
 1. [x] Resolve publication, note-format and historical-tag scope questions
    (owner approved 2026-11-17).
-2. [ ] Replace release-PR checkboxes and cover new/existing PR refresh behavior.
-3. [ ] Add future-only API Release creation, exact-range English notes, automatic
+2. [x] Replace release-PR checkboxes and cover new/existing PR refresh behavior;
+   verify with the preparation/validation suite and saved-source lint, then commit.
+3. [x] Add future-only API Release creation, exact-range English notes, automatic
    publication, Latest protection and retry recovery to Tag release; update the
-   inline workflow test fixture for the new API calls.
-4. [ ] Update [deployment operations](../../docs/deployment.md) with the resulting
+   inline workflow test fixture for the new API calls. Verify provenance, ancestry,
+   range, publication and recovery with the exact inline API fixture, then commit.
+4. [x] Update [deployment operations](../../docs/deployment.md) with the resulting
    note policy, partial-failure recovery and the distinction between tag, Release
-   and live deployment. Preserve implemented plans unchanged.
-5. [ ] Complete code/configuration verification under the shared quality rules;
+   and live deployment. Preserve implemented plans unchanged. Review links and
+   operational recovery against the implemented API behavior, then commit.
+5. [x] Complete code/configuration verification under the shared quality rules;
    record final evidence in [deployment verification](../../docs/deployment-verification.md).
 
 ## Verification
+
+Iteration 1: all 32 preparation/validation/tag tests and full saved-source quality
+checks passed. MCP refresh found no introduced clones. Application health remains
+92.5 and tooling health 50.7; tooling complexity score changes 63.9 to 63.8 with
+34.3% to 34.4% share. Inspection traces this to the marker-conversion expression
+and its necessary refresh cases; existing entry-point heuristic findings remain
+unchanged. Baseline and raw MCP/comparison reports are retained locally.
+
+Iteration 2: all 80 release/version tests pass, including exact workflow execution,
+initial/consecutive notes, first-parent ancestry, API pagination, older Latest
+recovery, large numeric versions, changed tags, partial failure/retry and conflict
+handling. Independent read-only workflow review found no remaining blockers.
+GitHub's real generated output for `v1.0.1...v1.0.2`, requested with API version
+`2022-11-28`, includes source PRs #59, #60, #61, #62, #63 and #65 plus release #64;
+the exact immutable comparison contains those seven source commits. This preview
+created no Release. API fixtures rehearse publication; actual first-publication
+notification delivery remains outside local evidence.
+
+Health review removed an introduced six-line clone and split notes/publication
+tests by behavior. Application health stays 92.5; tooling changes 50.7 to 50.5.
+Tooling duplication improves 0.1019108280% to 0.0978792822% (12 lines/two clones
+unchanged), complexity score 63.9 to 64.7 and share 34.3% to 33.1%. The remaining
+decline is the verified `release-tag-fixture.mjs` unused-file heuristic (70%
+confidence): all three workflow suites import this strict shared API simulator.
+It preserves test isolation without repeating the simulator; deleting/inlining it
+would reduce maintainability. YAML/inline JavaScript is outside authored-code
+health scope. MCP's proposed-snippet match is the numeric SemVer comparator also
+used by preparation; that small duplication preserves the API-only write-token
+boundary without executing checked-out code. Raw measurements remain local.
+
+Iteration 3: deployment operations now explain checkbox-free descriptions,
+immutable future-only scope, exact-range notes, stable publication/Latest policy
+and independent publication recovery. Final full quality checks, all 80 relevant
+release/version tests, saved-source checks and the advisory comparison passed.
+Evidence and material measurement/live limitations are recorded in deployment
+verification. No application/schema/dependency inputs changed, so application
+builds, database tests and live deployment were outside this verification scope.
 
 | Requirement | Evidence to collect during implementation |
 | --- | --- |
@@ -152,3 +205,12 @@ Release creation, lookup by tag and generated notes with a previous-tag input.
 These are API capabilities, not evidence that repository permissions or actual
 release-note contents have been verified. Recheck endpoint compatibility with the
 workflow's pinned API version during implementation.
+
+Rechecked on 2026-11-17: GitHub documents explicit `make_latest` control,
+first-publication notifications, tag lookup, authenticated draft listings and
+generated notes with `previous_tag_name`. The real note preview confirmed the
+existing pinned `2022-11-28` API version. Existing-tag Release creation omits the
+unused `target_commitish` to retain contents-only token compatibility when older
+workflow content differs from current main; the tag is re-verified immediately
+before publication. Workflow concurrency serializes automated finalization;
+manual tag/Release changes should not race it.

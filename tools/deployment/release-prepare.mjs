@@ -3,12 +3,12 @@ import {
   allPages, assertFinalized, assertNewVersion, githubApi, metadata, refreshMetadata, summary, versionAt,
 } from './release-api.mjs';
 
-const checklist = `- [ ] Backup downloaded and migration effects reviewed.
-- [ ] Approve pending PR workflow runs if requested by GitHub.
-- [ ] Deploy readiness passed on the current source and base; rerun failed validation after metadata refresh.
-- [ ] Merge manually with Create a merge commit; retain main.
-- [ ] Verify both Sliplane services, readiness, login, served version and running commits.
-- [ ] Verify the final tag (independent from hosting health).`;
+const instructions = `- Backup downloaded and migration effects reviewed.
+- Approve pending PR workflow runs if requested by GitHub.
+- Deploy readiness passed on the current source and base; rerun failed validation after metadata refresh.
+- Merge manually with Create a merge commit; retain main.
+- Verify both Sliplane services, readiness, login, served version and running commits.
+- Verify the final tag (independent from hosting health).`;
 
 export async function prepareRelease(api, repository, ref) {
   if (ref !== 'refs/heads/main') throw new Error('Run Prepare release with the main branch selected');
@@ -40,11 +40,11 @@ export async function prepareRelease(api, repository, ref) {
         title: `[CHORE]: Release ${version}`,
         head: 'main',
         base: 'deploy',
-        body: `${metadata(version, main.sha)}\n\n${checklist}`,
+        body: `${metadata(version, main.sha)}\n\n${instructions}`,
       },
     });
   }
-  return `Release **${version}**, prepared source \`${main.sha}\`: ${pr.html_url}\n\n${checklist}\n\n` +
+  return `Release **${version}**, prepared source \`${main.sha}\`: ${pr.html_url}\n\n${instructions}\n\n` +
     'Metadata edits do not restart PR tests. Rerun failed Deploy validation from Actions after a version refresh, ' +
     'approve pending runs when requested, and wait for the actual Deploy readiness result. ' +
     'Preparation never merges, tags or deploys.';
