@@ -162,6 +162,5 @@
   "recipient_opened": "Opened",
   "recipient_opening": "Opening the door …",
   "recipient_close": "Close",
-  "recipient_open_failed": "The door could not be opened. Try again.",
-  "recipient_hint": "Choose an available door. A green frame and check mark show doors you have opened."
+  "recipient_open_failed": "The door could not be opened. Try again."
 }

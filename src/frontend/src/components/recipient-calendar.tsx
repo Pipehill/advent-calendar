@@ -70,13 +70,11 @@ export function RecipientCalendar({
         pending={opening.pending}
         opening={opening.presentation?.result.door.number}
       />
-      <p role="status" aria-live="polite">
-        {opening.pending
-          ? m.recipient_opening()
-          : opening.presentation
-            ? m.recipient_opened()
-            : m.recipient_hint()}
-      </p>
+      {(opening.pending || opening.presentation) && (
+        <p role="status" aria-live="polite">
+          {opening.pending ? m.recipient_opening() : m.recipient_opened()}
+        </p>
+      )}
       {!!opening.failure && (
         <p role="alert">
           {m.recipient_open_failed()} {authError(opening.failure)}

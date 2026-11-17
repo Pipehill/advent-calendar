@@ -2,6 +2,8 @@
 
 Status: Not implemented
 
+Implementation type: feature
+
 Last updated: 2026-11-17
 
 Address three related calendar-user TODO items: remove the idle `recipient_hint`
@@ -118,11 +120,23 @@ but intentionally leaves My page reachable, so test controls on both destination
 development-language defect; it does not own this new message's translation.
 
 - [x] Resolve date/punctuation and English wording (owner approved 2026-11-17).
-- [ ] Remove idle guidance and role-inappropriate password controls.
-- [ ] Implement locked-door feedback using existing authorized metadata and
-  update focused presentation and recipient browser cases.
-- [ ] Recheck accessible/visual behavior and opening security in both frontend
+- [x] Iteration 1: remove idle guidance and role-inappropriate password controls;
+  verify translation generation, focused tests, lint and TypeScript.
+- [ ] Iteration 2: implement locked-door feedback using existing authorized
+  metadata; verify date formatting, security/race browser cases and type/build checks.
+- [ ] Iteration 3: recheck accessible/visual behavior and opening security in both frontend
   modes; record evidence in [frontend verification](../../src/frontend/verification.md).
+  Run final full quality, all unit/backend tests, production build and advisory
+  comparison, then commit completion metadata and review the committed PR head.
+
+### Implementation evidence
+
+- Iteration 1: removed both unused hint messages and idle paragraph; My page now
+  offers password controls only to administrators. Other session-control callers
+  already omit the link. Translation generation, targeted Biome, all 287
+  frontend/BFF unit tests, Vite typecheck-mode build and explicit `tsc --noEmit`
+  passed. Baseline archived and recaptured before edits. The browser lifecycle
+  suite will retain voluntary recipient changes through direct route navigation.
 
 ## Verification
 

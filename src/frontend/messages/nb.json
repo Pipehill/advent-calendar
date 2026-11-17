@@ -162,6 +162,5 @@
   "recipient_opened": "Åpnet",
   "recipient_opening": "Åpner luken …",
   "recipient_close": "Lukk",
-  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen.",
-  "recipient_hint": "Velg en tilgjengelig luke. En grønn ramme og hake viser luker du har åpnet."
+  "recipient_open_failed": "Luken kunne ikke åpnes. Prøv igjen."
 }
