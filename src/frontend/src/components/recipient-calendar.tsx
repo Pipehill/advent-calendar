@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import * as m from '../generated/paraglide/messages.js';
-import { recipientRefreshDelay } from '../lib/recipient-presentation';
+import { recipientRefreshDelay, recipientWaitMessage } from '../lib/recipient-presentation';
 import { useProtectedQuery } from '../lib/use-protected-query';
 import { useRecipientOpening } from '../lib/use-recipient-opening';
 import type { RouterContext } from '../router';
@@ -45,6 +45,13 @@ export function RecipientCalendar({
   if (query.error) return <ErrorState code={errorCode(query.error)} />;
   if (!query.data) return <p role="status">{m.loading()}</p>;
   const calendar = query.data;
+  const status = opening.pending
+    ? m.recipient_opening()
+    : opening.presentation
+      ? m.recipient_opened()
+      : opening.lockedDoor
+        ? recipientWaitMessage(opening.lockedDoor.opensAt, calendar.serverTime)
+        : '';
   return (
     <section className="protected-content space-y-6">
       <header className="flex flex-wrap items-center gap-3">
@@ -69,13 +76,20 @@ export function RecipientCalendar({
         recipientDoors={calendar.doors}
         pending={opening.pending}
         opening={opening.presentation?.result.door.number}
+        timingDoor={opening.lockedDoor?.number}
       />
-      <p role="status" aria-live="polite">
-        {opening.pending
-          ? m.recipient_opening()
-          : opening.presentation
-            ? m.recipient_opened()
-            : m.recipient_hint()}
+      <p
+        id="recipient-door-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={
+          status
+            ? 'pointer-events-none sticky bottom-4 z-10 rounded-xl border border-emerald-800 bg-white p-4 text-emerald-950 shadow-md'
+            : 'sr-only'
+        }
+      >
+        <span key={opening.timingRequest}>{status}</span>
       </p>
       {!!opening.failure && (
         <p role="alert">

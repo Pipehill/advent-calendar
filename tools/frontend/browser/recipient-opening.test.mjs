@@ -6,6 +6,24 @@ import { owner, provisionRecipient, logout } from './calendar-fixture.mjs';
 
 export const door = (page, number) => page.locator(`[data-door-number="${number}"]`);
 export const dialog = page => page.locator('dialog[open]');
+export async function assertRecipientContentHidden(page) {
+  assert.equal(await dialog(page).count(), 0);
+  assert.equal(await page.locator('[data-opening="true"]').count(), 0);
+  assert.equal(await page.getByText('Gave <b>ÆØÅ</b>', { exact: true }).count(), 0);
+  assert.equal(await page.getByText(/Første linje/).count(), 0);
+}
+export async function assertRecipientHistoryEmpty(state, calendar) {
+  const board = await read(state, 'recipient.get', { id: calendar.id, scope: calendar.scope });
+  assert(board.doors.every(item => item.openedAt === null));
+}
+export async function withRecipientRoutes(state, scenario, releasePending) {
+  try {
+    await scenario();
+  } finally {
+    releasePending?.();
+    await state.page.unrouteAll({ behavior: 'wait' });
+  }
+}
 async function capture(state, name) {
   const directory = path.resolve(state.reports, '../../plan00019');
   fs.mkdirSync(directory, { recursive: true });
@@ -58,7 +76,9 @@ export function registerRecipientOpeningScenarios(environment) {
     const response = await state.page.reload({ waitUntil: 'networkidle' });
     await door(state.page, 1).focus();
     await state.page.keyboard.press('Enter');
-    await door(state.page, 2).click({ force: true });
+    await state.page.getByText('Du må vente til kl 7 den 1. desember 2090 før du kan åpne denne luken.', { exact: true }).waitFor();
+    await door(state.page, 2).click();
+    await state.page.getByText('Du må vente til kl 7 den 2. desember 2090 før du kan åpne denne luken.', { exact: true }).waitFor();
 
     // Then safe board metadata is no-store and no future content/image or implicit opening is delivered.
     assert.match(response.headers()['cache-control'], /no-store/);
@@ -66,7 +86,7 @@ export function registerRecipientOpeningScenarios(environment) {
     assert(!html.includes('Gave &lt;b&gt;'));
     assert(!html.includes('Første linje'));
     assert.equal(await dialog(state.page).count(), 0);
-    assert.equal(await door(state.page, 1).getAttribute('aria-disabled'), 'true');
+    assert.equal(await door(state.page, 1).getAttribute('aria-disabled'), null);
     assert.deepEqual(writes, []);
     const board = await read(state, 'recipient.get', { id: calendar.id, scope: calendar.scope });
     assert(board.doors.every(item => item.openedAt === null && item.state === 'locked'));

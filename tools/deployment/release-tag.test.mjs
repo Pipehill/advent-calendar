@@ -1,60 +1,7 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
-import vm from 'node:vm';
 import { metadata } from './release-api.mjs';
-
-// Execute the exact workflow-owned program; the contents-write job never checks
-// out a repository or loads its JavaScript files under that privileged token.
-const workflow = fs.readFileSync(new URL('../../.github/workflows/tag-release.yml', import.meta.url), 'utf8');
-const inline = workflow.split("node --input-type=module <<'NODE'\n")[1].split('\n          NODE')[0];
-const program = inline.replace(/^ {10}/gm, '').replace("import fs from 'node:fs';\n", '');
-
-function tagFixture({ existing, merged = true, mergeSha = 'b'.repeat(40), bodyVersion = '1.0.0' } = {}) {
-  const calls = [];
-  const summary = [];
-  const event = { pull_request: {
-    number: 7, merged, merge_commit_sha: mergeSha, body: metadata(bodyVersion, 'a'.repeat(40)),
-    head: { ref: 'main', sha: 'a'.repeat(40), repo: { full_name: 'owner/repo' } },
-    base: { ref: 'deploy', repo: { full_name: 'owner/repo' } },
-  } };
-  const values = {
-    'pulls/7': structuredClone(event.pull_request),
-    [`git/commits/${mergeSha}`]: { parents: [{ sha: 'd'.repeat(40) }, { sha: 'a'.repeat(40) }], tree: { sha: 'release-tree' } },
-    [`git/commits/${'a'.repeat(40)}`]: { tree: { sha: 'release-tree' } },
-    'git/ref/tags/v1.0.0': existing ?? null,
-  };
-  const inputs = { VERSION: '1.0.0\n', 'src/frontend/package.json': '{"version":"1.0.0"}',
-    'src/contract/openapi.json': '{"info":{"version":"1.0.0"}}' };
-  for (const [path, value] of Object.entries(inputs)) {
-    values[`contents/${path}?ref=${mergeSha}`] = { encoding: 'base64', content: Buffer.from(value).toString('base64') };
-  }
-  const context = {
-    Buffer,
-    console: { log() {} },
-    process: { env: { GITHUB_EVENT_PATH: 'event', GITHUB_REPOSITORY: 'owner/repo', GITHUB_TOKEN: 'test',
-      GITHUB_STEP_SUMMARY: 'summary' } },
-    fs: { readFileSync: () => JSON.stringify(event), appendFileSync: (_path, text) => summary.push(text) },
-    fetch: async (url, options) => {
-      const path = url.replace('https://api.github.com/repos/owner/repo/', '');
-      const body = options.body && JSON.parse(options.body);
-      calls.push({ path, method: options.method, body });
-      let value;
-      if (options.method === 'POST' && path === 'git/tags') {
-        value = { sha: 'c'.repeat(40) };
-        values[`git/tags/${value.sha}`] = { object: { type: 'commit', sha: body.object } };
-      } else if (options.method === 'POST' && path === 'git/refs') {
-        value = { object: { type: 'tag', sha: body.sha } };
-        values['git/ref/tags/v1.0.0'] = value;
-      } else {
-        assert.ok(Object.hasOwn(values, path), `Unexpected API path: ${path}`);
-        value = values[path];
-      }
-      return { status: value === null ? 404 : 200, ok: value !== null, json: async () => value };
-    },
-  };
-  return { calls, summary, values, event, run: () => vm.runInNewContext(`(async () => {\n${program}\n})()`, context) };
-}
+import { encoded, releaseSha, releaseWrites, tagFixture, tagWrites } from './release-tag-fixture.mjs';
 
 test('Given an exact merged release, When finalizing after branches advance, Then its annotated tag targets only the event merge commit', async () => {
   // Given an older merged release whose event contains its immutable merge SHA.
@@ -64,7 +11,7 @@ test('Given an exact merged release, When finalizing after branches advance, The
   await fixture.run();
 
   // Then an annotated tag and new ref identify the exact merge commit.
-  const writes = fixture.calls.filter(call => call.method === 'POST');
+  const writes = tagWrites(fixture);
   assert.equal(writes.length, 2);
   assert.equal(writes[0].path, 'git/tags');
   assert.equal(writes[0].body.object, 'b'.repeat(40));
@@ -77,14 +24,14 @@ test('Given a previously finalized release, When retrying finalization, Then it 
   // Given the first successful finalization.
   const fixture = tagFixture();
   await fixture.run();
-  const firstWriteCount = fixture.calls.filter(call => call.method === 'POST').length;
+  const firstWriteCount = tagWrites(fixture).length;
 
   // When the same closed event is retried.
   await fixture.run();
 
   // Then the existing annotated tag is verified and no additional writes occur.
-  assert.equal(fixture.calls.filter(call => call.method === 'POST').length, firstWriteCount);
-  assert.equal(fixture.summary.length, 2);
+  assert.equal(tagWrites(fixture).length, firstWriteCount);
+  assert.equal(fixture.summary.length, 4);
 });
 
 test('Given a conflicting existing tag, When finalizing, Then it fails without moving or deleting the tag', async () => {
@@ -163,5 +110,37 @@ for (const [scenario, change] of [
     // Then metadata repair cannot redirect release identity to another commit.
     await assert.rejects(action, /no longer matches the event release provenance/);
     assert.equal(fixture.calls.filter(call => call.method !== 'GET').length, 0);
+  });
+}
+
+for (const [scenario, change] of [
+  ['frontend mirror mismatch', fixture => {
+    fixture.values[`contents/src/frontend/package.json?ref=${releaseSha}`] = encoded('{"version":"1.0.1"}');
+  }],
+  ['contract mirror mismatch', fixture => {
+    fixture.values[`contents/src/contract/openapi.json?ref=${releaseSha}`] = encoded('{"info":{"version":"1.0.1"}}');
+  }],
+  ['wrong merge parent', fixture => {
+    fixture.values[`git/commits/${releaseSha}`].parents[1].sha = 'e'.repeat(40);
+  }],
+  ['wrong merge parent count', fixture => {
+    fixture.values[`git/commits/${releaseSha}`].parents.pop();
+  }],
+  ['wrong merge source tree', fixture => {
+    fixture.values[`git/commits/${releaseSha}`].tree.sha = 'other-tree';
+  }],
+]) {
+  test(`Given a current release with ${scenario}, When finalizing, Then no tag or Release is written`, async () => {
+    // Given a current release whose immutable inputs violate release validation.
+    const fixture = tagFixture();
+    change(fixture);
+
+    // When the exact workflow program validates the candidate.
+    const action = () => fixture.run();
+
+    // Then validation rejects it before any publication mutation.
+    await assert.rejects(action, /Invalid or inconsistent release version|not a main-to-deploy merge commit/);
+    assert.equal(tagWrites(fixture).length, 0);
+    assert.equal(releaseWrites(fixture).length, 0);
   });
 }

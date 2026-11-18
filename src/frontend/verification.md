@@ -1,6 +1,6 @@
 # Frontend verification
 
-Last updated: 2026-11-15
+Last updated: 2026-11-17
 
 ## 2026-11-15: Restricted-session password setup
 
@@ -1310,3 +1310,68 @@ smoke XML and mode-specific raw SSR/cookie records under
 `quality-reports/plan00026/{development,production}/`. Browser checks use headless
 Windows Edge. Native macOS/Linux hosts, physical devices and assistive technology
 remain unverified. Historical implemented plans remain unchanged.
+
+## 2026-11-17: Recipient controls and locked-door timing
+
+Calendar users no longer see idle guidance or a password-change link on My page
+or their calendar. Logout and administrator password controls remain available;
+voluntary recipient changes still use the direct route and current-password
+verification. Both language catalogs retain the approved timing sentences.
+
+Locked tiles expose a timing-help action without dialog semantics or an opening
+write. Their polite, atomic status uses authorized `opensAt` and backend
+`serverTime`, comparing dates/years in Europe/Oslo. A sticky status stays visible
+on tall boards without intercepting pointer actions; keyboard focus scrolls clear
+of it and remains on the tile. Repeated activation replaces the announcement node.
+Conflict recovery cancels older in-flight board reads before requesting subsequent
+authorized metadata. Only confirmed locked state produces timing help; empty
+content, generic conflicts, network failure and lost authority stay distinct.
+
+All **292 frontend/BFF unit tests** and **444 backend tests** pass, including actual
+migrations, controlled before/at/after-07:00 behavior and Production bypass
+rejection. Translation generation, explicit TypeScript, the final Nitro production
+build, Biome and full repository quality checks pass. The 13 date/presentation
+cases also pass with host `TZ=Pacific/Honolulu`.
+
+All **19 focused Vite browser scenarios** pass. They cover exact Norwegian/English
+day/full-month dates, conditional years, Oslo/browser New Year disagreement,
+metadata dates independent of tile numbers, both layouts, Enter/Space/pointer/touch,
+zero opening/image requests for known locked doors, no hidden content/history or
+success animation, empty selection, stale-warning clearing and failure races.
+A gated pre-conflict read proves that older available metadata cannot classify
+the denied opening. At 320px and desktop sizes the status stays in the viewport;
+pointer input passes through its overlay and keyboard focus remains unobscured.
+The complete final production run passes **148 scenarios plus eight smoke checks**
+without page/hydration errors, including owner/superadmin previews, all backgrounds,
+both layouts, opening history, local bypass and session/cache invalidation.
+
+Wider Vite checking also reproduces an existing owner-edit SSR limitation: a
+completed document can contain only loading output while hydration shows the
+correct saved recipient. The identical unchanged scenario fails at
+`calendar-recipient.test.mjs:59` on clean `origin/main` **1842b8d**, with matching
+test-file hashes. This change leaves owner loading/cache behavior unchanged.
+The isolated baseline checkout and its dependency junctions were removed after
+capturing evidence. This broader failing scenario is not claimed as passing.
+
+Windows advisory application health remains **92.5** with **147 duplicated lines /
+15 clones** and three unchanged heuristic findings. Tooling health improves
+**50.5 to 51.0**, with **12 duplicated lines / two clones** and 23 unchanged
+heuristic findings. Its complexity score declines **64.7 to 64.1** and complexity
+share grows **33.1% to 33.9%**; maximum file complexity remains **231**. The new
+failure classifications and gated transport lifecycle require asynchronous control
+flow. Shared cleanup releases gates and drains callbacks before fixture disposal,
+preventing background route failures from escaping tests. Timing and race suites
+are separated by behavior, and shared security/history assertions remove the
+introduced clone. Retaining these explicit lifecycle checks is the reviewed
+tradeoff; analyzer settings/exclusions are unchanged. Raw reports retain exact
+percentages, source identities and the whole-repository reference. Unsupported
+dimensions and heuristic findings remain subject to the analyzer's recorded limits.
+
+Evidence is under ignored `quality-reports/plan00025-*.log`,
+`quality-reports/plan00025/{development,production}/`,
+`quality-reports/plan00025/baseline-vite-*` and `quality-reports/health/`.
+Headless Windows Edge provides browser evidence; touch and reduced motion use
+emulation. Physical devices, human assistive-technology announcements and native
+macOS/Linux execution remain unverified. Test callbacks drain intercepted reads
+before context disposal. The expanded suite uses a 15-minute bound after the
+initial full run exceeded its former ten-minute limit.

@@ -70,7 +70,7 @@ function PersonalPage() {
         <SessionControls
           context={context}
           expiresAt={session.expiresAt}
-          passwordLink
+          passwordLink={user.role !== 'calendarUser'}
           className="ml-auto"
         />
       </header>

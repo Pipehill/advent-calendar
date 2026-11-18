@@ -99,11 +99,12 @@ test('Given the first changed release, When preparing, Then it creates one main-
   assert.equal(recordedVersion(created.body), '1.0.0');
   assert.match(result, /https:\/\/example.test\/pull\/1/);
   assert.match(result, /Deploy readiness/);
+  assert.doesNotMatch(created.body + result, /\[[ xX]\]/);
 });
 
-test('Given an owner-edited open release PR, When preparing again, Then it preserves owner prose and checklist', async () => {
+test('Given an owner-edited open release PR, When preparing again, Then it preserves prose and converts task markers', async () => {
   // Given owner prose outside the workflow-owned metadata block.
-  const ownerText = '\n\nOwner notes\n- [x] Backup downloaded.\n';
+  const ownerText = '\n\nOwner notes\n- [x] Backup downloaded.\n- [ ] Read [instructions](https://example.test).\n';
   const open = [{ number: 3, head: { ref: 'main', repo: { full_name: 'owner/repo' } },
     body: `${metadata('1.0.0', deploySha)}${ownerText}`, html_url: 'https://example.test/pull/3' }];
   const { api, calls } = fixture({ version: '1.1.0', open, tags: [{ name: 'v1.0.0' }] });
@@ -113,8 +114,34 @@ test('Given an owner-edited open release PR, When preparing again, Then it prese
 
   // Then the same PR is reused without rewriting the owner's content.
   const updated = onlyWrite(calls, 'pulls/3');
-  assert.equal(updated.body, `${metadata('1.1.0', mainSha)}${ownerText}`);
+  assert.equal(updated.body, `${metadata('1.1.0', mainSha)}${ownerText.replace(/\[[ x]\] /g, '')}`);
+  assert.equal(refreshMetadata(updated.body, '1.1.0', mainSha), updated.body);
   assert.match(result, /pull\/3/);
+});
+
+test('Given checked and unchecked nested owner tasks without metadata, When refreshing, Then only markers change and metadata is appended', () => {
+  // Given owner instructions with different Markdown list styles and an ordinary bracketed phrase.
+  const body = 'Owner [text]\n* [X] Keep this.\n  + [ ] Keep [link](https://example.test).\n1. [x] Keep order.\n';
+
+  // When metadata is first appended and then refreshed after source changes.
+  const updated = refreshMetadata(body, '1.0.0', deploySha);
+  const refreshed = refreshMetadata(updated, '1.0.0', mainSha);
+
+  // Then instruction text, indentation, links and stable metadata survive repeated refreshes.
+  assert.equal(refreshed, `Owner [text]\n* Keep this.\n  + Keep [link](https://example.test).\n1. Keep order.\n\n\n${metadata('1.0.0', mainSha)}`);
+  assert.equal(recordedVersion(refreshed), '1.0.0');
+  assert.equal(refreshMetadata(refreshed, '1.0.0', mainSha), refreshed);
+});
+
+test('Given quoted and empty owner tasks, When refreshing, Then task markers are removed without changing quote structure', () => {
+  // Given valid Markdown task lists inside quotations and with no instruction text.
+  const body = '> - [x] Reviewed.\n> > 1) [ ] Next.\n- [X]\n';
+
+  // When preparation normalizes the existing description.
+  const refreshed = refreshMetadata(body, '1.0.0', mainSha);
+
+  // Then no task markers remain, including empty tasks, and the quoted prose survives.
+  assert.equal(refreshed, `> - Reviewed.\n> > 1) Next.\n- \n\n\n${metadata('1.0.0', mainSha)}`);
 });
 
 test('Given a release PR already created by preparation, When preparing again, Then it returns the same PR without another write', async () => {
